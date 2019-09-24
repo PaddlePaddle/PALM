@@ -4,7 +4,7 @@ auxiliary_task: "mask_language_model answer_matching"
 do_train: True
 do_predict: True
 
-use_cuda: False
+use_cuda: True
 
 checkpoint_path: "output_model/firstrun"
 
