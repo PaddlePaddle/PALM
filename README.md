@@ -1,6 +1,6 @@
 PALM
 ===
-PALM (PAddLE Multitask) 是一个灵活易用的多任务学习框架，框架中内置了丰富的模型backbone（BERT、ERNIE、XLNet等）、常见的任务范式（分类、匹配、序列标注、机器阅读理解等）和数据集读取与处理工具。用户仅需关注私有任务的实现即可完成与其他任务的交互。
+PALM (PAddLE Multitask) 是一个灵活易用的多任务学习框架，框架中内置了丰富的模型backbone（BERT、ERNIE、XLNet等）、常见的任务范式（分类、匹配、序列标注、机器阅读理解等）和数据集读取与处理工具。
 
 ## 安装
 
