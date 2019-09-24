@@ -1,6 +1,6 @@
 PALM
 ===
-PALM (PAddLE Multitask) 是一个灵活易用的多任务学习框架，框架中内置了丰富的模型backbone（BERT、ERNIE、XLNet等）、常见的任务范式（分类、匹配、序列标注、机器阅读理解等）和数据集读取与处理工具。
+PALM (PAddLE Multitask) 是一个灵活易用的多任务学习框架，框架中内置了丰富的模型backbone（BERT、ERNIE等）、常见的任务范式（分类、匹配、序列标注、机器阅读理解等）和数据集读取与处理工具。对于典型的任务场景，用户几乎无需书写代码便可完成新任务的添加；对于特殊的任务场景，用户可通过对预置接口的实现来完成对新任务的支持。
 
 ## 安装
 
@@ -13,7 +13,7 @@ git clone https://github.com/PaddlePaddle/PALM.git
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
-- PaddlePaddle >= 1.5.0
+- PaddlePaddle >= 1.5.0 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
 ## 目录结构
 
