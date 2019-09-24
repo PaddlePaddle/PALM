@@ -30,7 +30,7 @@ git clone https://github.com/PaddlePaddle/PALM.git
 
 ## 使用说明
 
-框架给出了三个添加完成的任务示例：*Machine Reading Comprehension*、*Mask Language Model*和*Question Answer Matching*。其中在mtl_config.yaml中将*Machine Reading Comprehension*设置为了主任务，其他为辅助任务，用户可通过如下命令启动多任务学习
+框架给出了三个添加完成的任务示例：*Machine Reading Comprehension*、*Mask Language Model*和*Question Answer Matching*。其中在`mtl_config.yaml`中将*Machine Reading Comprehension*设置为了主任务，其他为辅助任务，用户可通过如下命令启动多任务学习
 
 ```
 bash run.sh
@@ -42,14 +42,14 @@ bash run.sh
 
 ***必选字段***
 
-- main_task：*(str)* 指定主任务的名称，目前仅支持单个主任务。名称选取自config文件夹中的配置的文件名（不包含后缀.yaml和为task共享而设置的中间后缀）
-- auxiliary_task：*(str)* 指定辅助任务，支持多个辅助任务，辅助任务之间使用空格隔开。名称选取自config文件夹中的配置的文件名（不包含后缀.yaml和为task共享而设置的中间后缀）
+- main_task：*(str)* 指定主任务的名称，目前仅支持单个主任务。名称选取自`config`文件夹中的配置的文件名（不包含后缀`.yaml`和为task共享而设置的中间后缀）
+- auxiliary_task：*(str)* 指定辅助任务，支持多个辅助任务，辅助任务之间使用空格隔开。名称选取自`config`文件夹中的配置的文件名（不包含后缀`.yaml`和为task共享而设置的中间后缀）
 - do_train：*(bool)* 训练标志位
 - do_predict：*(bool)* 预测标志位，目前仅支持对主任务进行预测
 - checkpoint_path: *(str)* 模型保存、训练断点恢复和预测模型载入路径，从该路径载入模型时默认读取最后一个训练step的模型
-- backbone_model：*(str)* 使用的骨干网络，名称选取自backbone目录下的模块
+- backbone_model：*(str)* 使用的骨干网络，名称选取自`backbone`目录下的模块
 - vocab_path：*(str)* 字典文件，纯文本格式存储，其中每行为一个单词
-- optimizer：*(str)* 优化器名称，名称选取自optimizer中的文件名
+- optimizer：*(str)* 优化器名称，名称选取自`optimizer`中的文件名
 - learning_rate：*(str)* 训练阶段的学习率
 - skip_steps：*(int)* 训练阶段打印日志的频率（step为单位）
 - epoch：*(int)* 主任务的训练epoch数
@@ -112,7 +112,7 @@ bash run.sh
       - shuffle: *(bool)* 训练阶段是否进行数据集打乱
       - dev_count: *(int)* 可用的GPU数量或CPU数量
     - yield输出
-      - tensors: (list) 根据get_input_shape中定义的任务backbone和task的所需输入shape和类型，来yield相应list结构的数据。其中被yield出的list的头部元素为backbone要求的输入数据，后续元素为task要求的输入数据
+      - tensors: (list) 根据`get_input_shape`中定义的任务backbone和task的所需输入shape和类型，来yield相应list结构的数据。其中被yield出的list的头部元素为backbone要求的输入数据，后续元素为task要求的输入数据
   - get_num_examples: *(function)* 返回样本数。注意由于滑动窗口等机制，实际运行时产生的样本数可能多于数据集中的样本数，这时应返回runtime阶段实际样本数
     - 输入参数
       - 无
