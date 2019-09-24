@@ -32,9 +32,11 @@ git clone https://github.com/PaddlePaddle/PALM.git
 
 框架给出了三个添加完成的任务示例：*Machine Reading Comprehension*、*Mask Language Model*和*Question Answer Matching*。其中在`mtl_config.yaml`中将*Machine Reading Comprehension*设置为了主任务，其他为辅助任务，用户可通过如下命令启动多任务学习
 
-```
+```shell
 bash run.sh
 ```
+
+*提示：首次运行时，脚本会自动下载预训练的bert和ernie模型，请耐心等待*
 
 ### 多任务学习配置
 

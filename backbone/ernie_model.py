@@ -22,10 +22,9 @@ from __future__ import absolute_import
 import paddle.fluid as fluid
 
 import backbone.utils.transformer4ernie as transformer
-from backbone.interface import backbone
 
 
-class Model(backbone):
+class Model(object):
     def __init__(self,
                  config,
                  is_training=False,
