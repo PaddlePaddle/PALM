@@ -74,7 +74,7 @@ bash run.sh
 
 ***config模块***
 
-存放每个任务的配置文件，`yaml`格式。配置文件中的必选字段包括
+位于`./config`目录。存放各个任务实例的配置文件，使用`yaml`格式描述。配置文件中的必选字段包括
 
 - in_tokens：是否使用lod tensor的方式构造batch，当`in_tokens`为False时，使用padding方式构造batch。
 - batch_size：每个训练或推理step所使用样本数。当`in_tokens`为True时，`batch_size`表示每个step所包含的tokens数量。
@@ -92,7 +92,7 @@ bash run.sh
 
 ***reader模块***
 
-完成数据集读取与处理。新增的reader应放置在`paradigm`目录下，且包含一个`get_input_shape`方法和`DataProcessor`类。
+位于`./reader`目录下。完成数据集读取与处理。新增的reader应放置在`paradigm`目录下，且包含一个`get_input_shape`方法和`DataProcessor`类。
 
 - **get_input_shape**: *(function)*  定义reader给backbone和task_paradigm生成的数据的shape和dtype，且需要同时返回训练和推理阶段的定义。
   - 输入参数
@@ -121,7 +121,7 @@ bash run.sh
 
 ***task_paradigm模块***
 
-描述任务范式。新增的任务范式应放置在`paradigm`目录下，且应包含`compute_loss`和`create_model`两个必选方法，以及`postprocess`，`global_postprocess`两个可选方法。
+位于`./paradigm`目录下。描述任务范式（如分类、匹配、阅读理解等）。新增的任务范式应放置在`paradigm`目录下，且应包含`compute_loss`和`create_model`两个必选方法，以及`postprocess`，`global_postprocess`两个可选方法。
 
 - create_model：*(function)* 创建task模型
   - 输入参数
