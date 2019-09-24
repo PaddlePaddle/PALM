@@ -4,7 +4,7 @@ PALM (PAddLE Multitask) 是一个灵活易用的多任务学习框架，框架�
 
 ## 安装
 
-暂时只支持git clone的源码安装方式:
+目前仅支持git clone源码的方式使用:
 ```shell
 git clone https://github.com/PaddlePaddle/PALM.git
 ```
