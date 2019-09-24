@@ -4,6 +4,8 @@ auxiliary_task: "mask_language_model answer_matching"
 do_train: True
 do_predict: True
 
+use_cuda: False
+
 checkpoint_path: "output_model/firstrun"
 
 backbone_model: "bert_model"
@@ -22,10 +24,9 @@ lr_scheduler: "linear_warmup_decay"
 skip_steps: 10
 save_steps: 10000
 epoch: 2
-use_cuda: True
 warmup_proportion: 0.1
 weight_decay: 0.1
-do_lower_case: False
+do_lower_case: True
 max_seq_len: 512
 use_ema: True
 ema_decay: 0.9999
