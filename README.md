@@ -70,6 +70,54 @@ bash run.sh
 - do_lower_case：*(bool)* 预处理阶段是否区分大小写
 - 其他用户自定义字段
 
+
+### 使用示例
+若内置任务可满足用户需求，或用户已经完成自定义任务的添加，可通过如下方式直接启动多任务学习。
+
+例如，框架中内置了一个小数据集，包含MRQA阅读理解评测数据`mrqa`、MaskLM训练数据`mlm4mrqa`和问题与答案所在上下文的匹配数据集`am4mrqa`，而在框架中已经内置了机器阅读理解任务(`reading_comprehension`)、问答匹配任务（`answer_matching`）和掩码语言模型任务（`mask_language_model`)，用户可通过如下流程完成多任务学习的启动。
+
+首先在config文件夹中添加训练任务相关的配置文件：
+
+1. `reading_comprehension.yaml`
+```python
+train_file: "data/mrqa/mrqa-combined.train.raw.json"
+predict_file: "data/mrqa/mrqa-combined.dev.raw.json"
+batch_size: 4
+mix_ratio: 1.0
+in_tokens: false
+doc_stride: 128
+sample_rate: 0.02
+...
+```
+
+2. mask_language_model.yaml
+```python
+train_file: "data/mlm4mrqa"
+mix_ratio: 0.4
+batch_size: 4
+in_tokens: False
+generate_neg_sample: False
+```
+
+3. answer_matching.yaml
+```python
+train_file: "data/am4mrqa/train.txt" 
+mix_ratio: 0.4
+batch_size: 4
+in_tokens: False
+```
+
+而后可以在主配置文件`mtl_config`中完成多任务学习的配置，其中，使用`main_task`字段指定主任务，使用`auxilary_task`可指定辅助任务，多个辅助任务之间使用空格` `隔开
+```python
+main_task: "reading_comprehension"
+auxiliary_task: "mask_language_model answer_matching"
+do_train: True
+...
+```
+
+最后，运行`run.sh`启动三个任务的联合训练。若用户希望删掉其中某些辅助任务，可通过修改`mtl_config.yaml`中的`auxilary_task`字段来实现。
+
+
 ### 添加新任务
 
 用户添加任务时，在准备好该任务的数据集后，需要完成如下3处开发工作：
