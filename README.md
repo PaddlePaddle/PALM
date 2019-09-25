@@ -17,7 +17,7 @@ git clone https://github.com/PaddlePaddle/PALM.git
 
 ## 目录结构
 
-- backbone: 多任务学习的主干网络表示，支持bert, ernie, xlnet等，用户可自定义添加
+- backbone: 多任务学习的主干网络表示，支持bert, ernie等，用户可自定义添加
 - config：存放各个任务的配置文件，用户添加任务时需在此建立该任务的配置文件
 - data: 存放各个任务的数据集
 - pretrain_model: 存放预训练模型、字典及其相关配置
