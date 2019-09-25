@@ -90,7 +90,7 @@ sample_rate: 0.02
 ...
 ```
 
-2. mask_language_model.yaml
+2. `mask_language_model.yaml`
 ```python
 train_file: "data/mlm4mrqa"
 mix_ratio: 0.4
@@ -99,7 +99,7 @@ in_tokens: False
 generate_neg_sample: False
 ```
 
-3. answer_matching.yaml
+3. `answer_matching.yaml`
 ```python
 train_file: "data/am4mrqa/train.txt" 
 mix_ratio: 0.4
@@ -107,11 +107,12 @@ batch_size: 4
 in_tokens: False
 ```
 
-而后可以在主配置文件`mtl_config`中完成多任务学习的配置，其中，使用`main_task`字段指定主任务，使用`auxilary_task`可指定辅助任务，多个辅助任务之间使用空格` `隔开
+而后可以在主配置文件`mtl_config.yaml`中完成多任务学习的配置，其中，使用`main_task`字段指定主任务，使用`auxilary_task`可指定辅助任务，多个辅助任务之间使用空格"` `"隔开
 ```python
 main_task: "reading_comprehension"
 auxiliary_task: "mask_language_model answer_matching"
 do_train: True
+epoch: 2
 ...
 ```
 
