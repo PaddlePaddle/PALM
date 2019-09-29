@@ -31,6 +31,5 @@ max_seq_len: 512
 use_ema: True
 ema_decay: 0.9999
 random_seed: 0
-use_fp16: False
 loss_scaling: 1.0
 

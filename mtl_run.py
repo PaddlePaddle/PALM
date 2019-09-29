@@ -275,14 +275,14 @@ def train(multitask_config):
                 exe,
                 args.pretrain_model_path,
                 main_program=startup_prog,
-                use_fp16=args.use_fp16)
+                use_fp16=False)
         if args.checkpoint_path:
             if os.path.exists(args.checkpoint_path):
                 init_checkpoint(
                     exe,
                     args.checkpoint_path,
                     main_program=startup_prog,
-                    use_fp16=args.use_fp16)
+                    use_fp16=False)
             else:
                 os.makedirs(args.checkpoint_path)
 
@@ -294,7 +294,7 @@ def train(multitask_config):
             exe,
             args.checkpoint_path,
             main_program=test_prog,
-            use_fp16=args.use_fp16)
+            use_fp16=False)
 
     if args.do_train:
         print('start training...')

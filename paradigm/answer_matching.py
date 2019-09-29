@@ -25,9 +25,6 @@ def compute_loss(output_tensors, args=None):
         logits=logits, label=labels, return_softmax=True)
     loss = fluid.layers.mean(x=ce_loss)
 
-    if args.use_fp16 and args.loss_scaling > 1.0:
-        loss *= args.loss_scaling
-
     return loss
 
 
