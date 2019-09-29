@@ -49,7 +49,7 @@ bash run.sh
 - do_train：*(bool)* 训练标志位
 - do_predict：*(bool)* 预测标志位，目前仅支持对主任务进行预测
 - checkpoint_path: *(str)* 模型保存、训练断点恢复和预测模型载入路径，从该路径载入模型时默认读取最后一个训练step的模型
-- backbone_model：*(str)* 使用的骨干网络，名称选取自`backbone`目录下的模块
+- backbone_model：*(str)* 使用的骨干网络，名称选取自`backbone`目录下的模块。注意，更换backbone时，若使用预训练模型，应同步更换预训练模型参数、配置和字典等相关字段
 - vocab_path：*(str)* 字典文件，纯文本格式存储，其中每行为一个单词
 - optimizer：*(str)* 优化器名称，名称选取自`optimizer`中的文件名
 - learning_rate：*(str)* 训练阶段的学习率
@@ -130,8 +130,8 @@ epoch: 2
 
 位于`./config`目录。存放各个任务实例的配置文件，使用`yaml`格式描述。配置文件中的必选字段包括
 
-- in_tokens：是否使用lod tensor的方式构造batch，当`in_tokens`为False时，使用padding方式构造batch。
 - batch_size：每个训练或推理step所使用样本数。当`in_tokens`为True时，`batch_size`表示每个step所包含的tokens数量。
+- in_tokens：是否使用lod tensor的方式构造batch，当`in_tokens`为False时，使用padding方式构造batch。
 
 训练阶段包含的必选字段包括
 
