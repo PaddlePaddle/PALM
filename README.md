@@ -18,7 +18,7 @@ git clone https://github.com/PaddlePaddle/PALM.git
 ## 目录结构
 
 - backbone: 多任务学习的主干网络表示，支持bert, ernie等，用户可自定义添加
-- config：存放各个任务的配置文件，用户添加任务时需在此建立该任务的配置文件
+- config：存放各个任务实例的配置文件，用户添加任务时需在此建立该任务的配置文件
 - data: 存放各个任务的数据集
 - pretrain_model: 存放预训练模型、字典及其相关配置
 - optimizer: 优化器，用户可在此自定义优化器
@@ -217,6 +217,13 @@ epoch: 2
 2. 如果一个任务的数据集是多个来源，请在configs下对同一个任务添加多个任务配置，如任务为"reading_comprehension"有两个数据集需要训练，且每个batch内的数据都来自同一数据集，则需要添加reading_comprehension.name1.yaml和reading_comprehension.name2.yaml两个配置文件，其中name1和name2用户可根据自己需求定义名称，框架内不限定名称定义；
 3. 启动多任务学习：sh run.sh
 ```
+
+## 框架结构与运行原理
+框架结构如图所示
+
+![框架图](https://tva1.sinaimg.cn/large/006y8mN6ly1g7goo0bjzwj31c20om13h.jpg)
+
+其中`mtl_config.yaml`用于配置多任务主控的参数设定，每个任务实例的配置由用户完成后放置于`config`文件夹中。当用户运行`run.sh`后，脚本启动多任务学习控制器，控制器开始解析`mtl_config.yaml`和各个任务实例的配置文件，进而创建backbone、为各个任务创建reader和任务层，最后控制器启动训练任务，实现多任务训练。
 
 ## License
 This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) and licensed under the [Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE).
