@@ -74,7 +74,7 @@ bash run.sh
 ### 使用示例
 若内置任务可满足用户需求，或用户已经完成自定义任务的添加，可通过如下方式直接启动多任务学习。
 
-例如，框架中内置了一个小数据集，包含MRQA阅读理解评测数据`mrqa`、MaskLM训练数据`mlm4mrqa`和问题与答案所在上下文的匹配数据集`am4mrqa`，而在框架中已经内置了机器阅读理解任务(`reading_comprehension`)、问答匹配任务（`answer_matching`）和掩码语言模型任务（`mask_language_model`)，用户可通过如下流程完成多任务学习的启动。
+例如，框架中内置了一个小数据集，包含MRQA阅读理解评测数据`mrqa`、MaskLM训练数据`mlm4mrqa`和问题与答案所在上下文的匹配数据集`am4mrqa`，而在框架中已经内置了机器阅读理解任务(`reading_comprehension`)、掩码语言模型任务（`mask_language_model`)和问答匹配任务（`answer_matching`）。这里我们希望用掩码语言模型和问答匹配任务来提升机器阅读理解任务的效果，那么我们可通过如下流程完成多任务学习的启动。
 
 首先在config文件夹中添加训练任务相关的配置文件：
 
@@ -107,7 +107,10 @@ batch_size: 4
 in_tokens: False
 ```
 
-而后可以在主配置文件`mtl_config.yaml`中完成多任务学习的配置，其中，使用`main_task`字段指定主任务，使用`auxilary_task`可指定辅助任务，多个辅助任务之间使用空格"` `"隔开
+而后可以在主配置文件`mtl_config.yaml`中完成多任务学习的配置，其中，使用`main_task`字段指定主任务，使用`auxilary_task`可指定辅助任务，多个辅助任务之间使用空格"` `"隔开。
+
+epoch的设定仅针对设定为主任务有效，`mix ratio`的基准值1.0也是针对主任务的训练步数而言的。例如，对于`epoch=2`，若将`reading_comprehension`任务的`mix ratio`设定为1.0，`mask_language_model`的`mix ratio`设定为0.5，那么`reading_comprehension`任务将训练两个完整的`epoch`，而`mask_language_model`任务的训练步数等于`reading_comprehension`训练步数的一半。
+
 ```python
 main_task: "reading_comprehension"
 auxiliary_task: "mask_language_model answer_matching"
