@@ -13,7 +13,7 @@ git clone https://github.com/PaddlePaddle/PALM.git
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
-- PaddlePaddle >= 1.5.0 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
+- PaddlePaddle >= 1.6 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
 ## 目录结构
 
