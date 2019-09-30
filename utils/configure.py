@@ -288,7 +288,7 @@ class PDConfig(object):
         if name in self.yaml_config:
             return self.yaml_config[name]
 
-        raise Warning("The argument %s is not defined." % name)
+        raise AttributeError("The argument %s is not defined." % name)
 
     def Print(self):
 
