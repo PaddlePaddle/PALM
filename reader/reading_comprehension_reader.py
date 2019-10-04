@@ -484,7 +484,8 @@ class InputFeatures(object):
 
 def read_mrqa_examples(input_file, is_training, with_negative=False):
     """Read a MRQA json file into a list of MRQAExample."""
-    print("loading mrqa raw data...")
+    phase = 'training' if is_training else 'testing'
+    print("loading mrqa {} data...".format(phase))
     with open(input_file, "r") as reader:
         input_data = json.load(reader)["data"]
 

@@ -42,7 +42,7 @@ def create_model(reader_input, base_model=None, is_training=True, args=None):
     _hidden_act = config['hidden_act']
 
     _word_emb_name = "word_embedding"
-    _dtype = "float16" if args.use_fp16 else "float32"
+    _dtype = "float32"
 
     _param_initializer = fluid.initializer.TruncatedNormal(
         scale=config['initializer_range'])

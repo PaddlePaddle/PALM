@@ -35,8 +35,6 @@ def compute_loss(output_tensors, args=None):
     start_loss = _compute_single_loss(start_logits, start_positions)
     end_loss = _compute_single_loss(end_logits, end_positions)
     total_loss = (start_loss + end_loss) / 2.0
-    if args.use_fp16 and args.loss_scaling > 1.0:
-        total_loss = total_loss * args.loss_scaling
 
     return total_loss
 

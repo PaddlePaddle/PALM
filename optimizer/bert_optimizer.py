@@ -19,8 +19,6 @@ from __future__ import print_function
 
 import numpy as np
 import paddle.fluid as fluid
-from utils.fp16 import create_master_params_grads, master_param_to_train_param
-
 
 def linear_warmup_decay(learning_rate, warmup_steps, num_train_steps):
     """ Applies linear warmup of learning rate from 0 and decay to 0."""
@@ -73,8 +71,6 @@ def optimization(loss, programs, args):
     clip_norm_thres = 1.0
     # When using mixed precision training, scale the gradient clip threshold
     # by loss_scaling
-    if args.use_fp16 and args.loss_scaling > 1.0:
-        clip_norm_thres *= args.loss_scaling
     fluid.clip.set_gradient_clip(
         clip=fluid.clip.GradientClipByGlobalNorm(clip_norm=clip_norm_thres))
 
@@ -89,44 +85,19 @@ def optimization(loss, programs, args):
 
     param_list = dict()
 
-    if args.use_fp16:
-        param_grads = optimizer.backward(loss)
-        master_param_grads = create_master_params_grads(
-            param_grads, train_program, startup_prog, args.loss_scaling)
+    for param in train_program.global_block().all_parameters():
+        param_list[param.name] = param * 1.0
+        param_list[param.name].stop_gradient = True
 
-        for param, _ in master_param_grads:
-            param_list[param.name] = param * 1.0
-            param_list[param.name].stop_gradient = True
+    _, param_grads = optimizer.minimize(loss)
 
-        optimizer.apply_gradients(master_param_grads)
-
-        if args.weight_decay > 0:
-            for param, grad in master_param_grads:
-                if exclude_from_weight_decay(param.name.rstrip(".master")):
-                    continue
-                with param.block.program._optimized_guard(
-                    [param, grad]), fluid.framework.name_scope("weight_decay"):
-                    updated_param = param - param_list[
-                        param.name] * weight_decay * scheduled_lr
-                    fluid.layers.assign(output=param, input=updated_param)
-
-        master_param_to_train_param(master_param_grads, param_grads,
-                                    train_program)
-
-    else:
-        for param in train_program.global_block().all_parameters():
-            param_list[param.name] = param * 1.0
-            param_list[param.name].stop_gradient = True
-
-        _, param_grads = optimizer.minimize(loss)
-
-        if args.weight_decay > 0:
-            for param, grad in param_grads:
-                if exclude_from_weight_decay(param.name):
-                    continue
-                with param.block.program._optimized_guard(
-                    [param, grad]), fluid.framework.name_scope("weight_decay"):
-                    updated_param = param - param_list[
-                        param.name] * args.weight_decay * scheduled_lr
-                    fluid.layers.assign(output=param, input=updated_param)
+    if args.weight_decay > 0:
+        for param, grad in param_grads:
+            if exclude_from_weight_decay(param.name):
+                continue
+            with param.block.program._optimized_guard(
+                [param, grad]), fluid.framework.name_scope("weight_decay"):
+                updated_param = param - param_list[
+                    param.name] * args.weight_decay * scheduled_lr
+                fluid.layers.assign(output=param, input=updated_param)
 

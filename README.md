@@ -17,8 +17,8 @@ git clone https://github.com/PaddlePaddle/PALM.git
 
 ## 目录结构
 
-- backbone: 多任务学习的主干网络表示，支持bert, ernie, xlnet等，用户可自定义添加
-- config：存放各个任务的配置文件，用户添加任务时需在此建立该任务的配置文件
+- backbone: 多任务学习的主干网络表示，支持bert, ernie等，用户可自定义添加
+- config：存放各个任务实例的配置文件，用户添加任务时需在此建立该任务的配置文件
 - data: 存放各个任务的数据集
 - pretrain_model: 存放预训练模型、字典及其相关配置
 - optimizer: 优化器，用户可在此自定义优化器
@@ -49,7 +49,7 @@ bash run.sh
 - do_train：*(bool)* 训练标志位
 - do_predict：*(bool)* 预测标志位，目前仅支持对主任务进行预测
 - checkpoint_path: *(str)* 模型保存、训练断点恢复和预测模型载入路径，从该路径载入模型时默认读取最后一个训练step的模型
-- backbone_model：*(str)* 使用的骨干网络，名称选取自`backbone`目录下的模块
+- backbone_model：*(str)* 使用的骨干网络，名称选取自`backbone`目录下的模块。注意，更换backbone时，若使用预训练模型，应同步更换预训练模型参数、配置和字典等相关字段
 - vocab_path：*(str)* 字典文件，纯文本格式存储，其中每行为一个单词
 - optimizer：*(str)* 优化器名称，名称选取自`optimizer`中的文件名
 - learning_rate：*(str)* 训练阶段的学习率
@@ -74,7 +74,7 @@ bash run.sh
 ### 使用示例
 若内置任务可满足用户需求，或用户已经完成自定义任务的添加，可通过如下方式直接启动多任务学习。
 
-例如，框架中内置了一个小数据集，包含MRQA阅读理解评测数据`mrqa`、MaskLM训练数据`mlm4mrqa`和问题与答案所在上下文的匹配数据集`am4mrqa`，而在框架中已经内置了机器阅读理解任务(`reading_comprehension`)、问答匹配任务（`answer_matching`）和掩码语言模型任务（`mask_language_model`)，用户可通过如下流程完成多任务学习的启动。
+例如，框架中内置了一个小数据集，包含MRQA阅读理解评测数据`mrqa`、MaskLM训练数据`mlm4mrqa`和问题与答案所在上下文的匹配数据集`am4mrqa`，而在框架中已经内置了机器阅读理解任务(`reading_comprehension`)、掩码语言模型任务（`mask_language_model`)和问答匹配任务（`answer_matching`）。这里我们希望用掩码语言模型和问答匹配任务来提升机器阅读理解任务的效果，那么我们可通过如下流程完成多任务学习的启动。
 
 首先在config文件夹中添加训练任务相关的配置文件：
 
@@ -107,7 +107,10 @@ batch_size: 4
 in_tokens: False
 ```
 
-而后可以在主配置文件`mtl_config.yaml`中完成多任务学习的配置，其中，使用`main_task`字段指定主任务，使用`auxilary_task`可指定辅助任务，多个辅助任务之间使用空格"` `"隔开
+而后可以在主配置文件`mtl_config.yaml`中完成多任务学习的配置，其中，使用`main_task`字段指定主任务，使用`auxilary_task`可指定辅助任务，多个辅助任务之间使用空格"` `"隔开。
+
+epoch的设定仅针对设定为主任务有效，`mix ratio`的基准值1.0也是针对主任务的训练步数而言的。例如，对于`epoch=2`，若将`reading_comprehension`任务的`mix ratio`设定为1.0，`mask_language_model`的`mix ratio`设定为0.5，那么`reading_comprehension`任务将训练两个完整的`epoch`，而`mask_language_model`任务的训练步数等于`reading_comprehension`训练步数的一半。
+
 ```python
 main_task: "reading_comprehension"
 auxiliary_task: "mask_language_model answer_matching"
@@ -127,8 +130,8 @@ epoch: 2
 
 位于`./config`目录。存放各个任务实例的配置文件，使用`yaml`格式描述。配置文件中的必选字段包括
 
-- in_tokens：是否使用lod tensor的方式构造batch，当`in_tokens`为False时，使用padding方式构造batch。
 - batch_size：每个训练或推理step所使用样本数。当`in_tokens`为True时，`batch_size`表示每个step所包含的tokens数量。
+- in_tokens：是否使用lod tensor的方式构造batch，当`in_tokens`为False时，使用padding方式构造batch。
 
 训练阶段包含的必选字段包括
 
@@ -217,6 +220,13 @@ epoch: 2
 2. 如果一个任务的数据集是多个来源，请在configs下对同一个任务添加多个任务配置，如任务为"reading_comprehension"有两个数据集需要训练，且每个batch内的数据都来自同一数据集，则需要添加reading_comprehension.name1.yaml和reading_comprehension.name2.yaml两个配置文件，其中name1和name2用户可根据自己需求定义名称，框架内不限定名称定义；
 3. 启动多任务学习：sh run.sh
 ```
+
+## 框架结构与运行原理
+框架结构如图所示
+
+![框架图](https://tva1.sinaimg.cn/large/006y8mN6ly1g7goo0bjzwj31c20om13h.jpg)
+
+其中`mtl_config.yaml`用于配置多任务主控的参数设定，每个任务实例的配置由用户完成后放置于`config`文件夹中。当用户运行`run.sh`后，脚本启动多任务学习控制器，控制器开始解析`mtl_config.yaml`和各个任务实例的配置文件，进而创建backbone、为各个任务创建reader和任务层，最后控制器启动训练任务，实现多任务训练。
 
 ## License
 This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) and licensed under the [Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE).
