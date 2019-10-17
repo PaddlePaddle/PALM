@@ -1,0 +1,4 @@
+*.pyc
+__pycache__
+pretrain_model
+output_model
