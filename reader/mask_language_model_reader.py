@@ -22,6 +22,7 @@ import gzip
 import logging
 import re
 import six
+import io
 import collections
 from utils import tokenization
 from utils.batching import prepare_batch_data
@@ -126,7 +127,7 @@ class DataProcessor(object):
     def load_vocab(self, vocab_file):
         """Loads a vocabulary file into a dictionary."""
         vocab = collections.OrderedDict()
-        fin = open(vocab_file)
+        fin = io.open(vocab_file, encoding='utf8')
         for num, line in enumerate(fin):
             items = self.convert_to_unicode(line.strip()).split("\t")
             if len(items) > 2:

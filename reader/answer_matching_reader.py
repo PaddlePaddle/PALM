@@ -17,6 +17,7 @@ import types
 import csv
 import numpy as np
 from utils import tokenization
+import io
 from utils.batching import prepare_batch_data
 
 
@@ -115,7 +116,7 @@ class BaseProcessor(object):
     @classmethod
     def _read_tsv(cls, input_file, quotechar=None):
         """Reads a tab separated value file."""
-        with open(input_file, "r") as f:
+        with io.open(input_file, "r", encoding="utf8") as f:
             reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
             lines = []
             for line in reader:
