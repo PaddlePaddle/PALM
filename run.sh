@@ -14,5 +14,5 @@ if [[ ! -d pretrain_model/ernie ]]; then
     bash download_pretrain.sh ernie
 fi
 
-python3.5 -u mtl_run.py
+python -u mtl_run.py
 
