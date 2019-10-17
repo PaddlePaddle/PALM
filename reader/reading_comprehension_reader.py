@@ -14,9 +14,11 @@
 """Run MRQA"""
 
 import six
+import io
 import math
 import json
 import random
+import io
 import collections
 import numpy as np
 from utils import tokenization
@@ -401,14 +403,14 @@ class DataProcessor(object):
 
             all_nbest_json[example.qas_id] = nbest_json
 
-        with open(output_prediction_file, "w") as writer:
+        with io.open(output_prediction_file, "w", encoding="utf8") as writer:
             writer.write(json.dumps(all_predictions, indent=4) + "\n")
 
-        with open(output_nbest_file, "w") as writer:
+        with io.open(output_nbest_file, "w", encoding="utf8") as writer:
             writer.write(json.dumps(all_nbest_json, indent=4) + "\n")
 
         if with_negative:
-            with open(output_null_log_odds_file, "w") as writer:
+            with io.open(output_null_log_odds_file, "w", encoding="utf8") as writer:
                 writer.write(json.dumps(scores_diff_json, indent=4) + "\n")
 
 
@@ -486,7 +488,7 @@ def read_mrqa_examples(input_file, is_training, with_negative=False):
     """Read a MRQA json file into a list of MRQAExample."""
     phase = 'training' if is_training else 'testing'
     print("loading mrqa {} data...".format(phase))
-    with open(input_file, "r") as reader:
+    with io.open(input_file, "r", encoding="utf8") as reader:
         input_data = json.load(reader)["data"]
 
     def is_whitespace(c):
@@ -736,7 +738,7 @@ def estimate_runtime_examples(data_path, sample_rate, tokenizer, \
     assert sample_rate > 0.0 and sample_rate <= 1.0, "sample_rate must be set between 0.0~1.0"
 
     print("loading data with json parser...")
-    with open(data_path, "r") as reader:
+    with io.open(data_path, "r", encoding="utf8") as reader:
         data = json.load(reader)["data"]
 
     num_raw_examples = 0

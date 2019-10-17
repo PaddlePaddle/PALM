@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
 from __future__ import division
@@ -18,6 +19,7 @@ from __future__ import print_function
 
 import os
 import sys
+import io
 import argparse
 import json
 import yaml
@@ -38,7 +40,7 @@ class JsonConfig(object):
 
     def _parse(self, config_path):
         try:
-            with open(config_path) as json_file:
+            with io.open(config_path, encoding="utf8") as json_file:
                 config_dict = json.load(json_file)
                 assert isinstance(config_dict, dict), "Object in {} is NOT a dict.".format(config_path)
         except:
@@ -216,7 +218,7 @@ class PDConfig(object):
             raise Warning("the json file %s does not exist." % file_path)
             return
 
-        with open(file_path, "r") as fin:
+        with io.open(file_path, "r", encoding="utf8") as fin:
             self.json_config = json.loads(fin.read())
             fin.close()
 
@@ -241,7 +243,7 @@ class PDConfig(object):
                 raise Warning("the yaml file %s does not exist." % file_path)
                 return
 
-            with open(file_path, "r") as fin: 
+            with io.open(file_path, "r", encoding="utf8") as fin: 
                 self.yaml_config = yaml.load(fin, Loader=yaml.SafeLoader)
                 fin.close()
 
