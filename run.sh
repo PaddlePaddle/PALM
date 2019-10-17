@@ -4,7 +4,7 @@
 export FLAGS_sync_nccl_allreduce=0
 export FLAGS_eager_delete_tensor_gb=1
 
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 
 if [[ ! -d pretrain_model/bert ]]; then
     bash download_pretrain.sh bert
