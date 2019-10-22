@@ -422,7 +422,7 @@ class Controller(object):
             prefixes.append(inst.name)
             mrs.append(inst.mix_ratio)
 
-        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE)
+        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE, batch_size=main_conf['batch_size'])
 
         input_attrs = [[i, j, k] for i, (j,k) in zip(joint_input_names, joint_shape_and_dtypes)]
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_joint_input_names, pred_joint_shape_and_dtypes)]
@@ -488,10 +488,9 @@ class Controller(object):
 
         bb_fetches = {k: v.name for k,v in bb_output_vars.items()}
         task_fetches = {k: v.name for k,v in task_output_vars.items()}
-        old = len(bb_fetches)+len(task_fetches) # for debug
-        fetches = bb_fetches.copy()
-        fetches.update(task_fetches)
-        assert len(fetches) == old # for debug
+        # fetches = bb_fetches.copy() # 注意！框架在多卡时无法fetch变长维度的tensor，这里加入bb的out后会挂
+        # fetches.update(task_fetches)
+        fetches = task_fetches
         fetches['__task_id'] = net_inputs['__task_id'].name
 
         # compute loss
@@ -505,7 +504,8 @@ class Controller(object):
         num_examples = main_reader.num_examples
         for inst in instances:
             max_train_steps = int(main_conf['num_epochs']* inst.mix_ratio * num_examples) // main_conf['batch_size']  // dev_count
-            print('{}: expected train steps {}.'.format(inst.name, max_train_steps))
+            if inst.is_target:
+                print('{}: expected train steps {}.'.format(inst.name, max_train_steps))
             inst.steps_pur_epoch = inst.reader['train'].num_examples // main_conf['batch_size']  // dev_count
             inst.expected_train_steps = max_train_steps
 
@@ -622,12 +622,11 @@ class Controller(object):
         epoch = 0
         time_begin = time.time()
         backbone_buffer = []
-        task_buffer = [[]] * num_instances
         while not train_finish():
             rt_outputs = self.exe.run(train_program, fetch_list=fetch_list)
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             rt_task_id = np.squeeze(rt_outputs['__task_id']).tolist()
-            assert (not isinstance(rt_task_id, list)) or len(set(rt_task_id)) == 1
+            assert (not isinstance(rt_task_id, list)) or len(set(rt_task_id)) == 1, rt_task_id
             rt_task_id = rt_task_id[0] if isinstance(rt_task_id, list) else rt_task_id
             cur_task = instances[rt_task_id]
 
@@ -635,8 +634,7 @@ class Controller(object):
             backbone_buffer.append(backbone.postprocess(backbone_rt_outputs))
             
             task_rt_outputs = {k[len(cur_task.name+'/'):]: v for k,v in rt_outputs.items() if k.startswith(cur_task.name+'/')}
-            temp = instances[rt_task_id].task_layer['train'].postprocess(task_rt_outputs)
-            task_buffer[rt_task_id].append(temp)
+            instances[rt_task_id].task_layer['train'].postprocess(task_rt_outputs)
 
             global_step += 1
             # if cur_task.is_target:

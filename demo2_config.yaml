@@ -2,7 +2,7 @@ task_instance: "mrqa, match4mrqa"
 target_tag: 1, 0
 mix_ratio: 1.0, 0.5
 
-save_path: "output_model/firstrun"
+save_path: "output_model/secondrun"
 
 backbone: "ernie"
 backbone_config_path: "pretrain_model/ernie/ernie_config.json"

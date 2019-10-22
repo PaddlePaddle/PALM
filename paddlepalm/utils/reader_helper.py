@@ -48,6 +48,20 @@ def _zero_batch(attrs):
     return [np.zeros(shape=shape, dtype=dtype) for shape, dtype in pos_attrs]
 
 
+def _zero_batch_x(attrs, batch_size):
+    pos_attrs = []
+    for shape, dtype in attrs:
+        # pos_shape = [size if size and size > 0 else 5 for size in shape]
+        pos_shape = [size for size in shape]
+        if pos_shape[0] == -1:
+            pos_shape[0] = batch_size
+        if pos_shape[1] == -1:
+            pos_shape[1] = 512 # max seq len
+        pos_attrs.append([pos_shape, dtype])
+
+    return [np.zeros(shape=shape, dtype=dtype) for shape, dtype in pos_attrs]
+
+
 def create_net_inputs(input_attrs, async=False, iterator_fn=None, dev_count=1, n_prefetch=1):
     inputs = []
     ret = {}
@@ -92,10 +106,11 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
     return iterator
 
 
-def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0):
+def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0, batch_size=None):
     """
         joint_shape_and_dtypes: 本质上是根据bb和parad的attr设定的，并且由reader中的attr自动填充-1（可变）维度得到，因此通过与iterator的校验可以完成runtime的batch正确性检查
     """
+
     task_ids = range(len(iterators))
     weights = [mr / float(sum(mrs)) for mr in mrs]
     if not keep_one_task:
@@ -129,7 +144,6 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
         v = verbose
         while True:
             id = np.random.choice(task_ids, p=weights)
-            # results = _zero_batch(joint_shape_and_dtypes)
             results = fake_batch
             if v > 0:
                 print('----- debug joint iterator -----')
@@ -138,6 +152,8 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
             results[0] = task_id_tensor
             
             for i in range(dev_count):
+                # results = _zero_batch(joint_shape_and_dtypes, batch_size=batch_size)
+                # results[0] = task_id_tensor
                 if id in outbuf:
                     outputs = outbuf[id]
                     del outbuf[id]

@@ -30,6 +30,7 @@ class Reader(reader):
             max_seq_len=config['max_seq_len'],
             do_lower_case=config.get('do_lower_case', False),
             tokenizer='FullTokenizer',
+            for_cn=config.get('for_cn', False),
             doc_stride=config['doc_stride'],
             max_query_length=config['max_query_len'],
             random_seed=config.get('seed', None))
