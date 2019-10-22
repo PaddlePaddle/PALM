@@ -1,0 +1,11 @@
+train_file: data/mrqa/mrqa-combined.train.raw.json
+pred_file: data/mrqa/mrqa-combined.dev.raw.json
+pred_output_path: 'mrqa_output'
+reader: mrc4ernie
+paradigm: mrc
+doc_stride: 128
+max_query_len: 64
+max_answer_len: 30
+n_best_size: 20
+null_score_diff_threshold: 0.0
+verbose: False

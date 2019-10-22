@@ -42,7 +42,8 @@ class TaskParadigm(task_paradigm):
             return {"logits": [[-1, 1], 'float32']}
 
     def build(self, inputs):
-        labels = inputs["reader"]["label_ids"] 
+        if self._is_training:
+            labels = inputs["reader"]["label_ids"] 
         cls_feats = inputs["backbone"]["sentence_pair_embedding"]
 
         cls_feats = fluid.layers.dropout(
@@ -58,11 +59,11 @@ class TaskParadigm(task_paradigm):
             bias_attr=fluid.ParamAttr(
                 name="cls_out_b",
                 initializer=fluid.initializer.Constant(0.)))
-        ce_loss, probs = fluid.layers.softmax_with_cross_entropy(
-            logits=logits, label=labels, return_softmax=True)
-        loss = fluid.layers.mean(x=ce_loss)
 
         if self._is_training:
+            ce_loss, probs = fluid.layers.softmax_with_cross_entropy(
+                logits=logits, label=labels, return_softmax=True)
+            loss = fluid.layers.mean(x=ce_loss)
             return {'loss': loss}
         else:
             return {'logits': logits}

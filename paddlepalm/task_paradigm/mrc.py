@@ -65,9 +65,7 @@ class TaskParadigm(task_paradigm):
     @property
     def outputs_attr(self):
         if self._is_training:
-            return {'start_logits': [[-1, -1, 1], 'float32'],
-                    'end_logits': [[-1, -1, 1], 'float32'],
-                    'loss': [[1], 'float32']}
+            return {'loss': [[1], 'float32']}
         else:
             return {'start_logits': [[-1, -1, 1], 'float32'],
                     'end_logits': [[-1, -1, 1], 'float32'],
@@ -106,16 +104,14 @@ class TaskParadigm(task_paradigm):
             start_loss = _compute_single_loss(start_logits, start_positions)
             end_loss = _compute_single_loss(end_logits, end_positions)
             total_loss = (start_loss + end_loss) / 2.0
-            return {'start_logits': start_logits,
-                    'end_logits': end_logits,
-                    'loss': total_loss}
+            return {'loss': total_loss}
         else:
             return {'start_logits': start_logits,
                     'end_logits': end_logits,
                     'unique_ids': unique_id}
 
 
-    def postprocess(self, rt_outputs):                                                                                                                                                   
+    def postprocess(self, rt_outputs):
         """this func will be called after each step(batch) of training/evaluating/predicting process."""
         if not self._is_training:
             unique_ids = np.squeeze(rt_outputs['unique_ids'], -1)
