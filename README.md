@@ -38,7 +38,7 @@ cd PALM && python setup.py
 
 
 
-![image-20191022194400259](/Users/xiaoxi/Library/Application Support/typora-user-images/image-20191022194400259.png)
+![image-20191022194400259](https://tva1.sinaimg.cn/large/006y8mN6ly1g879twxivaj31eo0cq0vv.jpg)
 
 
 
