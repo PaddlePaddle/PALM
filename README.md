@@ -1,8 +1,8 @@
 # PALM
 
-PALM (PAddLe for Multi-task) 是一个灵活易用的多任务学习框架，并且支持用户定制化新型任务场景。
+PALM (PAddLe for Multi-task) 是一个强大快速、灵活易用的NLP多任务学习框架，用户仅需书写极少量代码即可完成复杂的多任务训练与推理。同时框架提供了定制化接口，若内置工具、主干网络和任务无法满足需求，开发者可以轻松完成相关组件的自定义。
 
-框架中内置了丰富的模型backbone（BERT、ERNIE等）、常见的任务范式（分类、匹配、序列标注、机器阅读理解等）和数据集读取与处理工具。
+框架中内置了丰富的主干网络及其预训练模型（BERT、ERNIE等）、常见的任务范式（分类、匹配、机器阅读理解等）和相应的数据集读取与处理工具。相关列表见这里。
 
 ## 安装
 
@@ -40,7 +40,7 @@ cd PALM && python setup.py
 ![image-20191022194400259](https://tva1.sinaimg.cn/large/006y8mN6ly1g88ajvpqmgj31hu07wn5s.jpg)
 
 
-例如我们有一个目标任务MRC和两个辅助任务MLM和MATCH，我们希望通过MLM和MATCH来提高目标任务MRC的测试集表现（即提升模型泛化能力），那么我们可以令三个任务共享相同的文本特征抽取模型（例如图中的ERNIE），然后分别为每个任务定义输出层，计算各自的loss值。
+例如我们有一个目标任务MRC和两个辅助任务MLM和MATCH，我们希望通过MLM和MATCH来提高目标任务MRC的测试集表现（即提升模型泛化能力），那么我们可以令三个任务共享相同的文本特征抽取模型（例如BERT、ERNIE等），然后分别为每个任务定义输出层，计算各自的loss值。
 
 框架默认采用任务采样+mini-batch采样的方式（alternating mini-batches optimization）进行模型训练，即对于每个训练step，首先对候选任务进行采样（采样权重取决于用户设置的`mix_ratio`），而后从该任务的训练集中采样出一个mini-batch（采样出的样本数取决于用户设置的`batch_size`）。
 
@@ -177,7 +177,9 @@ warmup_proportion: 0.1
 weight_decay: 0.1 
 ```
 
-这里我们可以使用`target_tag`来标记目标任务和辅助辅助，每个任务默认均为目标任务，对于tag设置为0的任务，标记为辅助任务。辅助任务不会保存推理模型，且不会影响训练的终止。当所有的目标任务达到预期的训练步数后多任务学习终止，框架自动为每个目标任务保存推理模型（inference model）到设置的`save_path`位置。
+这里我们可以使用`target_tag`来标记目标任务和辅助任务，各个任务的tag使用逗号`,`隔开。target_tag与task_instance中的元素一一对应，当某任务的tag设置为1时，表示对应的任务被设置为目标任务；设置为0时，表示对应的任务被设置为辅助任务，默认情况下所以任务均被设置为目标任务（即默认`target_tag`为全1）。
+
+辅助任务不会保存推理模型，且不会影响训练的终止。当所有的目标任务达到预期的训练步数后多任务学习终止，框架自动为每个目标任务保存推理模型（inference model）到设置的`save_path`位置。
 
 在训练过程中，默认每个训练step会从各个任务等概率采样，来决定当前step训练哪个任务。若用户希望改变采样比率，可以通过`mix_ratio`字段来进行设置，例如
 
@@ -207,6 +209,29 @@ if __name__ == '__main__':
     controller = palm.Controller(config='demo2_config.yaml', task_dir='demo2_tasks', for_train=False)
     controller.pred('mrqa', inference_model_dir='output_model/secondrun/infer_model') 
 ```
+
+## 进阶篇
+
+### 设置辅助任务
+
+### 更改任务采样概率（期望的训练步数）
+
+在默认情况下，每个训练step的各个任务被采样到的概率均等，若用户希望更改其中某些任务的采样概率（比如某些任务的训练集较小，希望减少对其采样的次数；或某些任务较难，希望被更多的训练），可以在全局配置文件中通过`mix_ratio`字段控制各个任务的采样概率。例如
+
+```yaml
+task_instance: mrqa, match4mrqa, mlm4mrqa
+mix_ratio: 1.0, 0.5, 0.5
+```
+
+上述设置表示`match4mrqa`和`mlm4mrqa`任务的期望被采样次数均为`mrqa`任务的一半。此时，在mrqa任务被设置为主任务的情况下（第一个目标任务即为主任务），若mrqa任务训练一个epoch要经历5000 steps，且全局配置文件中设置了num_epochs为2，则根据上述`mix_ratio`的设置，mrqa任务将被训练5000\*2\*1.0=10000个steps，而`match4mrqa`任务和`mlm4mrqa`任务都会被训练5000个steps**左右**。
+
+> 注意：若match4mrqa, mlm4mrqa被设置为辅助任务，则实际训练步数可能略多或略少于5000个steps。对于目标任务，则是精确的5000 steps。
+
+### 共享任务层参数
+
+### 分布式训练
+
+
 
 ## License
 
