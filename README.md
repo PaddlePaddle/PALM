@@ -37,9 +37,7 @@ cd PALM && python setup.py
 框架默认采用一对多（One-to-Many）的参数共享方式，如图
 
 
-
-![image-20191022194400259](https://tva1.sinaimg.cn/large/006y8mN6ly1g879twxivaj31eo0cq0vv.jpg)
-
+![image-20191022194400259](https://tva1.sinaimg.cn/large/006y8mN6ly1g88ajvpqmgj31hu07wn5s.jpg)
 
 
 例如我们有一个目标任务MRC和两个辅助任务MLM和MATCH，我们希望通过MLM和MATCH来提高目标任务MRC的测试集表现（即提升模型泛化能力），那么我们可以令三个任务共享相同的文本特征抽取模型（例如图中的ERNIE），然后分别为每个任务定义输出层，计算各自的loss值。
