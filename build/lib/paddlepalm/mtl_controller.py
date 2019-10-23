@@ -626,8 +626,7 @@ class Controller(object):
             rt_outputs = self.exe.run(train_program, fetch_list=fetch_list)
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             rt_task_id = np.squeeze(rt_outputs['__task_id']).tolist()
-            # 注意注释掉这一行之后，训练日志实际是错误的
-            # assert (not isinstance(rt_task_id, list)) or len(set(rt_task_id)) == 1, rt_task_id
+            assert (not isinstance(rt_task_id, list)) or len(set(rt_task_id)) == 1, rt_task_id
             rt_task_id = rt_task_id[0] if isinstance(rt_task_id, list) else rt_task_id
             cur_task = instances[rt_task_id]
 

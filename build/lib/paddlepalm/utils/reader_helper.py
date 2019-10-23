@@ -72,8 +72,7 @@ def create_net_inputs(input_attrs, async=False, iterator_fn=None, dev_count=1, n
 
     if async:
         assert iterator_fn is not None, "iterator_fn is needed for building async input layer."
-        # reader = fluid.io.PyReader(inputs, capacity=dev_count*n_prefetch, iterable=False)
-        reader = fluid.io.PyReader(inputs, capacity=dev_count, iterable=False)
+        reader = fluid.io.PyReader(inputs, capacity=dev_count*n_prefetch, iterable=False)
         reader.decorate_batch_generator(iterator_fn)
         reader.start()
 
@@ -154,7 +153,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
             
             for i in range(dev_count):
                 # results = _zero_batch(joint_shape_and_dtypes, batch_size=batch_size)
-                results[0] = task_id_tensor
+                # results[0] = task_id_tensor
                 if id in outbuf:
                     outputs = outbuf[id]
                     del outbuf[id]
