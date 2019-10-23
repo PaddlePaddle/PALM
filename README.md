@@ -208,5 +208,12 @@ if __name__ == '__main__':
     controller.pred('mrqa', inference_model_dir='output_model/secondrun/infer_model') 
 ```
 
+## License
+
+This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) and licensed under the [Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE).
+
+## 许可证书
+
+此向导由[PaddlePaddle](https://github.com/PaddlePaddle/Paddle)贡献，受[Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE)许可认证。
 
 
