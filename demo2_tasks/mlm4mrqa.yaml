@@ -1,0 +1,3 @@
+train_file: "data/mlm4mrqa/train.txt"
+reader: mlm
+paradigm: mlm

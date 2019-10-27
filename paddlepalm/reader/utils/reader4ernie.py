@@ -45,11 +45,7 @@ if six.PY3:
 def csv_reader(fd, delimiter='\t'):
     def gen():
         for i in fd:
-            slots = i.rstrip('\n').split(delimiter)
-            if len(slots) == 1:
-                yield slots,
-            else:
-                yield slots
+            yield i.rstrip('\n').split(delimiter)
     return gen()
 
 
@@ -74,6 +70,7 @@ class BaseReader(object):
         self.pad_id = self.vocab["[PAD]"]
         self.cls_id = self.vocab["[CLS]"]
         self.sep_id = self.vocab["[SEP]"]
+        self.mask_id = self.vocab["[MASK]"]
         self.in_tokens = in_tokens
         self.is_inference = is_inference
         self.for_cn = for_cn
@@ -242,7 +239,6 @@ class BaseReader(object):
                 batch_records, max_len = [record], len(record.token_ids)
 
         if phase == 'pred' and batch_records:
-            print('the last batch yielded.')
             yield self._pad_batch_records(batch_records)
 
     def get_num_examples(self, input_file=None, phase=None):
@@ -371,31 +367,28 @@ class MaskLMReader(BaseReader):
         token_ids = tokenizer.convert_tokens_to_ids(tokens)
         position_ids = list(range(len(token_ids)))
 
-        Record = namedtuple('Record',
-                            ['token_ids', 'text_type_ids', 'position_ids'])
-        record = Record(
-            token_ids=token_ids,
-            text_type_ids=text_type_ids,
-            position_ids=position_ids)
+        # Record = namedtuple('Record',
+        #                     ['token_ids', 'text_type_ids', 'position_ids'])
+        # record = Record(
+        #     token_ids=token_ids,
+        #     text_type_ids=text_type_ids,
+        #     position_ids=position_ids)
 
-        return record
+        return [token_ids, text_type_ids, position_ids]
 
-    def batch_reader(examples, batch_size, in_tokens, phase):
-        batch, total_token_num, max_len = [], 0, 0
+    def batch_reader(self, examples, batch_size, in_tokens, phase):
+        batch = []
+        total_token_num = 0
         for e in examples:
-            token_ids, sent_ids, pos_ids = _convert_example_to_record(e, self.max_seq_len, self.tokenizer)
-            max_len = max(max_len, len(token_ids))
-            if in_tokens:
-                to_append = (len(batch) + 1) * max_len <= batch_size
-            else:
-                to_append = len(batch) < batch_size
+            parsed_line = self._convert_example_to_record(e, self.max_seq_len, self.tokenizer)
+            to_append = len(batch) < batch_size
             if to_append:
                 batch.append(parsed_line)
-                total_token_num += len(token_ids)
+                total_token_num += len(parsed_line[0])
             else:
                 yield batch, total_token_num
-                batch, total_token_num, max_len = [parsed_line], len(
-                    token_ids), len(token_ids)
+                batch = [parsed_line]
+                total_token_num = len(parsed_line[0])
 
         if len(batch) > 0 and phase == 'pred':
             yield batch, total_token_num
@@ -426,17 +419,17 @@ class MaskLMReader(BaseReader):
                     np.random.shuffle(examples)
 
                 all_dev_batches = []
-                for batch_data, total_token_num in batch_reader(examples, 
-                                                    self.batch_size, self.in_tokens, phase=phase):
+                for batch_data, num_tokens in self.batch_reader(examples, 
+                                                    batch_size, self.in_tokens, phase=phase):
                     batch_data = prepare_batch_data(
                         batch_data,
-                        total_token_num,
-                        voc_size=self.voc_size,
+                        num_tokens,
+                        voc_size=len(self.vocab),
                         pad_id=self.pad_id,
                         cls_id=self.cls_id,
                         sep_id=self.sep_id,
                         mask_id=self.mask_id,
-                        max_len=self.max_seq_len,
+                        # max_len=self.max_seq_len, # 注意，如果padding到最大长度，会导致mask_pos与实际位置不对应。因为mask pos是基于batch内最大长度来计算的。
                         return_input_mask=True,
                         return_max_len=False,
                         return_num_token=False)

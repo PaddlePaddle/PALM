@@ -16,6 +16,7 @@
 import paddle.fluid as fluid
 from paddlepalm.interface import task_paradigm
 from paddle.fluid import layers
+from paddlepalm.backbone.utils.transformer import pre_process_layer
 
 class TaskParadigm(task_paradigm):
     '''
@@ -23,6 +24,7 @@ class TaskParadigm(task_paradigm):
     '''
     def __init__(self, config, phase, backbone_config=None):
         self._is_training = phase == 'train'
+        self._emb_size = backbone_config['hidden_size']
         self._hidden_size = backbone_config['hidden_size']
         self._vocab_size = backbone_config['vocab_size']
         self._hidden_act = backbone_config['hidden_act']
@@ -30,11 +32,14 @@ class TaskParadigm(task_paradigm):
     
     @property
     def inputs_attrs(self):
-        if self._is_training:
-            reader = {"label_ids": [[-1, 1], 'int64']}
-        else:
-            reader = {}
-        bb = {"encoder_outputs": [[-1, self._hidden_size], 'float32']}
+        reader = {
+            "mask_label": [[-1, 1], 'int64'],
+            "mask_pos": [[-1, 1], 'int64']}
+        if not self._is_training:
+            del reader['mask_label']
+        bb = {
+            "encoder_outputs": [[-1, -1, self._hidden_size], 'float32'],
+            "embedding_table": [[-1, self._vocab_size, self._emb_size], 'float32']}
         return {'reader': reader, 'backbone': bb}
 
     @property
@@ -42,12 +47,13 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {"loss": [[1], 'float32']}
         else:
-            return {"logits": [[-1, 1], 'float32']}
+            return {"logits": [[-1], 'float32']}
 
     def build(self, inputs):
-        mask_label = inputs["reader"]["mask_label"] 
+        if self._is_training:
+            mask_label = inputs["reader"]["mask_label"] 
         mask_pos = inputs["reader"]["mask_pos"] 
-        word_emb = inputs["backbone"]["word_embedding"]
+        word_emb = inputs["backbone"]["embedding_table"]
         enc_out = inputs["backbone"]["encoder_outputs"]
 
         emb_size = word_emb.shape[-1]
@@ -62,7 +68,6 @@ class TaskParadigm(task_paradigm):
 
         # extract masked tokens' feature
         mask_feat = fluid.layers.gather(input=reshaped_emb_out, index=mask_pos)
-        num_seqs = fluid.layers.fill_constant(shape=[1], value=512, dtype='int64')
 
         # transform: fc
         mask_trans_feat = fluid.layers.fc(
@@ -99,13 +104,12 @@ class TaskParadigm(task_paradigm):
             attr=mask_lm_out_bias_attr,
             is_bias=True)
 
-        mask_lm_loss = fluid.layers.softmax_with_cross_entropy(
-            logits=fc_out, label=mask_label)
-        loss = fluid.layers.mean(mask_lm_loss)
-
         if self._is_training:
+            mask_lm_loss = fluid.layers.softmax_with_cross_entropy(
+                logits=fc_out, label=mask_label)
+            loss = fluid.layers.mean(mask_lm_loss)
             return {'loss': loss}
         else:
-            return None
+            return {'logits': fc_out}
 
 

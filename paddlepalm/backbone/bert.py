@@ -28,9 +28,7 @@ from paddlepalm.interface import backbone
     
 class Model(backbone):
     
-    def __init__(self,
-                 config,
-                 phase):
+    def __init__(self, config, phase):
 
         # self._is_training = phase == 'train' # backbone一般不用关心运行阶段，因为outputs在任何阶段基本不会变
         self._emb_size = config["hidden_size"]
@@ -56,16 +54,17 @@ class Model(backbone):
 
     @property
     def inputs_attr(self):
-        return {"token_ids": [-1, self._max_position_seq_len, 1], 'int64'],
-                "position_ids": [-1, self._max_position_seq_len, 1], 'int64'],
-                "segment_ids": [-1, self._max_position_seq_len, 1], 'int64'],
-                "input_mask": [-1, self._max_position_seq_len, 1], 'float32']}
+        return {"token_ids": [[-1, -1, 1], 'int64'],
+                "position_ids": [[-1, -1, 1], 'int64'],
+                "segment_ids": [[-1, -1, 1], 'int64'],
+                "input_mask": [[-1, -1, 1], 'float32']}
 
     @property
     def outputs_attr(self):
-        return {"word_emb": [-1, self._max_position_seq_len, self._emb_size],
-                "sentence_emb": [-1, self._emb_size],
-                "sentence_pair_emb": [-1, self._emb_size]}
+        return {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
+                "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
+                "sentence_embedding": [[-1, self._emb_size], 'float32'],
+                "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
 
     def build(self, inputs):
         src_ids = inputs['token_ids']
@@ -146,9 +145,10 @@ class Model(backbone):
                 initializer = self._param_initializer),
             bias_attr = "pooled_fc.b_0")
 
-        return {'word_emb': enc_out,
-                'sentence_emb': next_sent_feat, 
-                'sentence_pair_emb': next_sent_feat}
+        return {'word_embedding': emb_out,
+                'encoder_outputs': enc_out,
+                'sentence_embedding': next_sent_feat,
+                'sentence_pair_embedding': next_sent_feat}
 
     def postprocess(self, rt_outputs):
         pass

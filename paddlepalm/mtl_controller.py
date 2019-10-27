@@ -422,7 +422,7 @@ class Controller(object):
             prefixes.append(inst.name)
             mrs.append(inst.mix_ratio)
 
-        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE, batch_size=main_conf['batch_size'])
+        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE)
 
         input_attrs = [[i, j, k] for i, (j,k) in zip(joint_input_names, joint_shape_and_dtypes)]
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_joint_input_names, pred_joint_shape_and_dtypes)]
@@ -652,6 +652,10 @@ class Controller(object):
                        global_step, cur_task.name, cur_task.cur_train_step, cur_task.steps_pur_epoch, cur_task.cur_train_epoch,
                        loss, main_conf.get('print_every_n_steps', 5) / time_cost))
                 time_begin = time.time()
+
+            if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
+                print(cur_task.name+': train finished!')
+                cur_task.save()
 
             if 'save_every_n_steps' in main_conf and global_step % main_conf['save_every_n_steps'] == 0:
                 save_path = os.path.join(main_conf['save_path'],

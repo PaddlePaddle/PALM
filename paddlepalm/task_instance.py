@@ -70,7 +70,11 @@ class TaskInstance(object):
     def build_task_layer(self, net_inputs, phase):
         output_vars = self._task_layer[phase].build(net_inputs)
         if phase == 'pred':
-            self._pred_fetch_name_list, self._pred_fetch_var_list = zip(*output_vars.items())
+            if output_vars is not None:
+                self._pred_fetch_name_list, self._pred_fetch_var_list = zip(*output_vars.items())
+            else:
+                self._pred_fetch_name_list = []
+                self._pred_fetch_var_list = []
         return output_vars
 
     def postprocess(self, rt_outputs, phase):
@@ -234,8 +238,6 @@ class TaskInstance(object):
             self._cur_train_step = 1
         if self._is_target and self._cur_train_step + self._cur_train_epoch * self._steps_pur_epoch >= self._expected_train_steps:
             self._train_finish = True
-            print(self._name+': train finished!')
-            self.save()
             # fluid.io.save_inference_model(self._save_infermodel_path, )
 
     @property

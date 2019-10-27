@@ -93,6 +93,7 @@ def prepare_batch_data(insts,
     batch_sent_ids = [inst[1] for inst in insts]
     batch_pos_ids = [inst[2] for inst in insts]
 
+    # 这里是否应该反过来？？？否则在task layer里展开后的word embedding是padding后的，这时候word的index是跟没有padding时的index对不上的？
     # First step: do mask without padding
     out, mask_label, mask_pos = mask(
         batch_src_ids,
@@ -106,6 +107,7 @@ def prepare_batch_data(insts,
         out, 
         max_len=max_len,
         pad_idx=pad_id, return_input_mask=True)
+
     pos_id = pad_batch_data(
         batch_pos_ids,
         max_len=max_len,
