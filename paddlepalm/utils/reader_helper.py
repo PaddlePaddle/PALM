@@ -22,7 +22,7 @@ from paddle import fluid
 from paddle.fluid import layers
 
 
-def _check_and_adapt_shape_dtype(rt_val, attr):
+def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
     if not isinstance(rt_val, np.ndarray):
         rt_val = np.array(rt_val)
         assert rt_val.dtype != np.dtype('O'), "yielded data is not a valid tensor(number of elements on some dimension may differ)."
@@ -30,12 +30,12 @@ def _check_and_adapt_shape_dtype(rt_val, attr):
             rt_val = rt_val.astype('float32')
     
     shape, dtype = attr
-    assert rt_val.dtype == np.dtype(dtype), "yielded data type not consistent with attr settings."
-    assert len(shape) == rt_val.ndim, "yielded data rank(ndim) not consistent with attr settings."
+    assert rt_val.dtype == np.dtype(dtype), message+"yielded data type not consistent with attr settings. Expect: {}, receive: {}.".format(rt_val.dtype, np.dtype(dtype))
+    assert len(shape) == rt_val.ndim, message+"yielded data rank(ndim) not consistent with attr settings. Expect: {}, receive: {}.".format(len(shape), rt_val.ndim)
     for rt, exp in zip(rt_val.shape, shape):
         if exp is None or exp < 0:
             continue
-        assert rt == exp, "yielded data shape is not consistent with attr settings.\nExpected:{}\nActual:{}".format(exp, rt)
+        assert rt == exp, "yielded data shape is not consistent with attr settings.Expected:{}Actual:{}".format(exp, rt)
     return rt_val
     
 
@@ -107,7 +107,7 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
     return iterator
 
 
-def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0, batch_size=None):
+def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0):
     """
         joint_shape_and_dtypes: 本质上是根据bb和parad的attr设定的，并且由reader中的attr自动填充-1（可变）维度得到，因此通过与iterator的校验可以完成runtime的batch正确性检查
     """
@@ -130,12 +130,12 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
 
             if outname in outname_to_pos:
                 idx = outname_to_pos[outname]
-                val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx])
+                val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx], message=outname+': ')
                 results[idx] = val
 
             if task_outname in outname_to_pos:
                 idx = outname_to_pos[task_outname]
-                val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx])
+                val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx], message=task_outname+': ')
                 results[idx] = val
 
     fake_batch = results
@@ -153,7 +153,6 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
             results[0] = task_id_tensor
             
             for i in range(dev_count):
-                # results = _zero_batch(joint_shape_and_dtypes, batch_size=batch_size)
                 results[0] = task_id_tensor
                 if id in outbuf:
                     outputs = outbuf[id]
@@ -171,14 +170,14 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                         idx = outname_to_pos[outname]
                         if v > 0:
                             print(outname + ' is insert in idx ' + str(idx))
-                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx])
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx], message=outname+': ')
                         results[idx] = val
 
                     if task_outname in outname_to_pos:
                         idx = outname_to_pos[task_outname]
                         if v > 0:
                             print(task_outname + ' is insert in idx ' + str(idx))
-                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx])
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx], message=task_outname+': ')
                         results[idx] = val
 
                 if v > 0:

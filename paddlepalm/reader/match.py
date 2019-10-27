@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from paddlepalm.interface import reader
-from paddlepalm.reader.utils.reader4ernie import MaskLMReader
+from paddlepalm.reader.utils.reader4ernie import ClassifyReader
 
 class Reader(reader):
     
@@ -26,7 +26,7 @@ class Reader(reader):
 
         self._is_training = phase == 'train'
 
-        reader = MaskLMReader(config['vocab_path'],
+        reader = ClassifyReader(config['vocab_path'],
             max_seq_len=config['max_seq_len'],
             do_lower_case=config.get('do_lower_case', False),
             for_cn=config.get('for_cn', False),
@@ -59,14 +59,21 @@ class Reader(reader):
 
     @property
     def outputs_attr(self):
-        return {"token_ids": [[-1, -1, 1], 'int64'],
-                "position_ids": [[-1, -1, 1], 'int64'],
-                "segment_ids": [[-1, -1, 1], 'int64'],
-                "input_mask": [[-1, -1, 1], 'float32'],
-                "task_ids": [[-1, -1, 1], 'int64'],
-                "mask_label": [[-1, 1], 'int64'],
-                "mask_pos": [[-1, 1], 'int64']
-                }
+        if self._is_training:
+            return {"token_ids": [[-1, -1, 1], 'int64'],
+                    "position_ids": [[-1, -1, 1], 'int64'],
+                    "segment_ids": [[-1, -1, 1], 'int64'],
+                    "input_mask": [[-1, -1, 1], 'float32'],
+                    "label_ids": [[-1,1], 'int64'],
+                    "task_ids": [[-1, -1, 1], 'int64']
+                    }
+        else:
+            return {"token_ids": [[-1, -1, 1], 'int64'],
+                    "position_ids": [[-1, -1, 1], 'int64'],
+                    "segment_ids": [[-1, -1, 1], 'int64'],
+                    "task_ids": [[-1, -1, 1], 'int64'],
+                    "input_mask": [[-1, -1, 1], 'float32']
+                    }
 
 
     def load_data(self):
@@ -75,9 +82,12 @@ class Reader(reader):
     def iterator(self): 
 
         def list_to_dict(x):
-            names = ['token_ids', 'position_ids', 'segment_ids', 'input_mask', 
-                'task_ids', 'mask_label', 'mask_pos']
+            names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
+                'label_ids', 'unique_ids']
             outputs = {n: i for n,i in zip(names, x)}
+            del outputs['unique_ids']
+            if not self._is_training:
+                del outputs['label_ids']
             return outputs
 
         for batch in self._data_generator():
