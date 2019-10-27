@@ -135,7 +135,17 @@ if __name__ == '__main__':
     controller.train()
 ```
 
+默认情况下每5个训练step打印一次训练日志，如下（该日志在8卡P40机器上运行得到），可以看到loss值随着训练收敛。在训练结束后，`Controller`自动为mrqa任务保存预测模型。
 
+```
+Global step: 5. Task: mrqa, step 5/13 (epoch 0), loss: 4.976, speed: 0.11 steps/s
+Global step: 10. Task: mrqa, step 10/13 (epoch 0), loss: 2.938, speed: 0.48 steps/s
+Global step: 15. Task: mrqa, step 2/13 (epoch 1), loss: 2.422, speed: 0.47 steps/s
+Global step: 20. Task: mrqa, step 7/13 (epoch 1), loss: 2.809, speed: 0.53 steps/s
+Global step: 25. Task: mrqa, step 12/13 (epoch 1), loss: 1.744, speed: 0.50 steps/s
+mrqa: train finished!
+mrqa: inference model saved at output_model/firstrun/infer_model
+```
 
 ## DEMO2：多任务训练与推理
 
