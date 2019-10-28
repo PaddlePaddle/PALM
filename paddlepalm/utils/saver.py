@@ -19,6 +19,8 @@ import os
 import six
 import ast
 import copy
+import tarfile
+import shutil
 
 import numpy as np
 import paddle.fluid as fluid
@@ -48,18 +50,30 @@ def init_pretraining_params(exe,
     assert os.path.exists(pretraining_params_path
                           ), "[%s] cann't be found." % pretraining_params_path
 
+
+    assert os.path.exists(os.path.join(pretraining_params_path, '__palmmodel__')), "__palmmodel__ not found."
+    print("Loading pretraining parameters from {}...".format(
+        pretraining_params_path))
+
+    with tarfile.open(os.path.join(pretraining_params_path, '__palmmodel__'), 'r:') as f:
+        f.extractall(os.path.join(pretraining_params_path, '.temp'))
+
+    pretraining_params_path = os.path.join(pretraining_params_path, '.temp')
+
     def existed_params(var):
         if not isinstance(var, fluid.framework.Parameter):
             return False
+        if not os.path.exists(os.path.join(pretraining_params_path, var.name)):
+            print('Warning: {} not found in {}.'.format(var.name, pretraining_params_path))
         return os.path.exists(os.path.join(pretraining_params_path, var.name))
-
-    print("Load pretraining parameters from {}...\n".format(
-        pretraining_params_path))
 
     fluid.io.load_vars(
         exe,
         pretraining_params_path,
         main_program=main_program,
         predicate=existed_params)
+
+    shutil.rmtree(pretraining_params_path)
+    print('')
 
 

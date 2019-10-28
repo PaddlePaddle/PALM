@@ -430,23 +430,25 @@ class Controller(object):
 
         # build backbone and task layers
         # 不指定scope名字会挂，框架有坑
+        train_prog = fluid.default_main_program()
+        train_init_prog = fluid.default_startup_program()
+        # 别用unique_name.guard了，没用的，无法作用到param_attr里的name上
         with fluid.unique_name.guard("backbone-"):
-            bb_output_vars = train_backbone.build(net_inputs)
-        # bb_output_vars = train_backbone.build(net_inputs)
+            bb_output_vars = train_backbone.build(net_inputs, scope_name='__paddlepalm_')
         assert sorted(bb_output_vars.keys()) == sorted(train_backbone.outputs_attr.keys())
-
+        #for var in train_init_prog.blocks[0].vars:
+        #    print(var)
+        
         # 会挂
         # 这里是否有必要新建一个program？是的，被坑死了
         pred_prog = fluid.Program()
         pred_init_prog = fluid.Program()
 
-        train_prog = fluid.default_main_program()
-        train_init_prog = fluid.default_startup_program()
-
         with fluid.program_guard(main_program = pred_prog, startup_program = pred_init_prog):
             pred_net_inputs = create_net_inputs(pred_input_attrs)
-            with fluid.unique_name.guard("backbone-"):
-                pred_bb_output_vars = pred_backbone.build(pred_net_inputs)
+            # 别用unique_name.guard了，没用的，无法作用到param_attr里的name上
+            # with fluid.unique_name.guard("backbone-"):
+            pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
 
         fluid.framework.switch_main_program(train_prog)
         fluid.framework.switch_startup_program(train_init_prog)
@@ -503,13 +505,13 @@ class Controller(object):
 
         num_examples = main_reader.num_examples
         for inst in instances:
-            max_train_steps = int(main_conf['num_epochs']* inst.mix_ratio * num_examples) // main_conf['batch_size']  // dev_count
+            max_train_steps = int(main_conf['num_epochs']* inst.mix_ratio * (num_examples // main_conf['batch_size']  // dev_count))
             if inst.is_target:
                 print('{}: expected train steps {}.'.format(inst.name, max_train_steps))
             inst.steps_pur_epoch = inst.reader['train'].num_examples // main_conf['batch_size']  // dev_count
             inst.expected_train_steps = max_train_steps
 
-        global_max_train_steps = int(main_conf['num_epochs'] * num_examples * sum(mrs)) // main_conf['batch_size']  // dev_count
+        global_max_train_steps = int(main_conf['num_epochs'] * sum(mrs) * (num_examples // main_conf['batch_size']  // dev_count))
         print('Estimated overall train steps {}.'.format(global_max_train_steps))
 
         if 'warmup_proportion' in main_conf and main_conf['warmup_proportion'] > 0:

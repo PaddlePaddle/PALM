@@ -76,7 +76,7 @@ class Model(backbone):
                 "sentence_embedding": [[-1, self._emb_size], 'float32'],
                 "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
 
-    def build(self, inputs):
+    def build(self, inputs, scope_name=""):
 
         src_ids = inputs['token_ids']
         pos_ids = inputs['position_ids']
@@ -90,25 +90,25 @@ class Model(backbone):
             size=[self._voc_size, self._emb_size],
             dtype=self._emb_dtype,
             param_attr=fluid.ParamAttr(
-                name=self._word_emb_name, initializer=self._param_initializer),
+                name=scope_name+self._word_emb_name, initializer=self._param_initializer),
             is_sparse=False)
 
         # fluid.global_scope().find_var('backbone-word_embedding').get_tensor()
-        embedding_table = fluid.default_main_program().global_block().var(self._word_emb_name)
+        embedding_table = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
         
         position_emb_out = fluid.layers.embedding(
             input=pos_ids,
             size=[self._max_position_seq_len, self._emb_size],
             dtype=self._emb_dtype,
             param_attr=fluid.ParamAttr(
-                name=self._pos_emb_name, initializer=self._param_initializer))
+                name=scope_name+self._pos_emb_name, initializer=self._param_initializer))
 
         sent_emb_out = fluid.layers.embedding(
             sent_ids,
             size=[self._sent_types, self._emb_size],
             dtype=self._emb_dtype,
             param_attr=fluid.ParamAttr(
-                name=self._sent_emb_name, initializer=self._param_initializer))
+                name=scope_name+self._sent_emb_name, initializer=self._param_initializer))
 
         emb_out = emb_out + position_emb_out
         emb_out = emb_out + sent_emb_out
@@ -118,13 +118,13 @@ class Model(backbone):
             size=[self._task_types, self._emb_size],
             dtype=self._emb_dtype,
             param_attr=fluid.ParamAttr(
-                name=self._task_emb_name,
+                name=scope_name+self._task_emb_name,
                 initializer=self._param_initializer))
 
         emb_out = emb_out + task_emb_out
 
         emb_out = pre_process_layer(
-            emb_out, 'nd', self._prepostprocess_dropout, name='pre_encoder')
+            emb_out, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')
 
         self_attn_mask = fluid.layers.matmul(
             x=input_mask, y=input_mask, transpose_y=True)
@@ -151,7 +151,7 @@ class Model(backbone):
             preprocess_cmd="",
             postprocess_cmd="dan",
             param_initializer=self._param_initializer,
-            name='encoder')
+            name=scope_name+'encoder')
 
         
         next_sent_feat = fluid.layers.slice(
@@ -162,8 +162,8 @@ class Model(backbone):
             size=self._emb_size,
             act="tanh",
             param_attr=fluid.ParamAttr(
-                name="pooled_fc.w_0", initializer=self._param_initializer),
-            bias_attr="pooled_fc.b_0")
+                name=scope_name+"pooled_fc.w_0", initializer=self._param_initializer),
+            bias_attr=scope_name+"pooled_fc.b_0")
 
         return {'embedding_table': embedding_table,
                 'word_embedding': emb_out,
