@@ -2,7 +2,7 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
     controller = palm.Controller('config_demo1.yaml', task_dir='demo1_tasks')
-    controller.load_pretrain('pretrain_model/ernie/params')
+    controller.load_pretrain('pretrain_model/bert/params')
     controller.train()
 
     controller = palm.Controller(config='config_demo1.yaml', task_dir='demo1_tasks', for_train=False)

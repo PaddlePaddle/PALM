@@ -1,13 +1,11 @@
 task_instance: "mrqa"
-target_tag: 1
-mix_ratio: 1.0
 
 save_path: "output_model/firstrun"
 
-backbone: "ernie"
-backbone_config_path: "pretrain_model/ernie/ernie_config.json"
+backbone: "bert"
+backbone_config_path: "pretrain_model/bert/bert_config.json"
 
-vocab_path: "pretrain_model/ernie/vocab.txt"
+vocab_path: "pretrain_model/bert/vocab.txt"
 do_lower_case: True
 max_seq_len: 512
 

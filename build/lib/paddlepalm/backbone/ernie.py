@@ -12,12 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""v1.1 
-BERT model."""
+"""Ernie model."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from paddle import fluid
 from paddle.fluid import layers
@@ -25,37 +26,47 @@ from paddle.fluid import layers
 from paddlepalm.backbone.utils.transformer import pre_process_layer, encoder
 from paddlepalm.interface import backbone
 
-    
+
 class Model(backbone):
-    
-    def __init__(self, config, phase):
+
+    def __init__(self,
+                 config,
+                 phase):
 
         # self._is_training = phase == 'train' # backbone一般不用关心运行阶段，因为outputs在任何阶段基本不会变
-        self._emb_size = config["hidden_size"]
-        self._n_layer = config["num_hidden_layers"]
-        self._n_head = config["num_attention_heads"]
-        self._voc_size = config["vocab_size"]
-        self._max_position_seq_len = config["max_position_embeddings"]
-        self._sent_types = config["type_vocab_size"]
-        self._hidden_act = config["hidden_act"]
-        self._prepostprocess_dropout = config["hidden_dropout_prob"]
-        self._attention_dropout = config["attention_probs_dropout_prob"]
+
+        self._emb_size = config['hidden_size']
+        self._n_layer = config['num_hidden_layers']
+        self._n_head = config['num_attention_heads']
+        self._voc_size = config['vocab_size']
+        self._max_position_seq_len = config['max_position_embeddings']
+        if config['sent_type_vocab_size']:
+            self._sent_types = config['sent_type_vocab_size']
+        else:
+            self._sent_types = config['type_vocab_size']
+
+        self._task_types = config['task_type_vocab_size']
+
+        self._hidden_act = config['hidden_act']
+        self._prepostprocess_dropout = config['hidden_dropout_prob']
+        self._attention_dropout = config['attention_probs_dropout_prob']
 
         self._word_emb_name = "word_embedding"
         self._pos_emb_name = "pos_embedding"
         self._sent_emb_name = "sent_embedding"
+        self._task_emb_name = "task_embedding"
+        self._emb_dtype = "float32"
 
-        # Initialize all weigths by truncated normal initializer, and all biases 
-        # will be initialized by constant zero by default.
         self._param_initializer = fluid.initializer.TruncatedNormal(
-            scale=config["initializer_range"])
+            scale=config['initializer_range'])
 
     @property
     def inputs_attr(self):
         return {"token_ids": [[-1, -1, 1], 'int64'],
                 "position_ids": [[-1, -1, 1], 'int64'],
                 "segment_ids": [[-1, -1, 1], 'int64'],
-                "input_mask": [[-1, -1, 1], 'float32']}
+                "input_mask": [[-1, -1, 1], 'float32'],
+                "task_ids": [[-1,-1, 1], 'int64']}
 
     @property
     def outputs_attr(self):
@@ -66,12 +77,13 @@ class Model(backbone):
                 "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
 
     def build(self, inputs, scope_name=""):
+
         src_ids = inputs['token_ids']
         pos_ids = inputs['position_ids']
         sent_ids = inputs['segment_ids']
         input_mask = inputs['input_mask']
+        task_ids = inputs['task_ids']
 
-        self._emb_dtype = 'float32'
         # padding id in vocabulary must be set to 0
         emb_out = fluid.layers.embedding(
             input=src_ids,
@@ -100,6 +112,16 @@ class Model(backbone):
 
         emb_out = emb_out + position_emb_out
         emb_out = emb_out + sent_emb_out
+
+        task_emb_out = fluid.layers.embedding(
+            task_ids,
+            size=[self._task_types, self._emb_size],
+            dtype=self._emb_dtype,
+            param_attr=fluid.ParamAttr(
+                name=scope_name+self._task_emb_name,
+                initializer=self._param_initializer))
+
+        emb_out = emb_out + task_emb_out
 
         emb_out = pre_process_layer(
             emb_out, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')
@@ -151,5 +173,3 @@ class Model(backbone):
 
     def postprocess(self, rt_outputs):
         pass
-
-
