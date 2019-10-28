@@ -57,14 +57,15 @@ def init_pretraining_params(exe,
 
     with tarfile.open(os.path.join(pretraining_params_path, '__palmmodel__'), 'r:') as f:
         f.extractall(os.path.join(pretraining_params_path, '.temp'))
-
+    
+    log_path = os.path.join(pretraining_params_path, '__palmmodel__')
     pretraining_params_path = os.path.join(pretraining_params_path, '.temp')
 
     def existed_params(var):
         if not isinstance(var, fluid.framework.Parameter):
             return False
         if not os.path.exists(os.path.join(pretraining_params_path, var.name)):
-            print('Warning: {} not found in {}.'.format(var.name, pretraining_params_path))
+            print('Warning: {} not found in {}.'.format(var.name, log_path))
         return os.path.exists(os.path.join(pretraining_params_path, var.name))
 
     fluid.io.load_vars(
