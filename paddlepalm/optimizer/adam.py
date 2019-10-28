@@ -90,11 +90,6 @@ def optimize(loss, config, max_train_steps=None, warmup_steps=0, train_program=N
 
     _, param_grads = optimizer.minimize(loss)
 
-    for block in fluid.default_main_program().blocks:
-        for var_name in block.vars:
-            if var_name.startswith("embedding"):
-                print(block.vars[var_name])
-            
 
     if config.get('weight_decay', 0) > 0:
         for param, grad in param_grads:
