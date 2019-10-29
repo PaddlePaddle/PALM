@@ -283,17 +283,35 @@ for_cn: True
 - train_file（REQUIRED）：str类型。训练集文件所在路径。仅进行预测时，该字段可不设置。
 - pred_file（REQUIRED）：str类型。测试集文件所在路径。仅进行训练时，该字段可不设置。
 
+- do_lower_case（OPTIONAL）：bool类型，默认为False。是否将大写英文字母转换成小写。
 - shuffle（OPTIONAL）：bool类型，默认为True。训练阶段打乱数据集样本的标志位，当置为True时，对数据集的样本进行全局打乱。注意，该标志位的设置不会影响预测阶段（预测阶段不会shuffle数据集）。
+- seed（OPTIONAL）：int类型，默认为。
 - pred_batch_size（OPTIONAL）：int类型。预测阶段的批大小，当该参数未设置时，预测阶段的批大小取决于`batch_size`字段的值。
 - print_first_n（OPTIONAL）：int类型。打印数据集的前n条样本和对应的reader输出，默认为0。
 
 ### 文本分类数据集reader（`cls`）
 
-该reader额外包含以下字段
+该reader完成文本分类数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含两列，一列为样本标签`label`，一列为原始文本`text_a`。形如
+
+```
+label   text_a                                                                                   
+1   when was the last time the san antonio spurs missed the playoffshave only missed the playoffs four times since entering the NBA
+0   the creation of the federal reserve system was an attempt toReserve System ( also known as the Federal Reserve or simply the Fed ) is the central banking system of the United States of America . 
+2   group f / 64 was a major backlash against the earlier photographic movement off / 64 was formed , Edward Weston went to a meeting of the John Reed Club , which was founded to support Marxist artists and writers . 
+0   Bessarabia eventually became under the control of which country?
+```
+***注意：数据集的第一列必须为header，即标注每一列的列名***
+
+该reader额外包含以下配置字段
 
 - n_classes（REQUIRED）：int类型。分类任务的类别数。
 
-### 文本匹配
+### 文本匹配数据集reader（`match`）
+
+该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`，形如
+
+
+***注意：数据集的第一列必须为header，即标注每一列的列名***
 
 
 ## 内置主干网络（backbone）
