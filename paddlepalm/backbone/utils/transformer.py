@@ -23,6 +23,35 @@ from functools import partial
 import paddle.fluid as fluid
 import paddle.fluid.layers as layers
 
+from paddle.fluid.layer_helper import LayerHelper as LayerHelper
+def layer_norm(x, begin_norm_axis=1, epsilon=1e-6, param_attr=None, bias_attr=None):
+    helper = LayerHelper('layer_norm', **locals())
+    mean = layers.reduce_mean(x, dim=begin_norm_axis, keep_dim=True)
+    shift_x = layers.elementwise_sub(x=x, y=mean, axis=0)
+    variance = layers.reduce_mean(layers.square(shift_x), dim=begin_norm_axis, keep_dim=True)
+    r_stdev = layers.rsqrt(variance + epsilon)
+    norm_x = layers.elementwise_mul(x=shift_x, y=r_stdev, axis=0)
+
+    param_shape = [reduce(lambda x, y: x * y, norm_x.shape[begin_norm_axis:])]
+    param_dtype = norm_x.dtype
+    scale = helper.create_parameter(
+        attr=param_attr,
+        shape=param_shape,
+        dtype=param_dtype,
+        default_initializer=fluid.initializer.Constant(1.))
+    bias = helper.create_parameter(
+        attr=bias_attr,
+        shape=param_shape,
+        dtype=param_dtype,
+        is_bias=True,
+        default_initializer=fluid.initializer.Constant(0.))
+
+    out = layers.elementwise_mul(x=norm_x, y=scale, axis=-1)
+    out = layers.elementwise_add(x=out, y=bias, axis=-1)
+
+    return out
+
+
 def multi_head_attention(queries,
                          keys,
                          values,
@@ -209,7 +238,7 @@ def pre_post_process_layer(prev_out, out, process_cmd, dropout_rate=0.,
             out_dtype = out.dtype
             if out_dtype == fluid.core.VarDesc.VarType.FP16:
                 out = layers.cast(x=out, dtype="float32")
-            out = layers.layer_norm(
+            out = layer_norm(
                 out,
                 begin_norm_axis=len(out.shape) - 1,
                 param_attr=fluid.ParamAttr(

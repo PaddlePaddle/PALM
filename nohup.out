@@ -1,0 +1,110 @@
+W1028 21:51:59.319365  9630 device_context.cc:235] Please NOTE: device: 0, CUDA Capability: 61, Driver API Version: 10.1, Runtime API Version: 9.0
+W1028 21:51:59.323333  9630 device_context.cc:243] device: 0, cuDNN Version: 7.3.
+I1028 21:52:26.817137  9630 parallel_executor.cc:421] The number of CUDAPlace, which is used in ParallelExecutor, is 8. And the Program will be copied 8 copies
+W1028 21:52:41.982228  9630 fuse_all_reduce_op_pass.cc:72] Find all_reduce operators: 401. To make the speed faster, some all_reduce ops are fused during training, after fusion, the number of all_reduce ops is 255.
+I1028 21:52:42.243458  9630 build_strategy.cc:363] SeqOnlyAllReduceOps:0, num_trainers:1
+I1028 21:53:14.242537  9630 parallel_executor.cc:285] Inplace strategy is enabled, when build_strategy.enable_inplace = True
+I1028 21:53:16.313246  9630 parallel_executor.cc:368] Garbage collection strategy is enabled, when FLAGS_eager_delete_tensor_gb = 0
+/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/executor.py:774: UserWarning: The following exception is not an EOF exception.
+  "The following exception is not an EOF exception.")
+Traceback (most recent call last):
+  File "demo2.py", line 6, in <module>
+    controller.train()
+  File "/home/ssd7/yiming/release/PALM/paddlepalm/mtl_controller.py", line 669, in train
+    fluid.io.save_persistables(self.exe, save_path, saver_program)
+  File "/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/io.py", line 571, in save_persistables
+    filename=filename)
+  File "/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/io.py", line 216, in save_vars
+    filename=filename)
+  File "/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/io.py", line 256, in save_vars
+    executor.run(save_program)
+  File "/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/executor.py", line 775, in run
+    six.reraise(*sys.exc_info())
+  File "/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/executor.py", line 770, in run
+    use_program_cache=use_program_cache)
+  File "/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/executor.py", line 817, in _run_impl
+    use_program_cache=use_program_cache)
+  File "/home/zhangyiming/env-bert/lib/python2.7/site-packages/paddle/fluid/executor.py", line 894, in _run_program
+    fetch_var_name)
+paddle.fluid.core_avx.EnforceNotMet: 
+
+--------------------------------------------
+C++ Call Stacks (More useful to developers):
+--------------------------------------------
+0   std::string paddle::platform::GetTraceBackString<char const*>(char const*&&, char const*, int)
+1   paddle::platform::EnforceNotMet::EnforceNotMet(std::__exception_ptr::exception_ptr, char const*, int)
+2   paddle::operators::SaveOpKernel<paddle::platform::CUDADeviceContext, float>::SaveLodTensor(paddle::framework::ExecutionContext const&, boost::variant<paddle::platform::CUDAPlace, paddle::platform::CPUPlace, paddle::platform::CUDAPinnedPlace, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_, boost::detail::variant::void_> const&, paddle::framework::Variable const*) const
+3   paddle::operators::SaveOpKernel<paddle::platform::CUDADeviceContext, float>::Compute(paddle::framework::ExecutionContext const&) const
+4   std::_Function_handler<void (paddle::framework::ExecutionContext const&), paddle::framework::OpKernelRegistrarFunctor<paddle::platform::CUDAPlace, false, 0ul, paddle::operators::SaveOpKernel<paddle::platform::CUDADeviceContext, float>, paddle::operators::SaveOpKernel<paddle::platform::CUDADeviceContext, double>, paddle::operators::SaveOpKernel<paddle::platform:I1029 10:38:26.419725 30194 parallel_executor.cc:421] The number of CUDAPlace, which is used in ParallelExecutor, is 8. And the Program will be copied 8 copies
+W1029 10:38:48.046470 30194 fuse_all_reduce_op_pass.cc:72] Find all_reduce operators: 401. To make the speed faster, some all_reduce ops are fused during training, after fusion, the number of all_reduce ops is 255.
+I1029 10:38:48.322405 30194 build_strategy.cc:363] SeqOnlyAllReduceOps:0, num_trainers:1
+I1029 10:39:23.302821 30194 parallel_executor.cc:285] Inplace strategy is enabled, when build_strategy.enable_inplace = True
+I1029 10:39:25.419924 30194 parallel_executor.cc:368] Garbage collection strategy is enabled, when FLAGS_eager_delete_tensor_gb = 0
+W1029 10:42:46.438006 30194 init.cc:212] *** Aborted at 1572316966 (unix time) try "date -d @1572316966" if you are using GNU date ***
+W1029 10:42:46.440183 30194 init.cc:212] PC: @                0x0 (unknown)
+W1029 10:42:46.440296 30194 init.cc:212] *** SIGTERM (@0x1f80000785a) received by PID 30194 (TID 0x7f0773d5e700) from PID 30810; stack trace: ***
+W1029 10:42:46.441951 30194 init.cc:212]     @     0x7f0773528160 (unknown)
+W1029 10:42:46.443789 30194 init.cc:212]     @     0x7f07735243cc __pthread_cond_wait
+W1029 10:42:46.444838 30194 init.cc:212]     @     0x7f0726a0c3cc std::condition_variable::wait()
+W1029 10:42:46.449384 30194 init.cc:212]     @     0x7f070292290d paddle::framework::details::FastThreadedSSAGraphExecutor::Run()
+W1029 10:42:46.450734 30194 init.cc:212]     @     0x7f07028836a7 _ZNSt17_Function_handlerIFvvEZN6paddle9framework7details29ScopeBufferedSSAGraphExecutor3RunERKSt6vectorISsSaISsEEEUlvE_E9_M_invokeERKSt9_Any_data
+W1029 10:42:46.454063 30194 init.cc:212]     @     0x7f07028884bf paddle::framework::details::ScopeBufferedMonitor::Apply()
+W1029 10:42:46.455735 30194 init.cc:212]     @     0x7f0702883e86 paddle::framework::details::ScopeBufferedSSAGraphExecutor::Run()
+W1029 10:42:46.458518 30194 init.cc:212]     @     0x7f0700626038 paddle::framework::ParallelExecutor::Run()
+W1029 10:42:46.459216 30194 init.cc:212]     @     0x7f0700409e78 _ZZN8pybind1112cpp_function10initializeIZN6paddle6pybindL22pybind11_init_core_avxERNS_6moduleEEUlRNS2_9framework16ParallelExecutorERKSt6vectorISsSaISsEEE188_S9_INS6_9LoDTensorESaISF_EEIS8_SD_EINS_4nameENS_9is_methodENS_7siblingEEEEvOT_PFT0_DpT1_EDpRKT2_ENUlRNS_6detail13function_callEE1_4_FUNESY_
+W1029 10:42:46.460702 30194 init.cc:212]     @     0x7f0700453f56 pybind11::cpp_function::dispatcher()
+W1029 10:42:46.462498 30194 init.cc:212]     @     0x7f0773841cc8 PyEval_EvalFrameEx
+W1029 10:42:46.464206 30194 init.cc:212]     @     0x7f077384435d PyEval_EvalCodeEx
+W1029 10:42:46.465894 30194 init.cc:212]     @     0x7f0773841d50 PyEval_EvalFrameEx
+W1029 10:42:46.467593 30194 init.cc:212]     @     0x7f077384435d PyEval_EvalCodeEx
+W1029 10:42:46.469327 30194 init.cc:212]     @     0x7f0773841d50 PyEval_EvalFrameEx
+W1029 10:42:46.471053 30194 init.cc:212]     @     0x7f077384435d PyEval_EvalCodeEx
+W1029 10:42:46.472759 30194 init.cc:212]     @     0x7f0773841d50 PyEval_EvalFrameEx
+W1029 10:42:46.474479 30194 init.cc:212]     @     0x7f077384435d PyEval_EvalCodeEx
+W1029 10:42:46.476193 30194 init.cc:212]     @     0x7f0773841d50 PyEval_EvalFrameEx
+W1029 10:42:46.477926 30194 init.cc:212]     @     0x7f077384435d PyEval_EvalCodeEx
+W1029 10:42:46.479651 30194 init.cc:212]     @     0x7f0773844492 PyEval_EvalCode
+W1029 10:42:46.481353 30194 init.cc:212]     @     0x7f077386e1a2 PyRun_FileExFlags
+W1029 10:42:46.483080 30194 init.cc:212]     @     0x7f077386f539 PyRun_SimpleFileExFlags
+W1029 10:42:46.484786 30194 init.cc:212]     @     0x7f07738851bd Py_Main
+W1029 10:42:46.487162 30194 init.cc:212]     @     0x7f0772a82bd5 __libc_start_main
+W1029 10:42:46.487229 30194 init.cc:212]     @           0x4007a1 (unknown)
+W1029 10:42:46.488940 30194 init.cc:212]     @                0x0 (unknown)
+./run_demo2.sh: line 5: 30194 Terminated              python demo2.py >> demo2.log
+W1029 10:43:27.495725 32687 device_context.cc:235] Please NOTE: device: 0, CUDA Capability: 61, Driver API Version: 10.1, Runtime API Version: 9.0
+W1029 10:43:27.500324 32687 device_context.cc:243] device: 0, cuDNN Version: 7.3.
+I1029 10:43:41.409127 32687 parallel_executor.cc:421] The number of CUDAPlace, which is used in ParallelExecutor, is 8. And the Program will be copied 8 copies
+W1029 10:44:03.299010 32687 fuse_all_reduce_op_pass.cc:72] Find all_reduce operators: 401. To make the speed faster, some all_reduce ops are fused during training, after fusion, the number of all_reduce ops is 255.
+I1029 10:44:03.584228 32687 build_strategy.cc:363] SeqOnlyAllReduceOps:0, num_trainers:1
+I1029 10:44:39.690382 32687 parallel_executor.cc:285] Inplace strategy is enabled, when build_strategy.enable_inplace = True
+I1029 10:44:42.244774 32687 parallel_executor.cc:368] Garbage collection strategy is enabled, when FLAGS_eager_delete_tensor_gb = 0
+W1029 10:48:20.253201 32687 init.cc:212] *** Aborted at 1572317300 (unix time) try "date -d @1572317300" if you are using GNU date ***
+W1029 10:48:20.255347 32687 init.cc:212] PC: @                0x0 (unknown)
+W1029 10:48:20.255458 32687 init.cc:212] *** SIGTERM (@0x1f80000785a) received by PID 32687 (TID 0x7f0f71d25700) from PID 30810; stack trace: ***
+W1029 10:48:20.257107 32687 init.cc:212]     @     0x7f0f714ef160 (unknown)
+W1029 10:48:20.258708 32687 init.cc:212]     @     0x7f0f714eb3cc __pthread_cond_wait
+W1029 10:48:20.259734 32687 init.cc:212]     @     0x7f0f249d33cc std::condition_variable::wait()
+W1029 10:48:20.263964 32687 init.cc:212]     @     0x7f0f008e990d paddle::framework::details::FastThreadedSSAGraphExecutor::Run()
+W1029 10:48:20.265229 32687 init.cc:212]     @     0x7f0f0084a6a7 _ZNSt17_Function_handlerIFvvEZN6paddle9framework7details29ScopeBufferedSSAGraphExecutor3RunERKSt6vectorISsSaISsEEEUlvE_E9_M_invokeERKSt9_Any_data
+W1029 10:48:20.268503 32687 init.cc:212]     @     0x7f0f0084f4bf paddle::framework::details::ScopeBufferedMonitor::Apply()
+W1029 10:48:20.270135 32687 init.cc:212]     @     0x7f0f0084ae86 paddle::framework::details::ScopeBufferedSSAGraphExecutor::Run()
+W1029 10:48:20.272866 32687 init.cc:212]     @     0x7f0efe5ed038 paddle::framework::ParallelExecutor::Run()
+W1029 10:48:20.273551 32687 init.cc:212]     @     0x7f0efe3d0e78 _ZZN8pybind1112cpp_function10initializeIZN6paddle6pybindL22pybind11_init_core_avxERNS_6moduleEEUlRNS2_9framework16ParallelExecutorERKSt6vectorISsSaISsEEE188_S9_INS6_9LoDTensorESaISF_EEIS8_SD_EINS_4nameENS_9is_methodENS_7siblingEEEEvOT_PFT0_DpT1_EDpRKT2_ENUlRNS_6detail13function_callEE1_4_FUNESY_
+W1029 10:48:20.274988 32687 init.cc:212]     @     0x7f0efe41af56 pybind11::cpp_function::dispatcher()
+W1029 10:48:20.276706 32687 init.cc:212]     @     0x7f0f71808cc8 PyEval_EvalFrameEx
+W1029 10:48:20.278395 32687 init.cc:212]     @     0x7f0f7180b35d PyEval_EvalCodeEx
+W1029 10:48:20.280076 32687 init.cc:212]     @     0x7f0f71808d50 PyEval_EvalFrameEx
+W1029 10:48:20.281765 32687 init.cc:212]     @     0x7f0f7180b35d PyEval_EvalCodeEx
+W1029 10:48:20.283442 32687 init.cc:212]     @     0x7f0f71808d50 PyEval_EvalFrameEx
+W1029 10:48:20.285133 32687 init.cc:212]     @     0x7f0f7180b35d PyEval_EvalCodeEx
+W1029 10:48:20.286808 32687 init.cc:212]     @     0x7f0f71808d50 PyEval_EvalFrameEx
+W1029 10:48:20.288502 32687 init.cc:212]     @     0x7f0f7180b35d PyEval_EvalCodeEx
+W1029 10:48:20.290176 32687 init.cc:212]     @     0x7f0f71808d50 PyEval_EvalFrameEx
+W1029 10:48:20.291870 32687 init.cc:212]     @     0x7f0f7180b35d PyEval_EvalCodeEx
+W1029 10:48:20.293542 32687 init.cc:212]     @     0x7f0f7180b492 PyEval_EvalCode
+W1029 10:48:20.295228 32687 init.cc:212]     @     0x7f0f718351a2 PyRun_FileExFlags
+W1029 10:48:20.296922 32687 init.cc:212]     @     0x7f0f71836539 PyRun_SimpleFileExFlags
+W1029 10:48:20.298590 32687 init.cc:212]     @     0x7f0f7184c1bd Py_Main
+W1029 10:48:20.300307 32687 init.cc:212]     @     0x7f0f70a49bd5 __libc_start_main
+W1029 10:48:20.300364 32687 init.cc:212]     @           0x4007a1 (unknown)
+W1029 10:48:20.302006 32687 init.cc:212]     @                0x0 (unknown)

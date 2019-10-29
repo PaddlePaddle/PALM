@@ -15,6 +15,7 @@
 
 from paddlepalm.interface import reader
 from paddlepalm.reader.utils.reader4ernie import MaskLMReader
+import numpy as np
 
 class Reader(reader):
     
@@ -81,6 +82,8 @@ class Reader(reader):
             return outputs
 
         for batch in self._data_generator():
+            # print(np.shape(list_to_dict(batch)['token_ids']))
+            # print(list_to_dict(batch)['mask_label'].tolist())
             yield list_to_dict(batch)
 
     def get_epoch_outputs(self):

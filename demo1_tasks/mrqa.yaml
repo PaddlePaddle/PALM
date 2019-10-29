@@ -1,11 +1,9 @@
-train_file: data/mrqa/mrqa-combined.train.raw.json
-pred_file: data/mrqa/mrqa-combined.dev.raw.json
-pred_output_path: 'mrqa_output'
-reader: mrc4ernie
+train_file: data/mrqa/train.json
+reader: mrc
 paradigm: mrc
+
+vocab_path: "pretrain_model/bert/vocab.txt"
+do_lower_case: True
+max_seq_len: 512
 doc_stride: 128
 max_query_len: 64
-max_answer_len: 30
-n_best_size: 20
-null_score_diff_threshold: 0.0
-verbose: False

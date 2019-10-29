@@ -36,6 +36,8 @@ class Reader(reader):
 
         self._batch_size = config['batch_size']
         self._max_seq_len = config['max_seq_len']
+        self._num_classes = config['n_classes']
+
         if phase == 'train':
             self._input_file = config['train_file']
             self._num_epochs = None # 防止iteartor终止
@@ -91,6 +93,7 @@ class Reader(reader):
             return outputs
 
         for batch in self._data_generator():
+            print(batch)
             yield list_to_dict(batch)
 
     def get_epoch_outputs(self):
