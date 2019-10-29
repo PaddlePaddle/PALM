@@ -26,7 +26,7 @@ cd PALM && python setup.py install
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
-- PaddlePaddle >= 1.6 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
+- PaddlePaddle >= 1.6.1 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
 
 
@@ -267,7 +267,21 @@ mix_ratio: 1.0, 0.5, 0.5
 
 ### 分布式训练
 
+## 内置数据集载入与处理工具（reader）
 
+所有的内置reader均同时支持中英文输入数据，**默认读取的数据为英文数据**，希望读入中文数据时，需在配置文件中设置
+
+```yaml
+for_cn: True
+```
+
+所有的内置reader，均支持以下字段
+
+- vocab_path (REQUIRED)：str类型。
+
+## 内置主干网络（backbone）
+
+## 内置任务范式（paradigm）
 
 ## License
 
