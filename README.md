@@ -277,7 +277,24 @@ for_cn: True
 
 所有的内置reader，均支持以下字段
 
-- vocab_path (REQUIRED)：str类型。
+- vocab_path（REQUIRED）：str类型。字典文件路径。
+- max_seq_len（REQUIRED）：int类型。切词后的序列最大长度（即token ids的最大长度）。注意经过分词后，token ids的数量往往多于原始的单词数（e.g., 使用wordpiece tokenizer时）。
+- batch_size（REQUIRED）：int类型。训练或预测时的批大小（每个step喂入神经网络的样本数）。
+- train_file（REQUIRED）：str类型。训练集文件所在路径。仅进行预测时，该字段可不设置。
+- pred_file（REQUIRED）：str类型。测试集文件所在路径。仅进行训练时，该字段可不设置。
+
+- shuffle（OPTIONAL）：bool类型，默认为True。训练阶段打乱数据集样本的标志位，当置为True时，对数据集的样本进行全局打乱。注意，该标志位的设置不会影响预测阶段（预测阶段不会shuffle数据集）。
+- pred_batch_size（OPTIONAL）：int类型。预测阶段的批大小，当该参数未设置时，预测阶段的批大小取决于`batch_size`字段的值。
+- print_first_n（OPTIONAL）：int类型。打印数据集的前n条样本和对应的reader输出，默认为0。
+
+### 文本分类数据集reader（`cls`）
+
+该reader额外包含以下字段
+
+- n_classes（REQUIRED）：int类型。分类任务的类别数。
+
+### 文本匹配
+
 
 ## 内置主干网络（backbone）
 
