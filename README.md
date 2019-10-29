@@ -277,19 +277,21 @@ for_cn: True
 
 所有的内置reader，均支持以下字段
 
-- vocab_path（REQUIRED）：str类型。字典文件路径。
-- max_seq_len（REQUIRED）：int类型。切词后的序列最大长度（即token ids的最大长度）。注意经过分词后，token ids的数量往往多于原始的单词数（e.g., 使用wordpiece tokenizer时）。
-- batch_size（REQUIRED）：int类型。训练或预测时的批大小（每个step喂入神经网络的样本数）。
-- train_file（REQUIRED）：str类型。训练集文件所在路径。仅进行预测时，该字段可不设置。
-- pred_file（REQUIRED）：str类型。测试集文件所在路径。仅进行训练时，该字段可不设置。
+```yaml
+- vocab_path（REQUIRED）: str类型。字典文件路径。
+- max_seq_len（REQUIRED）: int类型。切词后的序列最大长度（即token ids的最大长度）。注意经过分词后，token ids的数量往往多于原始的单词数（e.g., 使用wordpiece tokenizer时）。
+- batch_size（REQUIRED）: int类型。训练或预测时的批大小（每个step喂入神经网络的样本数）。
+- train_file（REQUIRED）: str类型。训练集文件所在路径。仅进行预测时，该字段可不设置。
+- pred_file（REQUIRED）: str类型。测试集文件所在路径。仅进行训练时，该字段可不设置。
 
-- do_lower_case（OPTIONAL）：bool类型，默认为False。是否将大写英文字母转换成小写。
-- shuffle（OPTIONAL）：bool类型，默认为True。训练阶段打乱数据集样本的标志位，当置为True时，对数据集的样本进行全局打乱。注意，该标志位的设置不会影响预测阶段（预测阶段不会shuffle数据集）。
-- seed（OPTIONAL）：int类型，默认为。
-- pred_batch_size（OPTIONAL）：int类型。预测阶段的批大小，当该参数未设置时，预测阶段的批大小取决于`batch_size`字段的值。
-- print_first_n（OPTIONAL）：int类型。打印数据集的前n条样本和对应的reader输出，默认为0。
+- do_lower_case（OPTIONAL）: bool类型，默认为False。是否将大写英文字母转换成小写。
+- shuffle（OPTIONAL）: bool类型，默认为True。训练阶段打乱数据集样本的标志位，当置为True时，对数据集的样本进行全局打乱。注意，该标志位的设置不会影响预测阶段（预测阶段不会shuffle数据集）。
+- seed（OPTIONAL）: int类型，默认为。
+- pred_batch_size（OPTIONAL）: int类型。预测阶段的批大小，当该参数未设置时，预测阶段的批大小取决于`batch_size`字段的值。
+- print_first_n（OPTIONAL）: int类型。打印数据集的前n条样本和对应的reader输出，默认为0。
+```
 
-### 文本分类数据集reader（`cls`）
+### 文本分类数据集reader工具：cls
 
 该reader完成文本分类数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含两列，一列为样本标签`label`，一列为原始文本`text_a`。形如
 
@@ -304,19 +306,43 @@ label   text_a
 
 该reader额外包含以下配置字段
 
-- n_classes（REQUIRED）：int类型。分类任务的类别数。
+```yaml
+- n_classes（REQUIRED）: int类型。分类任务的类别数。
+```
 
-### 文本匹配数据集reader（`match`）
+### 文本匹配数据集reader工具：match
 
 该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`，形如
 
+```yaml
+label   text_a  text_b                                                                           
+1   From what work of Durkheim's was interaction ritual theory derived? **[TAB]** Subsequent to these developments, Randall Collins (2004) formulated his interaction ritual theory by drawing on Durkheim's work on totemic rituals that was extended by Goffman (1964/2013; 1967) into everyday focused encounters. Based on interaction ritual theory, we experience different levels
+0   where is port au prince located in haiti **[TAB]** Its population is difficult to ascertain due to the rapid growth of slums in the hillsides
+0   What is the world’s first-ever pilsner type blond lager, the company also awarded the Master Homebrewer Competition held in San Francisco to an award-winning brewer who won the prestigious American Homebrewers Associations' Homebrewer of the Year award in 2013? **[TAB]** of the Year award in 2013, becoming the first woman in thirty years, and the first African American person ever to ever win the award.
+1   What has Pakistan told phone companies? **[TAB]** Islamabad, Pakistan (CNN) -- Under heavy criticism for a telling cell phone carriers to ban certain words in text messages, the Pakistan Telecommunication Authority went into damage control mode Wednesday.
+```
 
 ***注意：数据集的第一列必须为header，即标注每一列的列名***
 
+### 机器阅读理解数据集reader工具：mrc
+
+### 掩码语言模型数据集reader工具：mlm
 
 ## 内置主干网络（backbone）
 
+### BERT
+
+### ERNIE
+
 ## 内置任务范式（paradigm）
+
+### 分类任务
+
+### 匹配任务
+
+### 机器阅读理解任务
+
+### 掩码语言模型任务
 
 ## License
 
