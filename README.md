@@ -231,7 +231,7 @@ if __name__ == '__main__':
 例如，我们在上一节得到了mrqa任务的预测模型。首先创建一个新的*Controller*，**并且创建时要将`for_train`标志位置为*False***。而后调用*pred*接口，将要预测的任务实例名字和预测模型的路径传入，即可完成相关预测。预测的结果默认保存在任务实例配置文件的`pred_output_path`指定的路径中。代码段如下：
 
 ```python
-    controller = palm.Controller(config='demo2_config.yaml', task_dir='demo2_tasks', for_train=False)
+    controller = palm.Controller(config='config_demo2.yaml', task_dir='demo2_tasks', for_train=False)
     controller.pred('mrqa', inference_model_dir='output_model/secondrun/mrqa/infermodel') 
 ```
 
