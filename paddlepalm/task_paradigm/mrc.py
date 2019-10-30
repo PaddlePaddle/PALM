@@ -50,7 +50,8 @@ class TaskParadigm(task_paradigm):
     def inputs_attrs(self):
         if self._is_training:
             reader = {"start_positions": [[-1, 1], 'int64'],
-                      "end_positions": [[-1, 1], 'int64']}
+                      "end_positions": [[-1, 1], 'int64'],
+                      }
         else:
             reader = {'unique_ids': [[-1, 1], 'int64']}
         bb = {"encoder_outputs": [[-1, -1, self._hidden_size], 'float32']}
@@ -76,6 +77,9 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             start_positions = inputs['reader']['start_positions']
             end_positions = inputs['reader']['end_positions']
+            seqlen = inputs["reader"]["seqlen"] 
+            start_positions = fluid.layers.elementwise_min(start_positions, seqlen)
+            end_positions = fluid.layers.elementwise_min(end_positions, seqlen)
         else:
             unique_id = inputs['reader']['unique_ids']
 

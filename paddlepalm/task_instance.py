@@ -87,7 +87,11 @@ class TaskInstance(object):
         dirpath = self._save_infermodel_path + suffix
         self._pred_input_varname_list = [str(i) for i in self._pred_input_varname_list]
 
-        fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe)
+        # del self._pred_input_varname_list[0]
+        # del self._pred_input_varname_list[0]
+        # del self._pred_input_varname_list[0]
+
+        fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, export_for_deployment = True)
         # fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, params_filename='__params__')
         print(self._name + ': inference model saved at ' + dirpath)
 

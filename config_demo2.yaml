@@ -12,7 +12,7 @@ do_lower_case: True
 max_seq_len: 512
 
 batch_size: 4
-num_epochs: 2
+num_epochs: 0.5
 optimizer: "adam"
 learning_rate: 3e-5
 warmup_proportion: 0.1
