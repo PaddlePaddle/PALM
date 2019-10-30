@@ -1,7 +1,7 @@
-train_file: data/mrqa/mrqa-combined.train.raw.json
-pred_file: data/mrqa/mrqa-combined.dev.raw.json
+train_file: data/mrqa/train.json
+pred_file: data/mrqa/dev.json
 pred_output_path: 'mrqa_output'
-reader: mrc4ernie
+reader: mrc
 paradigm: mrc
 doc_stride: 128
 max_query_len: 64

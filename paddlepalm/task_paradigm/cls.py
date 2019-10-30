@@ -21,15 +21,29 @@ class TaskParadigm(task_paradigm):
     '''
     classification
     '''
-    def __init___(self, config, phase):
+    def __init___(self, config, phase, backbone_config=None):
         self._is_training = phase == 'train'
-        self.sent_emb_size = config['hidden_size']
+        self._hidden_size = backbone_config['hidden_size']
         self.num_classes = config['n_classes']
     
+        if 'initializer_range' in config:
+            self._param_initializer = config['initializer_range']
+        else:
+            self._param_initializer = fluid.initializer.TruncatedNormal(
+                scale=backbone_config.get('initializer_range', 0.02))
+        if 'dropout_prob' in config:
+            self._dropout_prob = config['dropout_prob']
+        else:
+            self._dropout_prob = backbone_config.get('hidden_dropout_prob', 0.0)
+
     @property
     def inputs_attrs(self):
-        return {'bakcbone': {"sentence_emb": [-1, self.sent_emb_size], 'float32']},
-                'reader': {"label_ids": [[-1, 1], 'int64']}}
+        if self._is_training:
+            reader = {"label_ids": [[-1, 1], 'int64']}
+        else:
+            reader = {}
+        bb = {"sentence_embedding": [[-1, self._hidden_size], 'float32']}
+        return {'reader': reader, 'backbone': bb}
 
     @property
     def outputs_attrs(self):
@@ -39,22 +53,29 @@ class TaskParadigm(task_paradigm):
             return {'logits': [-1, self.num_classes], 'float32'}
 
     def build(self, **inputs):
-        sent_emb = inputs['backbone']['sentence_emb']
+        sent_emb = inputs['backbone']['sentence_embedding']
         label_ids = inputs['reader']['label_ids']
 
+        if self._is_training:
+            cls_feats = fluid.layers.dropout(
+                x=sent_emb,
+                dropout_prob=self._dropout_prob,
+                dropout_implementation="upscale_in_train")
+
         logits = fluid.layers.fc(
-            input=ent_emb
+            input=sent_emb,
             size=self.num_classes,
             param_attr=fluid.ParamAttr(
                 name="cls_out_w",
-                initializer=fluid.initializer.TruncatedNormal(scale=0.1)),
+                initializer=self._param_initializer),
             bias_attr=fluid.ParamAttr(
                 name="cls_out_b", initializer=fluid.initializer.Constant(0.)))
 
-        loss = fluid.layers.softmax_with_cross_entropy(
-            logits=logits, label=label_ids)
-        loss = layers.mean(loss)
         if self._is_training:
+            loss = fluid.layers.softmax_with_cross_entropy(
+                logits=logits, label=label_ids)
+            loss = layers.mean(loss)
             return {"loss": loss}
         else:
             return {"logits":logits}
+

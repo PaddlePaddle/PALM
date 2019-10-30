@@ -1,0 +1,3 @@
+train_file: data/cls4mrqa/train.tsv
+reader: cls
+paradigm: cls

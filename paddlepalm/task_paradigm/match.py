@@ -24,6 +24,17 @@ class TaskParadigm(task_paradigm):
     def __init__(self, config, phase, backbone_config=None):
         self._is_training = phase == 'train'
         self._hidden_size = backbone_config['hidden_size']
+
+        if 'initializer_range' in config:
+            self._param_initializer = config['initializer_range']
+        else:
+            self._param_initializer = fluid.initializer.TruncatedNormal(
+                scale=backbone_config.get('initializer_range', 0.02))
+        if 'dropout_prob' in config:
+            self._dropout_prob = config['dropout_prob']
+        else:
+            self._dropout_prob = backbone_config.get('hidden_dropout_prob', 0.0)
+
     
     @property
     def inputs_attrs(self):
@@ -46,16 +57,18 @@ class TaskParadigm(task_paradigm):
             labels = inputs["reader"]["label_ids"] 
         cls_feats = inputs["backbone"]["sentence_pair_embedding"]
 
-        cls_feats = fluid.layers.dropout(
-            x=cls_feats,
-            dropout_prob=0.1,
-            dropout_implementation="upscale_in_train")
+        if self._is_training:
+            cls_feats = fluid.layers.dropout(
+                x=cls_feats,
+                dropout_prob=self._dropout_prob,
+                dropout_implementation="upscale_in_train")
+
         logits = fluid.layers.fc(
             input=cls_feats,
             size=2,
             param_attr=fluid.ParamAttr(
                 name="cls_out_w",
-                initializer=fluid.initializer.TruncatedNormal(scale=0.02)),
+                initializer=self._param_initializer),
             bias_attr=fluid.ParamAttr(
                 name="cls_out_b",
                 initializer=fluid.initializer.Constant(0.)))

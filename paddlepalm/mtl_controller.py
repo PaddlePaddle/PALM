@@ -557,7 +557,7 @@ class Controller(object):
         inst.task_layer['pred'] = pred_parad
         pred_joint_input_names, pred_joint_shape_and_dtypes, name_to_position = merge_input_attrs(
             pred_backbone.inputs_attr, inst.task_layer['pred'].inputs_attrs['reader'], 
-            insert_taskid=False)
+            insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
 
         pred_prog = inst.load(infer_model_path)
         # pred_prog = fluid.CompiledProgram(pred_prog).with_data_parallel()
@@ -664,9 +664,9 @@ class Controller(object):
                                          "step_" + str(global_step))
                 fluid.io.save_persistables(self.exe, save_path, saver_program)
 
-        save_path = os.path.join(main_conf['save_path'],
-                                 "step_" + str(global_step) + "_final")
-        fluid.io.save_persistables(self.exe, save_path, saver_program)
+        # save_path = os.path.join(main_conf['save_path'],
+        #                          "step_" + str(global_step) + "_final")
+        # fluid.io.save_persistables(self.exe, save_path, saver_program)
             
     def pred(self, task_instance, inference_model_dir=None):
         if self._for_train:
