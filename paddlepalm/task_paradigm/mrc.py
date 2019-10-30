@@ -80,6 +80,8 @@ class TaskParadigm(task_paradigm):
             max_position = inputs["reader"]["seqlen"] - 1
             start_positions = fluid.layers.elementwise_min(start_positions, max_position)
             end_positions = fluid.layers.elementwise_min(end_positions, max_position)
+            start_positions.stop_gradient = True
+            end_positions.stop_gradient = True
         else:
             unique_id = inputs['reader']['unique_ids']
 

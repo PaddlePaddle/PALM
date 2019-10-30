@@ -57,6 +57,7 @@ class TaskParadigm(task_paradigm):
             # 多任务学习时才需要引入这个，防止其他run其他任务时导致seqlen过小，gather超范围
             max_position = inputs["reader"]["batchsize_x_seqlen"] - 1
             mask_pos = fluid.layers.elementwise_min(mask_pos, max_position)
+            mask_pos.stop_gradient = True
 
         word_emb = inputs["backbone"]["embedding_table"]
         enc_out = inputs["backbone"]["encoder_outputs"]
