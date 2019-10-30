@@ -80,8 +80,8 @@ bash run_demo1.sh
 首先，我们编写该任务实例的配置文件`mrqa.yaml`，若该任务实例参与训练或预测，则框架将自动解析该配置文件并创建相应的任务实例。配置文件需符合yaml格式的要求。一个任务实例的配置文件最少应包含`train_file`，`reader`和`paradigm`这三个字段，分别代表训练集的文件路径`train_file`、使用的数据集载入与处理工具`reader`、任务范式`paradigm`。
 
 ```yaml
-train_file: data/mrqa/mrqa-combined.train.raw.json
-reader: mrc4ernie # 我们接下来会使用ERNIE作为主干网络，因此使用ernie配套的数据集处理工具mrc4ernie
+train_file: data/mrqa/train.json
+reader: mrc
 paradigm: mrc
 ```
 
@@ -94,7 +94,7 @@ max_seq_len: 512
 max_query_len: 64
 doc_stride: 128 # 在MRQA数据集中，存在较长的文档，因此我们这里使用滑动窗口处理样本，滑动步长设置为128
 do_lower_case: True
-vocab_path: "pretrain_model/ernie/vocab.txt"
+vocab_path: "pretrain_model/bert/vocab.txt"
 ```
 
 更详细的任务实例配置方法可参考这里
@@ -108,12 +108,12 @@ task_instance: "mrqa"
 
 save_path: "output_model/firstrun"
 
-backbone: "ernie"
-backbone_config_path: "pretrain_model/ernie/ernie_config.json"
+backbone: "bert"
+backbone_config_path: "pretrain_model/bert/bert_config.json"
 
 optimizer: "adam"
 learning_rate: 3e-5
-batch_size: 5
+batch_size: 4
 
 num_epochs: 2                                                                                    
 warmup_proportion: 0.1 
@@ -130,8 +130,8 @@ warmup_proportion: 0.1
 import paddlepalm as palm
 
 if __name__ == '__main__':
-    controller = palm.Controller('demo1_config.yaml', task_dir='demo1_tasks')
-    controller.load_pretrain('pretrain_model/ernie/params')
+    controller = palm.Controller('config_demo1.yaml', task_dir='demo1_tasks')
+    controller.load_pretrain('pretrain_model/bert/params')
     controller.train()
 ```
 
@@ -166,8 +166,8 @@ bash run_demo2.sh
 首先，我们像上一节一样为Matching任务分别配置任务实例`match4mrqa.yaml`：
 
 ```yaml
-train_file: "data/match4mrqa/train.txt"
-reader: match4ernie
+train_file: "data/match/train.tsv"
+reader: match
 paradigm: match
 ```
 
@@ -190,7 +190,7 @@ vocab_path: "pretrain_model/ernie/vocab.txt"
 do_lower_case: True
 max_seq_len: 512 # 写入全局配置文件的参数会被自动广播到各个任务实例
 
-batch_size: 5
+batch_size: 4
 num_epochs: 2
 optimizer: "adam"
 learning_rate: 3e-5
@@ -218,7 +218,7 @@ mix_ratio: 1.0, 0.5
 import paddlepalm as palm
 
 if __name__ == '__main__':
-    controller = palm.Controller('demo2_config.yaml', task_dir='demo2_tasks')
+    controller = palm.Controller('config_demo2.yaml', task_dir='demo2_tasks')
     controller.load_pretrain('pretrain_model/ernie/params')
     controller.train()
 
