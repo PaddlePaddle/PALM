@@ -51,12 +51,14 @@ class TaskParadigm(task_paradigm):
             return {"logits": [[-1], 'float32']}
 
     def build(self, inputs):
+        mask_pos = inputs["reader"]["mask_pos"]
         if self._is_training:
             mask_label = inputs["reader"]["mask_label"] 
             # 多任务学习时才需要引入这个，防止其他run其他任务时导致seqlen过小，gather超范围
-            batchsize_x_seqlen = inputs["reader"]["batchsize_x_seqlen"] 
+            max_position = inputs["reader"]["batchsize_x_seqlen"] - 1
+            mask_pos = fluid.layers.elementwise_min(mask_pos, max_position)
+            mask_pos.stop_gradient = True
 
-        mask_pos = inputs["reader"]["mask_pos"] 
         word_emb = inputs["backbone"]["embedding_table"]
         enc_out = inputs["backbone"]["encoder_outputs"]
 
@@ -64,13 +66,6 @@ class TaskParadigm(task_paradigm):
 
         _param_initializer = fluid.initializer.TruncatedNormal(
             scale=self._initializer_range)
-
-        if self._is_training:
-            # 多任务训练时才需要引入这个，防止其他run其他任务时导致seqlen过小，gather超范围
-            # mask_pos = fluid.layers.cast(x=mask_pos, dtype='int32')
-            mask_pos = fluid.layers.elementwise_min(mask_pos, batchsize_x_seqlen)
-
-        #print(fluid.default_main_program().blocks[0].vars)
 
         reshaped_emb_out = fluid.layers.reshape(
             x=enc_out, shape=[-1, emb_size])

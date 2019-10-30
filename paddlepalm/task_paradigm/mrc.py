@@ -77,9 +77,11 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             start_positions = inputs['reader']['start_positions']
             end_positions = inputs['reader']['end_positions']
-            seqlen = inputs["reader"]["seqlen"] 
-            start_positions = fluid.layers.elementwise_min(start_positions, seqlen)
-            end_positions = fluid.layers.elementwise_min(end_positions, seqlen)
+            max_position = inputs["reader"]["seqlen"] - 1
+            start_positions = fluid.layers.elementwise_min(start_positions, max_position)
+            end_positions = fluid.layers.elementwise_min(end_positions, max_position)
+            start_positions.stop_gradient = True
+            end_positions.stop_gradient = True
         else:
             unique_id = inputs['reader']['unique_ids']
 
