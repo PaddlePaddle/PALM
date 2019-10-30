@@ -1,6 +1,6 @@
-task_instance: "mrqa, mlm4mrqa, match4mrqa"
-target_tag: 1, 0, 0
-mix_ratio: 0.5, 1.0, 0.5
+task_instance: "mrqa, match4mrqa"
+target_tag: 1, 0
+mix_ratio: 0.5, 0.5
 
 save_path: "output_model/secondrun"
 
@@ -11,8 +11,8 @@ vocab_path: "pretrain_model/ernie/vocab.txt"
 do_lower_case: True
 max_seq_len: 512
 
-batch_size: 5
-num_epochs: 5
+batch_size: 4
+num_epochs: 2
 optimizer: "adam"
 learning_rate: 3e-5
 warmup_proportion: 0.1

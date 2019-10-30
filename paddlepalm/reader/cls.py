@@ -42,7 +42,7 @@ class Reader(reader):
             self._input_file = config['train_file']
             self._num_epochs = None # 防止iteartor终止
             self._shuffle = config.get('shuffle', False)
-            self._shuffle_buffer = config.get('shuffle_buffer', 5000)
+            # self._shuffle_buffer = config.get('shuffle_buffer', 5000)
         elif phase == 'eval':
             self._input_file = config['dev_file']
             self._num_epochs = 1
@@ -56,7 +56,7 @@ class Reader(reader):
 
         self._phase = phase
         # self._batch_size = 
-        self._print_first_n = config.get('print_first_n', 1)
+        self._print_first_n = config.get('print_first_n', 0)
 
 
     @property
