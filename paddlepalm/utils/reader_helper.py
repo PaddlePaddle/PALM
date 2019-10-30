@@ -166,21 +166,21 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                 else:
                     outputs = next(iterators[id]) # dict type
 
-                # if 'token_ids' in outputs:
-                #     val1 = len(outputs['token_ids'])
-                #     val = _check_and_adapt_shape_dtype([val1], [[1], 'int64'])
-                #     results[outname_to_pos['batch_size']] = val
+                if 'token_ids' in outputs:
+                    val1 = len(outputs['token_ids'])
+                    val = _check_and_adapt_shape_dtype([val1], [[1], 'int64'])
+                    results[outname_to_pos['batch_size']] = val
 
-                #     val2 = len(outputs['token_ids'][0])
-                #     val = _check_and_adapt_shape_dtype([val2], [[1], 'int64'])
-                #     results[outname_to_pos['seqlen']] = val
+                    val2 = len(outputs['token_ids'][0])
+                    val = _check_and_adapt_shape_dtype([val2], [[1], 'int64'])
+                    results[outname_to_pos['seqlen']] = val
 
-                #     val = _check_and_adapt_shape_dtype([val1*val2], [[1], 'int64'])
-                #     results[outname_to_pos['batchsize_x_seqlen']] = val
-                # else:
-                #     if not has_show_warn:
-                #         print('WARNING: token_ids not found in current batch, failed to yield batch_size, seqlen and batchsize_x_seqlen. (This message would be shown only once.)')
-                #         has_show_warn = True
+                    val = _check_and_adapt_shape_dtype([val1*val2], [[1], 'int64'])
+                    results[outname_to_pos['batchsize_x_seqlen']] = val
+                else:
+                    if not has_show_warn:
+                        print('WARNING: token_ids not found in current batch, failed to yield batch_size, seqlen and batchsize_x_seqlen. (This message would be shown only once.)')
+                        has_show_warn = True
 
                 prefix = iterator_prefixes[id]
                 for outname, val in outputs.items():
@@ -214,7 +214,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
     return iterator
 
 
-def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False):
+def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batchsize=True, insert_seqlen=True, insert_batchsize_x_seqlen=True):
     """
     Args:
         task_attrs(list[dict]|dict): task input attributes, key=attr_name, val=[shape, dtype], support single task and nested tasks
@@ -242,7 +242,7 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
 
     if insert_batchsize_x_seqlen:
         ret.append(([1], 'int64'))
-        names.append('batchsize_x_seqlen')
+        names.append(u'batchsize_x_seqlen')
         start += 1
         
     names += sorted(backbone_attr.keys())

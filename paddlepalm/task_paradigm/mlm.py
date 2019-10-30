@@ -34,7 +34,6 @@ class TaskParadigm(task_paradigm):
     def inputs_attrs(self):
         reader = {
             "mask_label": [[-1, 1], 'int64'],
-            "batchsize_x_seqlen": [[1], 'int64'],
             "mask_pos": [[-1, 1], 'int64']}
         if not self._is_training:
             del reader['mask_label']
@@ -56,6 +55,7 @@ class TaskParadigm(task_paradigm):
             mask_label = inputs["reader"]["mask_label"] 
             # 多任务学习时才需要引入这个，防止其他run其他任务时导致seqlen过小，gather超范围
             batchsize_x_seqlen = inputs["reader"]["batchsize_x_seqlen"] 
+
         mask_pos = inputs["reader"]["mask_pos"] 
         word_emb = inputs["backbone"]["embedding_table"]
         enc_out = inputs["backbone"]["encoder_outputs"]
@@ -67,7 +67,7 @@ class TaskParadigm(task_paradigm):
 
         if self._is_training:
             # 多任务训练时才需要引入这个，防止其他run其他任务时导致seqlen过小，gather超范围
-            #mask_pos = fluid.layers.cast(x=mask_pos, dtype='int32')
+            # mask_pos = fluid.layers.cast(x=mask_pos, dtype='int32')
             mask_pos = fluid.layers.elementwise_min(mask_pos, batchsize_x_seqlen)
 
         #print(fluid.default_main_program().blocks[0].vars)

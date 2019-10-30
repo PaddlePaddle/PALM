@@ -398,7 +398,7 @@ class Controller(object):
 
         # merge reader input attrs from backbone and task_instances
         joint_input_names, joint_shape_and_dtypes, name_to_position = merge_input_attrs(train_backbone.inputs_attr, task_attrs)
-        pred_joint_input_names, pred_joint_shape_and_dtypes, _ = merge_input_attrs(pred_backbone.inputs_attr, pred_task_attrs, insert_taskid=False)
+        pred_joint_input_names, pred_joint_shape_and_dtypes, _ = merge_input_attrs(pred_backbone.inputs_attr, pred_task_attrs, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
         # shapes: [task_id, shapes_of_backbone, shapes_of_inst1, ..., shapes_of_instN]
 
         if DEBUG:
@@ -448,6 +448,7 @@ class Controller(object):
             pred_net_inputs = create_net_inputs(pred_input_attrs)
             # 别用unique_name.guard了，没用的，无法作用到param_attr里的name上
             # with fluid.unique_name.guard("backbone-"):
+
             pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
 
         fluid.framework.switch_main_program(train_prog)
