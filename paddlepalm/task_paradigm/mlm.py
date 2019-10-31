@@ -50,7 +50,7 @@ class TaskParadigm(task_paradigm):
         else:
             return {"logits": [[-1], 'float32']}
 
-    def build(self, inputs):
+    def build(self, inputs, scope_name=""):
         mask_pos = inputs["reader"]["mask_pos"]
         if self._is_training:
             mask_label = inputs["reader"]["mask_label"] 
@@ -79,15 +79,15 @@ class TaskParadigm(task_paradigm):
             size=emb_size,
             act=self._hidden_act,
             param_attr=fluid.ParamAttr(
-                name='mask_lm_trans_fc.w_0',
+                name=scope_name+'mask_lm_trans_fc.w_0',
                 initializer=_param_initializer),
-            bias_attr=fluid.ParamAttr(name='mask_lm_trans_fc.b_0'))
+            bias_attr=fluid.ParamAttr(name=scope_name+'mask_lm_trans_fc.b_0'))
         # transform: layer norm
         mask_trans_feat = pre_process_layer(
-            mask_trans_feat, 'n', name='mask_lm_trans')
+            mask_trans_feat, 'n', name=scope_name+'mask_lm_trans')
 
         mask_lm_out_bias_attr = fluid.ParamAttr(
-            name="mask_lm_out_fc.b_0",
+            name=scope_name+"mask_lm_out_fc.b_0",
             initializer=fluid.initializer.Constant(value=0.0))
 
         # print fluid.default_main_program().global_block()

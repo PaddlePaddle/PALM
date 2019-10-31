@@ -21,7 +21,7 @@ class TaskParadigm(task_paradigm):
     '''
     classification
     '''
-    def __init___(self, config, phase, backbone_config=None):
+    def __init__(self, config, phase, backbone_config=None):
         self._is_training = phase == 'train'
         self._hidden_size = backbone_config['hidden_size']
         self.num_classes = config['n_classes']
@@ -50,13 +50,12 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {'loss': [[1], 'float32']}
         else:
-            return {'logits': [-1, self.num_classes], 'float32'}
+            return {'logits': [[-1, self.num_classes], 'float32']}
 
-    def build(self, **inputs):
+    def build(self, inputs, scope_name=''):
         sent_emb = inputs['backbone']['sentence_embedding']
-        label_ids = inputs['reader']['label_ids']
-
         if self._is_training:
+            label_ids = inputs['reader']['label_ids']
             cls_feats = fluid.layers.dropout(
                 x=sent_emb,
                 dropout_prob=self._dropout_prob,
@@ -66,10 +65,10 @@ class TaskParadigm(task_paradigm):
             input=sent_emb,
             size=self.num_classes,
             param_attr=fluid.ParamAttr(
-                name="cls_out_w",
+                name=scope_name+"cls_out_w",
                 initializer=self._param_initializer),
             bias_attr=fluid.ParamAttr(
-                name="cls_out_b", initializer=fluid.initializer.Constant(0.)))
+                name=scope_name+"cls_out_b", initializer=fluid.initializer.Constant(0.)))
 
         if self._is_training:
             loss = fluid.layers.softmax_with_cross_entropy(

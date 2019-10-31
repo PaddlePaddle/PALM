@@ -67,8 +67,8 @@ class TaskInstance(object):
             'fetch_list': 'self._pred_fetch_name_list'}
 
 
-    def build_task_layer(self, net_inputs, phase):
-        output_vars = self._task_layer[phase].build(net_inputs)
+    def build_task_layer(self, net_inputs, phase, scope=""):
+        output_vars = self._task_layer[phase].build(net_inputs, scope_name=scope)
         if phase == 'pred':
             if output_vars is not None:
                 self._pred_fetch_name_list, self._pred_fetch_var_list = zip(*output_vars.items())
@@ -90,10 +90,10 @@ class TaskInstance(object):
         # del self._pred_input_varname_list[0]
         # del self._pred_input_varname_list[0]
         # del self._pred_input_varname_list[0]
+        # print(self._pred_input_varname_list)
 
         fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, export_for_deployment = True)
         # fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, params_filename='__params__')
-        print(self._name + ': inference model saved at ' + dirpath)
 
         conf = {}
         for k, strv in self._save_protocol.items():
@@ -101,6 +101,7 @@ class TaskInstance(object):
             conf[k] = v
         with open(os.path.join(dirpath, '__conf__'), 'w') as writer:
             writer.write(json.dumps(conf, indent=1))
+        print(self._name + ': inference model saved at ' + dirpath)
 
     def load(self, infer_model_path=None):
         if infer_model_path is None:
@@ -268,9 +269,6 @@ class TaskInstance(object):
         self._task_reuse_scope = str(scope_name)
         if self._verbose:
             print('{}: task_reuse_scope is set to {}'.format(self._name, self._task_reuse_scope))
-
-
-
 
 
 

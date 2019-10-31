@@ -1,3 +1,0 @@
-train_file: "data/mlm4mrqa/train.tsv"
-reader: mlm
-paradigm: mlm

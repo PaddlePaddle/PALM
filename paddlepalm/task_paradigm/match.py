@@ -52,7 +52,7 @@ class TaskParadigm(task_paradigm):
         else:
             return {"logits": [[-1, 1], 'float32']}
 
-    def build(self, inputs):
+    def build(self, inputs, scope_name=""):
         if self._is_training:
             labels = inputs["reader"]["label_ids"] 
         cls_feats = inputs["backbone"]["sentence_pair_embedding"]
@@ -67,10 +67,10 @@ class TaskParadigm(task_paradigm):
             input=cls_feats,
             size=2,
             param_attr=fluid.ParamAttr(
-                name="cls_out_w",
+                name=scope_name+"cls_out_w",
                 initializer=self._param_initializer),
             bias_attr=fluid.ParamAttr(
-                name="cls_out_b",
+                name=scope_name+"cls_out_b",
                 initializer=fluid.initializer.Constant(0.)))
 
         if self._is_training:
