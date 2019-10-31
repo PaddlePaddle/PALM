@@ -147,7 +147,7 @@ mrqa: train finished!
 mrqa: inference model saved at output_model/firstrun/infer_model
 ```
 
-## DEMO2：多任务训练与推理
+## DEMO2：主辅任务训练与目标任务预测
 
 本节我们考虑更加复杂的学习目标，我们引入一个问答匹配（QA Matching）任务来辅助MRQA任务的学习。在多任务训练结束后，我们希望使用训练好的模型来对MRQA任务的测试集进行预测。
 
@@ -235,6 +235,38 @@ if __name__ == '__main__':
     controller.pred('mrqa', inference_model_dir='output_model/secondrun/mrqa/infermodel') 
 ```
 
+### DEMO3: 多目标任务联合训练
+
+
+*注意在多目标任务训练时，依然可以使用DEMO2中的辅助任务来提升所有目标任务的测试集表现，但是要注意使用target_tag为引入的辅助任务打上辅助标记*
+
+```
+Global step: 1. Task: cls4, step 1/15 (epoch 0), loss: 1.344, speed: 0.50 steps/s
+Global step: 5. Task: cls2, step 1/15 (epoch 0), loss: 1.219, speed: 2.14 steps/s
+Global step: 10. Task: cls4, step 5/15 (epoch 0), loss: 1.398, speed: 2.19 steps/s
+Global step: 15. Task: cls3, step 2/15 (epoch 0), loss: 1.400, speed: 3.27 steps/s
+Global step: 20. Task: cls2, step 5/15 (epoch 0), loss: 1.260, speed: 2.64 steps/s
+Global step: 25. Task: cls5, step 5/15 (epoch 0), loss: 1.010, speed: 3.79 steps/s
+cls4: train finished!
+cls4: inference model saved at output_model/thirdrun/infer_model
+cls5: train finished!
+cls5: inference model saved at output_model/thirdrun/infer_model
+Global step: 30. Task: cls2, step 7/15 (epoch 0), loss: 0.961, speed: 0.04 steps/s
+cls2: train finished!
+cls2: inference model saved at output_model/thirdrun/infer_model
+Global step: 35. Task: cls5, step 8/15 (epoch 0), loss: 1.421, speed: 2.73 steps/s
+Global step: 40. Task: cls6, step 4/15 (epoch 0), loss: 1.412, speed: 2.74 steps/s
+Global step: 45. Task: cls1, step 5/15 (epoch 0), loss: 1.224, speed: 4.15 steps/s
+Global step: 50. Task: cls2, step 12/15 (epoch 0), loss: 1.011, speed: 2.19 steps/s
+Global step: 55. Task: cls5, step 13/15 (epoch 0), loss: 1.105, speed: 3.08 steps/s
+cls6: train finished!
+cls6: inference model saved at output_model/thirdrun/infer_model
+cls1: train finished!
+cls1: inference model saved at output_model/thirdrun/infer_model
+Global step: 60. Task: cls3, step 7/15 (epoch 0), loss: 1.363, speed: 2.72 steps/s
+cls3: train finished!
+cls3: inference model saved at output_model/thirdrun/infer_model
+```
 
 ## 进阶篇
 
