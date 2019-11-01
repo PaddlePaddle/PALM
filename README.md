@@ -1,6 +1,6 @@
 # PaddlePALM
 
-PaddlePALM (Paddle for Multi-task) 是一个强大快速、灵活易用的NLP大规模预训练与多任务学习框架。通过PaddlePALM，用户可以轻松完成复杂的多任务学习与参数复用，无缝集成**「单任务训练」**、**「多任务辅助训练」**、**「多目标任务联合训练」**以及**「单/多任务预训练」**这 **4** 种训练方式和灵活的保存与预测机制，且仅需书写极少量代码即可”一键启动”高性能单机单卡和分布式训练与推理。
+PaddlePALM (Paddle for Multi-task) 是一个强大快速、灵活易用的NLP大规模多任务学习与预训练框架。通过PaddlePALM，用户可以轻松完成复杂的多任务学习与参数复用，无缝集成**「单任务训练」、「多任务辅助训练」、「多目标任务联合训练」以及「单/多任务预训练」这 *4* 种训练方式和灵活的保存与预测机制，且仅需书写极少量代码即可”一键启动”高性能单机单卡和分布式训练与推理。
 
 框架中内置了丰富的[主干网络]()及其[预训练模型]()（BERT、ERNIE等）、常见的[任务范式]()（分类、匹配、机器阅读理解等）和相应的[数据集读取与处理工具]()。同时框架提供了用户自定义接口，若内置工具、主干网络和任务无法满足需求，开发者可以轻松完成相关组件的自定义。各个组件均为零耦合设计，用户仅需完成组件本身的特性开发即可完成与框架的融合。
 
@@ -46,7 +46,7 @@ cd PALM && python setup.py install
 
 #### 模型准备
 
-我们提供了BERT、ERNIE等主干模型及其相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在预训练模型的基础上进行多任务学习（而不是从参数随机初始化开始）。用户可通过运行脚本`script/download_pretrain_models`下载需要的预训练模型，例如，下载预训练BERT模型的命令如下
+我们提供了BERT、ERNIE等主干模型及其相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在多任务学习时尽量在预训练模型的基础上进行（而不是从参数随机初始化开始）。用户可通过运行`script/download_pretrain_models <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型的命令如下
 
 ```shell
 bash script/download_pretrain_backbone.sh bert
@@ -54,15 +54,49 @@ bash script/download_pretrain_backbone.sh bert
 
 脚本会自动在当前文件夹中创建一个pretrain_model目录，并在其中创建bert子目录，里面存放预训练模型(`params`文件夹内)、相关的网络参数(`bert_config.json`)和字典(`vocab.txt`)。
 
-然后通过运行`script/convert_params.sh`将预训练模型转换成框架可用的预训练backbone
+注意，预训练模型不能直接被框架使用。我们提供了转换脚本可以将其转换成paddlepalm的模型格式。如下，通过运行`script/convert_params.sh`可将预训练模型bert转换成框架的模型格式。
 
 ```shell
 bash script/convert_params.sh pretrain_model/bert/params
 ```
 
-*注：未来框架将支持更多的预置主干网络，如XLNet、多层LSTM等。此外，用户可以自定义添加新的主干网络，详情见[这里]()*
+若用户希望从paddlepalm模型中恢复出原始的预训练模型，可以运行`script/recover_params.sh`进行恢复。
 
-## DEMO1：单任务训练
+```shell
+bash script/recover_params.sh pretrain_model/bert/params
+```
+
+
+## 框架运行原理与配置广播机制
+
+**运行原理**
+框架的运行原理图如图所示
+
+![PALM原理图](https://tva1.sinaimg.cn/large/006y8mN6ly1g8j1isf3fcj31ne0tyqbd.jpg)
+
+**配置广播机制**
+要完成多任务学习，我们需要对主干网络、各个任务以及训练方式进行必要的配置，为此，框架实现了一套高效的配置广播机制。如上图，通过yaml语言可以描述主干网络和各个任务实例的相关配置，并存储于文件中。由于任务实例可能有多个，且部分超参数会同时被主干网络和任务实例用到，因此对于这些需要“重复配置”却取值相同的超参数，可以写入全局配置文件中，框架在解析全局配置文件时会自动将其“广播”给主干网络和各个任务实例。
+
+此外，全局配置文件的优先级要高于主干网络和任务实例的配置文件，因此当某个超参数在全局配置文件的取值与其在其余位置的取值冲突时，框架以全局配置文件中的取值为准。
+
+同时，为了方便进行大规模实验和超参数调优，凡是在**全局配置文件**中出现的超参数，均可以通过命令行进行控制，例如，对于如下全局配置文件
+
+```yaml
+...
+learning_rate: 1e-3
+batch_size: 32
+...
+```
+
+我们可能希望通过命令行临时调整学习率`learning_rate`和批大小`batch_size`，因此我们在运行训练脚本时可以通过如下方式对其进行改变。
+
+```shell
+python demo3.py --learning_rate 1e-4 --batch_size 64
+```
+
+## 3个DEMO入门PaddlePALM
+
+#### DEMO1：单任务训练
 
 框架支持对任何一个内置任务进行传统的单任务训练。接下来我们启动一个复杂的机器阅读理解任务的训练，我们在`data/mrqa`文件夹中提供了[EMNLP2019 MRQA机器阅读理解评测](https://mrqa.github.io/shared)的部分比赛数据。
 
@@ -148,7 +182,7 @@ mrqa: train finished!
 mrqa: inference model saved at output_model/firstrun/mrqa/infer_model
 ```
 
-## DEMO2：多任务辅助训练与目标任务预测
+#### DEMO2：多任务辅助训练与目标任务预测
 
 本节我们考虑更加复杂的学习目标，我们引入一个掩码语言模型（Mask Language Model，MLM）问答匹配（QA Match）任务来辅助MRQA任务的学习。在多任务训练结束后，我们希望使用训练好的模型来对MRQA任务的测试集进行预测。
 
@@ -279,7 +313,7 @@ mrqa: inference model saved at output_model/secondrun/mrqa/infer_model
 
 其中的每一行是测试集中的一个question对应的预测答案（其中的key为question的id，详情见mrc reader的说明文档）。
 
-## DEMO3: 多目标任务联合训练与任务层参数复用
+#### DEMO3: 多目标任务联合训练与任务层参数复用
 
 框架内支持设定多个目标任务，当全局配置文件的`task_instance`字段指定超过一个任务实例时，**这多个任务实例默认均为目标任务（即`target_tag`字段被自动填充为全1）**。对于被设置成目标任务的任务实例，框架会为其计算预期的训练步数（详情见下一节《进阶篇》）并在达到预期训练步数后为其保存预测模型。
 
@@ -332,9 +366,10 @@ cls3: inference model saved at output_model/thirdrun/infer_model
 
 
 ## 进阶篇
-本章节介绍一下
+本章节更深入的对paddlepalm的使用方法展开介绍，并提供一些提高使用效率的小技巧。
 
-### 更改任务采样概率（期望的训练步数）
+
+#### 更改任务采样概率（期望的训练步数）
 
 在默认情况下，每个训练step的各个任务被采样到的概率均等，若用户希望更改其中某些任务的采样概率（比如某些任务的训练集较小，希望减少对其采样的次数；或某些任务较难，希望被更多的训练），可以在全局配置文件中通过`mix_ratio`字段控制各个任务的采样概率。例如
 
@@ -347,9 +382,8 @@ mix_ratio: 1.0, 0.5, 0.5
 
 > 注意：若match4mrqa, mlm4mrqa被设置为辅助任务，则实际训练步数可能略多或略少于5000个steps。对于目标任务，则是精确的5000 steps。
 
-### 共享任务层参数
+#### 分布式训练
 
-### 分布式训练
 
 ## 内置数据集载入与处理工具（reader）
 
@@ -375,7 +409,7 @@ for_cn: True
 - print_first_n（OPTIONAL）: int类型。打印数据集的前n条样本和对应的reader输出，默认为0。
 ```
 
-### 文本分类数据集reader工具：cls
+#### 文本分类数据集reader工具：cls
 
 该reader完成文本分类数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含两列，一列为样本标签`label`，一列为原始文本`text_a`。数据集范例可参考`data/cls4mrqa`中的数据集文件，格式形如
 
@@ -406,7 +440,7 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
 
-### 文本匹配数据集reader工具：match
+#### 文本匹配数据集reader工具：match
 
 该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`。数据集范例可参考`data/match4mrqa`中的数据集文件，格式形如
 
@@ -432,7 +466,7 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
 
-### 机器阅读理解数据集reader工具：mrc
+#### 机器阅读理解数据集reader工具：mrc
 
 该reader支持基于滑动窗口的机器阅读理解数据集载入，可以自动将较长的context按照步长切分成若干子文档，每个子文档与question分别计算答案片段，并在最终阶段合并。该reader接受[json格式]()的数据集。数据集范例可参考`data/mrqa`中的数据集文件，格式如下。
 
@@ -489,7 +523,7 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
 
-### 掩码语言模型数据集reader工具：mlm
+#### 掩码语言模型数据集reader工具：mlm
 该reader完成掩码语言模型数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，MLM任务为自监督任务，数据集仅包含一列`text_a`，reader会自动为每个样本生成随机的训练标签。格式如下
 
 ```yaml
@@ -518,19 +552,19 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 
 框架中内置了BERT
 
-### BERT
+#### BERT
 
-### ERNIE
+#### ERNIE
 
 ## 内置任务范式（paradigm）
 
-### 分类任务
+#### 分类任务
 
-### 匹配任务
+#### 匹配任务
 
-### 机器阅读理解任务
+#### 机器阅读理解任务
 
-### 掩码语言模型任务
+#### 掩码语言模型任务
 
 ## License
 
