@@ -32,7 +32,7 @@ cd PALM && python setup.py install
 
 ## 前期准备
 
-#### 理论准备
+### 理论准备
 
 框架默认采用一对多（One-to-Many）的参数共享方式，如图
 
@@ -44,7 +44,7 @@ cd PALM && python setup.py install
 
 框架默认采用任务采样+mini-batch采样的方式（alternating mini-batches optimization）进行模型训练，即对于每个训练step，首先对候选任务进行采样（采样权重取决于用户设置的`mix_ratio`），而后从该任务的训练集中采样出一个mini-batch（采样出的样本数取决于用户设置的`batch_size`）。
 
-#### 模型准备
+### 模型准备
 
 我们提供了BERT、ERNIE等主干模型及其相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在多任务学习时尽量在预训练模型的基础上进行（而不是从参数随机初始化开始）。用户可通过运行`script/download_pretrain_models <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型的命令如下
 
@@ -69,12 +69,12 @@ bash script/recover_params.sh pretrain_model/bert/params
 
 ## 框架运行原理与配置广播机制
 
-**运行原理**
+### 运行原理
 框架的运行原理图如图所示
 
 ![PALM原理图](https://tva1.sinaimg.cn/large/006y8mN6ly1g8j1isf3fcj31ne0tyqbd.jpg)
 
-**配置广播机制**
+### 配置广播机制
 要完成多任务学习，我们需要对主干网络、各个任务以及训练方式进行必要的配置，为此，框架实现了一套高效的配置广播机制。如上图，通过yaml语言可以描述主干网络和各个任务实例的相关配置，并存储于文件中。由于任务实例可能有多个，且部分超参数会同时被主干网络和任务实例用到，因此对于这些需要“重复配置”却取值相同的超参数，可以写入全局配置文件中，框架在解析全局配置文件时会自动将其“广播”给主干网络和各个任务实例。
 
 此外，全局配置文件的优先级要高于主干网络和任务实例的配置文件，因此当某个超参数在全局配置文件的取值与其在其余位置的取值冲突时，框架以全局配置文件中的取值为准。
@@ -96,7 +96,7 @@ python demo3.py --learning_rate 1e-4 --batch_size 64
 
 ## 3个DEMO入门PaddlePALM
 
-#### DEMO1：单任务训练
+### DEMO1：单任务训练
 
 框架支持对任何一个内置任务进行传统的单任务训练。接下来我们启动一个复杂的机器阅读理解任务的训练，我们在`data/mrqa`文件夹中提供了[EMNLP2019 MRQA机器阅读理解评测](https://mrqa.github.io/shared)的部分比赛数据。
 
@@ -182,7 +182,7 @@ mrqa: train finished!
 mrqa: inference model saved at output_model/firstrun/mrqa/infer_model
 ```
 
-#### DEMO2：多任务辅助训练与目标任务预测
+### DEMO2：多任务辅助训练与目标任务预测
 
 本节我们考虑更加复杂的学习目标，我们引入一个掩码语言模型（Mask Language Model，MLM）问答匹配（QA Match）任务来辅助MRQA任务的学习。在多任务训练结束后，我们希望使用训练好的模型来对MRQA任务的测试集进行预测。
 
@@ -313,7 +313,7 @@ mrqa: inference model saved at output_model/secondrun/mrqa/infer_model
 
 其中的每一行是测试集中的一个question对应的预测答案（其中的key为question的id，详情见mrc reader的说明文档）。
 
-#### DEMO3: 多目标任务联合训练与任务层参数复用
+### DEMO3: 多目标任务联合训练与任务层参数复用
 
 框架内支持设定多个目标任务，当全局配置文件的`task_instance`字段指定超过一个任务实例时，**这多个任务实例默认均为目标任务（即`target_tag`字段被自动填充为全1）**。对于被设置成目标任务的任务实例，框架会为其计算预期的训练步数（详情见下一节《进阶篇》）并在达到预期训练步数后为其保存预测模型。
 
@@ -338,11 +338,8 @@ task_reuse_tag: 0, 0, 1, 1, 0, 2
 
 ```
 Global step: 1. Task: cls4, step 1/15 (epoch 0), loss: 1.344, speed: 0.50 steps/s
-Global step: 5. Task: cls2, step 1/15 (epoch 0), loss: 1.219, speed: 2.14 steps/s
 Global step: 10. Task: cls4, step 5/15 (epoch 0), loss: 1.398, speed: 2.19 steps/s
-Global step: 15. Task: cls3, step 2/15 (epoch 0), loss: 1.400, speed: 3.27 steps/s
 Global step: 20. Task: cls2, step 5/15 (epoch 0), loss: 1.260, speed: 2.64 steps/s
-Global step: 25. Task: cls5, step 5/15 (epoch 0), loss: 1.010, speed: 3.79 steps/s
 cls4: train finished!
 cls4: inference model saved at output_model/thirdrun/infer_model
 cls5: train finished!
@@ -350,11 +347,8 @@ cls5: inference model saved at output_model/thirdrun/infer_model
 Global step: 30. Task: cls2, step 7/15 (epoch 0), loss: 0.961, speed: 0.04 steps/s
 cls2: train finished!
 cls2: inference model saved at output_model/thirdrun/infer_model
-Global step: 35. Task: cls5, step 8/15 (epoch 0), loss: 1.421, speed: 2.73 steps/s
 Global step: 40. Task: cls6, step 4/15 (epoch 0), loss: 1.412, speed: 2.74 steps/s
-Global step: 45. Task: cls1, step 5/15 (epoch 0), loss: 1.224, speed: 4.15 steps/s
 Global step: 50. Task: cls2, step 12/15 (epoch 0), loss: 1.011, speed: 2.19 steps/s
-Global step: 55. Task: cls5, step 13/15 (epoch 0), loss: 1.105, speed: 3.08 steps/s
 cls6: train finished!
 cls6: inference model saved at output_model/thirdrun/infer_model
 cls1: train finished!
@@ -368,8 +362,7 @@ cls3: inference model saved at output_model/thirdrun/infer_model
 ## 进阶篇
 本章节更深入的对paddlepalm的使用方法展开介绍，并提供一些提高使用效率的小技巧。
 
-
-#### 更改任务采样概率（期望的训练步数）
+### 训练终止条件与各类任务的预期训练步数
 
 在默认情况下，每个训练step的各个任务被采样到的概率均等，若用户希望更改其中某些任务的采样概率（比如某些任务的训练集较小，希望减少对其采样的次数；或某些任务较难，希望被更多的训练），可以在全局配置文件中通过`mix_ratio`字段控制各个任务的采样概率。例如
 
@@ -382,7 +375,9 @@ mix_ratio: 1.0, 0.5, 0.5
 
 > 注意：若match4mrqa, mlm4mrqa被设置为辅助任务，则实际训练步数可能略多或略少于5000个steps。对于目标任务，则是精确的5000 steps。
 
-#### 分布式训练
+### 模型保存与预测机制
+
+### 分布式训练与推理
 
 
 ## 内置数据集载入与处理工具（reader）
