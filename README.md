@@ -1,6 +1,6 @@
 # PaddlePALM
 
-PaddlePALM (Paddle for Pretraining And Learning Multi-task) 是一个强大快速、灵活易用的NLP大规模预训练与多任务学习框架。通过PaddlePALM，用户可以轻松完成复杂的多任务学习与参数复用，无缝集成**「单任务训练」**、**「多任务辅助训练」**、**「多目标任务联合训练」**以及**「单/多任务预训练」**这 **4** 种训练方式和灵活的保存与预测机制，且仅需书写极少量代码即可”一键启动”高性能单机单卡和分布式训练与推理。
+PaddlePALM (Paddle for Multi-task) 是一个强大快速、灵活易用的NLP大规模预训练与多任务学习框架。通过PaddlePALM，用户可以轻松完成复杂的多任务学习与参数复用，无缝集成**「单任务训练」**、**「多任务辅助训练」**、**「多目标任务联合训练」**以及**「单/多任务预训练」**这 **4** 种训练方式和灵活的保存与预测机制，且仅需书写极少量代码即可”一键启动”高性能单机单卡和分布式训练与推理。
 
 框架中内置了丰富的[主干网络]()及其[预训练模型]()（BERT、ERNIE等）、常见的[任务范式]()（分类、匹配、机器阅读理解等）和相应的[数据集读取与处理工具]()。同时框架提供了用户自定义接口，若内置工具、主干网络和任务无法满足需求，开发者可以轻松完成相关组件的自定义。各个组件均为零耦合设计，用户仅需完成组件本身的特性开发即可完成与框架的融合。
 
@@ -134,21 +134,23 @@ if __name__ == '__main__':
     controller.train()
 ```
 
-默认情况下每5个训练step打印一次训练日志，如下（该日志在8卡P40机器上运行得到），可以看到loss值随着训练收敛。在训练结束后，`Controller`自动为mrqa任务保存预测模型。
+训练日志如下，可以看到loss值随着训练收敛。在训练结束后，`Controller`自动为mrqa任务保存预测模型。
 
 ```
-Global step: 5. Task: mrqa, step 5/13 (epoch 0), loss: 4.976, speed: 0.11 steps/s
-Global step: 10. Task: mrqa, step 10/13 (epoch 0), loss: 2.938, speed: 0.48 steps/s
-Global step: 15. Task: mrqa, step 2/13 (epoch 1), loss: 2.422, speed: 0.47 steps/s
-Global step: 20. Task: mrqa, step 7/13 (epoch 1), loss: 2.809, speed: 0.53 steps/s
-Global step: 25. Task: mrqa, step 12/13 (epoch 1), loss: 1.744, speed: 0.50 steps/s
+Global step: 10. Task: mrqa, step 10/135 (epoch 0), loss: 5.928, speed: 0.67 steps/s
+Global step: 20. Task: mrqa, step 20/135 (epoch 0), loss: 4.594, speed: 0.75 steps/s
+Global step: 30. Task: mrqa, step 30/135 (epoch 0), loss: 1.663, speed: 0.75 steps/s
+...
+Global step: 250. Task: mrqa, step 115/135 (epoch 1), loss: 1.391, speed: 0.75 steps/s
+Global step: 260. Task: mrqa, step 125/135 (epoch 1), loss: 1.871, speed: 0.75 steps/s
+Global step: 270. Task: mrqa, step 135/135 (epoch 1), loss: 1.544, speed: 0.75 steps/s
 mrqa: train finished!
-mrqa: inference model saved at output_model/firstrun/infer_model
+mrqa: inference model saved at output_model/firstrun/mrqa/infer_model
 ```
 
 ## DEMO2：多任务辅助训练与目标任务预测
 
-本节我们考虑更加复杂的学习目标，我们引入一个问答匹配（QA Matching）任务来辅助MRQA任务的学习。在多任务训练结束后，我们希望使用训练好的模型来对MRQA任务的测试集进行预测。
+本节我们考虑更加复杂的学习目标，我们引入一个掩码语言模型（Mask Language Model，MLM）问答匹配（QA Match）任务来辅助MRQA任务的学习。在多任务训练结束后，我们希望使用训练好的模型来对MRQA任务的测试集进行预测。
 
 用户可通过运行如下脚本直接开始本节任务的训练
 
@@ -156,29 +158,39 @@ mrqa: inference model saved at output_model/firstrun/infer_model
 bash run_demo2.sh
 ```
 
-
-
 下面以该任务为例，讲解如何基于paddlepalm框架轻松实现这个复杂的多任务学习。
 
 **1. 配置任务实例**
 
-首先，我们像上一节一样为Matching任务分别配置任务实例`match4mrqa.yaml`：
+首先，我们像上一节一样为MLM任务和Matching任务分别创建任务实例的配置文件`mlm4mrqa.yaml`和`match4mrqa.yaml`：
 
 ```yaml
+----- mlm4mrqa.yaml -----
+train_file: "data/mlm4mrqa/train.tsv"
+reader: mlm
+paradigm: mlm
+
+----- match4mrqa.yaml -----
 train_file: "data/match/train.tsv"
 reader: match
 paradigm: match
 ```
 
-*注：更详细的任务实例配置方法可参考[这里]()*
+由于我们在训练结束后要对MRQA任务的测试集进行预测，因此我们要在之前写好的`mrqa.yaml`中追加预测相关的配置
+```yaml
+pred_file: data/mrqa/dev.json
+pred_output_path: 'mrqa_output'
+max_answer_len: 30
+n_best_size: 20
+```
 
 **2.配置全局参数**
 
-由于MRQA和Matching任务有相同的字典、大小写配置、截断长度等，因此我们可以将这些各个任务中相同的参数写入到全局配置文件`mtl_config.yaml`中，**框架会自动将该文件中的配置广播（broadcast）到各个任务实例。**
+由于MRQA、MLM和Matching任务有相同的字典、大小写配置、截断长度等，因此我们可以将这些各个任务中相同的参数写入到全局配置文件`mtl_config.yaml`中，**框架会自动将该文件中的配置广播（broadcast）到各个任务实例。**
 
 ```yaml
-task_instance: "mrqa, match4mrqa"
-target_tag: 1,0 
+task_instance: "mrqa, mlm4mrqa, match4mrqa"
+target_tag: 1,0,0 
 
 save_path: "output_model/secondrun"
 
@@ -199,17 +211,19 @@ weight_decay: 0.1
 
 这里我们可以使用`target_tag`来标记目标任务和辅助任务，各个任务的tag使用逗号`,`隔开。target_tag与task_instance中的元素一一对应，当某任务的tag设置为1时，表示对应的任务被设置为目标任务；设置为0时，表示对应的任务被设置为辅助任务，默认情况下所以任务均被设置为目标任务（即默认`target_tag`为全1）。
 
-辅助任务不会保存预测模型，且不会影响训练的终止。当所有的目标任务达到预期的训练步数后多任务学习终止，框架自动为每个目标任务保存预测模型（inference model）到设置的`save_path`位置。
+辅助任务不会保存预测模型，且不会影响训练的终止，仅仅起到“陪同训练”的作用以期提高模型的泛化能力。当所有的目标任务达到预期的训练步数后多任务学习终止，框架自动为每个目标任务保存预测模型（inference model）到设置的`save_path`位置。
 
-在训练过程中，默认每个训练step会从各个任务等概率采样，来决定当前step训练哪个任务。若用户希望改变采样比率，可以通过`mix_ratio`字段来进行设置，例如
+同时需要注意的是，这里`num_epochs`指代目标任务`mrqa`的训练epoch数量（训练集遍历次数）。
+
+在训练过程中，默认每个训练step会从各个任务等概率采样，来决定当前step训练哪个任务。但包括辅助任务在内，各个任务的采样概率是可以被控制的。若用户希望改变采样比率，可以通过`mix_ratio`字段来进行设置，例如
 
 ```yaml
-mix_ratio: 1.0, 0.5
+mix_ratio: 1.0, 0.5, 0.5
 ```
 
-若将如上设置加入到全局配置文件中，则辅助任务`match4mrqa`的采样概率仅为`mrqa`任务的一半。
+若将如上设置加入到全局配置文件中，则辅助任务`mlm4mrqa`和`match4mrqa`的采样概率/预估的训练步数仅为`mrqa`任务的一半。关于采样概率的更多介绍请参考进阶篇。
 
-这里`num_epochs`指代目标任务`mrqa`的训练epoch数量（训练集遍历次数），**当目标任务有多个时，该参数将作用于第一个出现的目标任务（称为主任务，main task）**。
+
 
 **3.开始多任务训练**
 
@@ -223,6 +237,24 @@ if __name__ == '__main__':
 
 ```
 
+训练日志如下，在训练过程中可以看到每个任务的loss下降
+```
+Global step: 10. Task: mrqa, step 4/135 (epoch 0), loss: 6.235, speed: 0.75 steps/s
+Global step: 20. Task: mrqa, step 8/135 (epoch 0), loss: 5.652, speed: 0.75 steps/s
+Global step: 30. Task: mrqa, step 13/135 (epoch 0), loss: 6.031, speed: 0.75 steps/s
+Global step: 40. Task: match4mrqa, step 13/25 (epoch 0), loss: 0.758, speed: 2.52 steps/s
+Global step: 50. Task: mlm4mrqa, step 14/30 (epoch 0), loss: 7.322, speed: 3.24 steps/s
+...
+Global step: 547. Task: match4mrqa, step 13/25 (epoch 5), loss: 0.400, speed: 2.23 steps/s
+Global step: 548. Task: match4mrqa, step 14/25 (epoch 5), loss: 0.121, speed: 3.03 steps/s
+Global step: 549. Task: mrqa, step 134/135 (epoch 1), loss: 0.824, speed: 0.75 steps/s
+Global step: 550. Task: mlm4mrqa, step 22/30 (epoch 4), loss: 6.903, speed: 3.59 steps/s
+Global step: 551. Task: mrqa, step 135/135 (epoch 1), loss: 3.408, speed: 0.75 steps/s
+
+mrqa: train finished!
+mrqa: inference model saved at output_model/secondrun/mrqa/infer_model
+```
+
 **4.预测**
 
 在得到目标任务的预测模型（inference_model）后，我们可以加载预测模型对该任务的测试集进行预测。在多任务训练阶段，在全局配置文件的`save_path`指定的路径下会为每个目标任务创建同名子目录，子目录中都有预测模型文件夹`infermodel`。我们可以将该路径传给框架的`controller`来完成对该目标任务的预测。
@@ -234,6 +266,19 @@ if __name__ == '__main__':
     controller.pred('mrqa', inference_model_dir='output_model/secondrun/mrqa/infermodel') 
 ```
 
+我们可以在刚刚yaml文件中设置的`mrqa_output/`文件夹下的`predictions.json`文件中看到类似如下的预测结果
+
+```json
+{                                                                                           
+    "3f02f171c82e49828580007a71eefc31": "Ethan Allen", 
+    "98d0b8ce19d1434abdb42aa01e83db61": "McDonald's", 
+    "f0bc45a4dd7a4d8abf91a5e4fb25fe57": "Jesse James", 
+    ...
+}
+```
+
+其中的每一行是测试集中的一个question对应的预测答案（其中的key为question的id，详情见mrc reader的说明文档）。
+
 ## DEMO3: 多目标任务联合训练与任务层参数复用
 
 框架内支持设定多个目标任务，当全局配置文件的`task_instance`字段指定超过一个任务实例时，**这多个任务实例默认均为目标任务（即`target_tag`字段被自动填充为全1）**。对于被设置成目标任务的任务实例，框架会为其计算预期的训练步数（详情见下一节《进阶篇》）并在达到预期训练步数后为其保存预测模型。
@@ -242,16 +287,18 @@ if __name__ == '__main__':
 
 *注意：在多目标任务训练时，依然可以使用DEMO2中的辅助任务来提升所有目标任务的测试集表现，但是要注意使用target_tag为引入的辅助任务打上辅助标记「0」*
 
-例如我们有6个分类任务，均为目标任务（每个任务的模型都希望未来拿来做预测和部署），且我们希望任务1，2，5的任务输出层共享同一份参数，任务3、4共享同一份参数，任务6自己一份参数，即希望对6个任务实现如图所示的参数复用关系。
+例如我们有6个分类任务（CLS1 ~ CLS6），均为目标任务（每个任务的模型都希望未来拿来做预测和部署），且我们希望任务1，2，5的任务输出层共享同一份参数，任务3、4共享同一份参数，任务6自己一份参数，即希望对6个任务实现如图所示的参数复用关系。
 
-【图】
+![image2](https://tva1.sinaimg.cn/large/006y8mN6ly1g8issdoli5j31ow08ogxv.jpg)
 
+如图，在同一个方框内的任务共享相同的任务层参数。
 
+在paddlepalm中可以轻松完成上述的复杂复用关系的定义，我们使用`task_reuse_tag`来描述任务层的参数复用关系，与`target_tag`一样，`task_reuse_tag`中的元素与`task_instance`一一对应，元素取值相同的任务会自动共享任务层参数，取值不同的任务不复用任务层参数。因此可以在yaml文件中如下描述
 ```yaml
-task_instance: domain_cls, mrqa, senti_cls, mlm, qq_match
-target_tag: 0, 1, 1, 0, 1
+task_instance: "cls1, cls2, cls3, cls4, cls5, cls6"
+task_reuse_tag: 0, 0, 1, 1, 0, 2
 ```
-在上述的设置中，mrqa，senti_cls和qq_match这三个任务被标记成了目标任务（其中mrqa为主任务），domain_cls和mlm被标记为了辅助任务。辅助任务仅仅“陪同”目标任务训练，框架不会为其保存预测模型（inference_model），也不会计算预期训练步数。但包括辅助任务在内，各个任务的采样概率是可以被控制的，详情见下一小节。
+同时，这6个任务均为目标任务，因此我们不需要手动设置`target_tag`了（任务默认即为目标任务）。不过，**设置多个目标的情况下，依然可以添加辅助任务陪同这些目标任务进行训练**，这时候就需要引入`target_tag`来区分目标任务和辅助任务了。
 
 
 
@@ -283,9 +330,6 @@ cls3: train finished!
 cls3: inference model saved at output_model/thirdrun/infer_model
 ```
 
-## DEMO4: 单/多任务预训练
-
-pass
 
 ## 进阶篇
 本章节介绍一下
