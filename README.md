@@ -350,6 +350,19 @@ label   text_a
 - n_classes（REQUIRED）: int类型。分类任务的类别数。
 ```
 
+reader的输出（生成器每次yield出的数据）包含以下字段
+
+token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
+position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
+input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
+task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+
+当处于
+
+
+
 ### 文本匹配数据集reader工具：match
 
 该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`，形如
@@ -364,7 +377,45 @@ label   text_a  text_b
 
 ***注意：数据集的第一列必须为header，即标注每一列的列名***
 
+reader输出：
+
+
 ### 机器阅读理解数据集reader工具：mrc
+
+该reader支持基于滑动窗口的机器阅读理解数据集载入，可以自动将较长的context按照步长切分成若干子文档，每个子文档与question分别计算答案片段，并在最终阶段合并。该reader接受[json格式]()的数据集。如下。
+
+```json
+{
+    "version": "1.0",
+    "data": [
+        {"title": "...",
+         "paragraphs": [
+            {"context": "...",
+             "qas": [
+                {"question": "..."
+                 "id": "..."
+                 "answers": [
+                    {"text": "...",
+                     "answer_start": ...}
+                    {...}
+                    ...
+                    ]
+                 }
+                 {...}
+                 ...
+             {...},
+             ...
+             ]
+         }
+         {...}
+         ...
+     ]
+ }
+ ```
+ 
+数据集的最外层数据结构为字典，包含数据集版本号`version`和数据集`data`。在`data`字段内为各个样本，每个样本包含文章标题`title`和若干段落`paragraphs`，在`paragraphs`中的每个元素为一个段落`context`，基于该段落的内容，可以包含若干个问题和对应的答案`qas`，答案均位于该段落内。对于`qas`中的每个元素，包含一个问题`question`和一个全局唯一的标识`id`，以及（若干）答案`answers`。答案中的每个元素包含答案本身`text`及其在`context`中的起始位置`answer_start`。注意起始位置为字符级。此外，在测试集中，`qas`可以不包含`answers`字段。
+
+
 
 ### 掩码语言模型数据集reader工具：mlm
 
