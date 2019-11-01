@@ -333,7 +333,7 @@ for_cn: True
 
 ### 文本分类数据集reader工具：cls
 
-该reader完成文本分类数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含两列，一列为样本标签`label`，一列为原始文本`text_a`。形如
+该reader完成文本分类数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含两列，一列为样本标签`label`，一列为原始文本`text_a`。数据集范例可参考`data/cls4mrqa`中的数据集文件，格式形如
 
 ```
 label   text_a                                                                                   
@@ -359,13 +359,12 @@ input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元�
 label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
 task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
 
-当处于
-
+当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
 
 ### 文本匹配数据集reader工具：match
 
-该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`，形如
+该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`。数据集范例可参考`data/match4mrqa`中的数据集文件，格式形如
 
 ```yaml
 label   text_a  text_b                                                                           
@@ -377,12 +376,21 @@ label   text_a  text_b
 
 ***注意：数据集的第一列必须为header，即标注每一列的列名***
 
-reader输出：
+reader的输出（生成器每次yield出的数据）包含以下字段：
+
+token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本（文本对），其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
+position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids": 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
+input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配。
+task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+
+当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
 
 ### 机器阅读理解数据集reader工具：mrc
 
-该reader支持基于滑动窗口的机器阅读理解数据集载入，可以自动将较长的context按照步长切分成若干子文档，每个子文档与question分别计算答案片段，并在最终阶段合并。该reader接受[json格式]()的数据集。如下。
+该reader支持基于滑动窗口的机器阅读理解数据集载入，可以自动将较长的context按照步长切分成若干子文档，每个子文档与question分别计算答案片段，并在最终阶段合并。该reader接受[json格式]()的数据集。数据集范例可参考`data/mrqa`中的数据集文件，格式如下。
 
 ```json
 {
@@ -415,11 +423,56 @@ reader输出：
  
 数据集的最外层数据结构为字典，包含数据集版本号`version`和数据集`data`。在`data`字段内为各个样本，每个样本包含文章标题`title`和若干段落`paragraphs`，在`paragraphs`中的每个元素为一个段落`context`，基于该段落的内容，可以包含若干个问题和对应的答案`qas`，答案均位于该段落内。对于`qas`中的每个元素，包含一个问题`question`和一个全局唯一的标识`id`，以及（若干）答案`answers`。答案中的每个元素包含答案本身`text`及其在`context`中的起始位置`answer_start`。注意起始位置为字符级。此外，在测试集中，`qas`可以不包含`answers`字段。
 
+该reader包含如下额外的可配置字段：
+
+```yaml
+doc_stride (REQUIRED): int类型。对context应用滑动窗口时的滑动步长。
+max_query_len (REQUIRED): int类型。query的最大长度。
+···
+
+
+reader的输出（生成器每次yield出的数据）包含以下字段：
+
+```yaml
+token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本（文本对），文本1为context，文本2为question，其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
+position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids": 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
+input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配。
+task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+```
+
+当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
 
 ### 掩码语言模型数据集reader工具：mlm
+该reader完成掩码语言模型数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，MLM任务为自监督任务，数据集仅包含一列`text_a`，reader会自动为每个样本生成随机的训练标签。格式如下
+
+```yaml
+text_a                                                                                           
+Subsequent to these developments, Randall Collins (2004) formulated his interaction ritual theory by drawing on Durkheim's work on totemic rituals that was extended by Goffman (1964/2013; 1967) into everyday focused encounters. 
+Presidential spokesman Abigail Valte earlier Saturday urged residents of low-lying and mountainous areas that could be hit hard by the storm to evacuate, the state news agency said, citing an interview conducted on a government radio station. World Vision, the Christian humanitarian organization, said Saturday that it had to postpone some of its relief efforts due to Nalgae, with two of three emergency teams set to deploy once the storm passes. Another team is in Bulcan province, most of which is "still submerged" because of Nesat. The group is focusing its post-Nesat efforts on two communities in Manila and three in the northern Isabela and Zambales provinces. 
+of the Year award in 2013, becoming the first woman in thirty years, and the first African American person ever to ever win the award. After an extensive career with the California State Legislature she began working for PicoBrew, a product development company in Seattle, WA that specializes in automated brewing equipment. 
+the gakkel ridge is a boundary between which two tectonic plates Mid-Atlantic Ridge ( MAR ) is a mid-ocean ridge , a divergent tectonic plate or constructive plate boundary located along the floor of the Atlantic Ocean , and part of the longest mountain range in the world . The ridge extends from a junction with the Gakkel Ridge ( Mid-Arctic Ridge ) northeast of Greenland southward to the Bouvet Triple Junction in the South Atlantic .
+```
+
+***注意：数据集的第一列必须为header，即标注每一列的列名***
+
+reader的输出（生成器每次yield出的数据）包含以下字段：
+
+```yaml
+token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
+position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
+input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+mask_label": 一个shape为[None]的向量，其中的每个元素为被mask掉的单词的真实单词id。
+mask_pos": 一个shape为[None]的向量，长度与`mask_pos`一致且元素一一对应。每个元素表示被mask掉的单词的位置。
+task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+```
 
 ## 内置主干网络（backbone）
+
+框架中内置了BERT
 
 ### BERT
 
