@@ -208,7 +208,7 @@ class Controller(object):
         self.exe = exe
         self.dev_count = dev_count
 
-        print_dict(mtl_conf, title='main configuration')
+        print_dict(mtl_conf, title='global configuration')
 
         # parse task instances and target tags
         instnames = _parse_list(mtl_conf['task_instance'])
@@ -229,6 +229,18 @@ class Controller(object):
             
             instname_to_conf[instname] = conf
             instname_to_id[instname] = id
+
+        # prepare backbone
+        if 'backbone_config_path' in mtl_conf:
+            bb_conf = _parse_json(mtl_conf['backbone_config_path'])
+            bb_conf = _merge_conf(mtl_conf, bb_conf)
+        else:
+            bb_conf = mtl_conf
+        print_dict(bb_conf, title='backbone configuration'.format(instname))
+
+        bb_name = mtl_conf['backbone']
+        bb_mod = importlib.import_module(BACKBONE_DIR + '.' + bb_name)
+        Backbone = getattr(bb_mod, 'Model')
 
         # create task instances
         instances = []
@@ -294,8 +306,8 @@ class Controller(object):
             for j in range(i):
                 if tags[i] == tags[j]:
                     # check paradigm of reused tasks
-                    assert instances[i].task_paradigm == \
-                            instances[j].task_paradigm, \
+                    assert instances[i].Paradigm == \
+                            instances[j].Paradigm, \
                             "paradigm of reuse tasks should be consistent"
                     instances[i].task_reuse_scope = instances[j].name
                     break
@@ -312,18 +324,6 @@ class Controller(object):
 
             inst.Reader = Reader
             inst.Paradigm = Paradigm
-
-        # prepare backbone
-        if 'backbone_config_path' in mtl_conf:
-            bb_conf = _parse_json(mtl_conf['backbone_config_path'])
-            bb_conf = _merge_conf(mtl_conf, bb_conf)
-        else:
-            bb_conf = mtl_conf
-        print_dict(bb_conf, title='backbone configuration'.format(instname))
-
-        bb_name = mtl_conf['backbone']
-        bb_mod = importlib.import_module(BACKBONE_DIR + '.' + bb_name)
-        Backbone = getattr(bb_mod, 'Model')
         
         self.instances = instances
         self.mrs = mrs
@@ -433,11 +433,12 @@ class Controller(object):
         train_prog = fluid.default_main_program()
         train_init_prog = fluid.default_startup_program()
         # 别用unique_name.guard了，没用的，无法作用到param_attr里的name上
-        with fluid.unique_name.guard("backbone-"):
-            bb_output_vars = train_backbone.build(net_inputs, scope_name='__paddlepalm_')
+        # with fluid.unique_name.guard("backbone-"):
+        bb_output_vars = train_backbone.build(net_inputs, scope_name='__paddlepalm_')
         assert sorted(bb_output_vars.keys()) == sorted(train_backbone.outputs_attr.keys())
-        #for var in train_init_prog.blocks[0].vars:
-        #    print(var)
+        # for block in train_init_prog.blocks:
+        #     for var in block.vars:
+        #         print(var)
         
         # 会挂
         # 这里是否有必要新建一个program？是的，被坑死了
@@ -445,10 +446,10 @@ class Controller(object):
         pred_init_prog = fluid.Program()
 
         with fluid.program_guard(main_program = pred_prog, startup_program = pred_init_prog):
+            # with fluid.unique_name.guard():
             pred_net_inputs = create_net_inputs(pred_input_attrs)
             # 别用unique_name.guard了，没用的，无法作用到param_attr里的name上
             # with fluid.unique_name.guard("backbone-"):
-
             pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
 
         fluid.framework.switch_main_program(train_prog)
@@ -465,7 +466,7 @@ class Controller(object):
 
             scope = inst.task_reuse_scope + '/'
             with fluid.unique_name.guard(scope):
-                output_vars = inst.build_task_layer(task_inputs, phase='train')
+                output_vars = inst.build_task_layer(task_inputs, phase='train', scope=scope)
                 output_vars = {inst.name+'/'+key: val for key, val in output_vars.items()}
                 old = len(task_output_vars) # for debug
                 task_output_vars.update(output_vars)
@@ -485,8 +486,9 @@ class Controller(object):
                     inst.pred_input = cur_inputs
                     pred_task_inputs = {'backbone': pred_bb_output_vars, 'reader': cur_inputs}
                     scope = inst.task_reuse_scope + '/'
+                    # 注意，这里不加上fluid.unique_name.guard会挂
                     with fluid.unique_name.guard(scope):
-                        inst.build_task_layer(pred_task_inputs, phase='pred')
+                        inst.build_task_layer(pred_task_inputs, phase='pred', scope=scope)
 
 
         bb_fetches = {k: v.name for k,v in bb_output_vars.items()}
@@ -668,6 +670,7 @@ class Controller(object):
         # save_path = os.path.join(main_conf['save_path'],
         #                          "step_" + str(global_step) + "_final")
         # fluid.io.save_persistables(self.exe, save_path, saver_program)
+        print("ALL tasks train finished, exiting...")
             
     def pred(self, task_instance, inference_model_dir=None):
         if self._for_train:

@@ -73,7 +73,7 @@ class TaskParadigm(task_paradigm):
                     'unique_ids': [[-1, 1], 'int64']}
 
 
-    def build(self, inputs):
+    def build(self, inputs, scope_name=""):
         if self._is_training:
             start_positions = inputs['reader']['start_positions']
             end_positions = inputs['reader']['end_positions']
@@ -91,10 +91,10 @@ class TaskParadigm(task_paradigm):
             size=2,
             num_flatten_dims=2,
             param_attr=fluid.ParamAttr(
-                name="cls_squad_out_w",
+                name=scope_name+"cls_squad_out_w",
                 initializer=fluid.initializer.TruncatedNormal(scale=0.02)),
             bias_attr=fluid.ParamAttr(
-                name="cls_squad_out_b", initializer=fluid.initializer.Constant(0.)))
+                name=scope_name+"cls_squad_out_b", initializer=fluid.initializer.Constant(0.)))
 
         logits = fluid.layers.transpose(x=logits, perm=[2, 0, 1])
         start_logits, end_logits = fluid.layers.unstack(x=logits, axis=0)
