@@ -385,9 +385,9 @@ reader、backbone和paradigm是实现各类任务的三大基础组件，其中r
                 "sentence_pair_embedding": [[None, self._emb_size], 'float32']}
 ```
 
-通过
+其中`inputs_attr`描述了BERT的输入对象，包含`token_ids`, `position_ids`, `segment_ids`和`input_mask`，并且附带了它们的形状（None表示Tensor在该维度的大小可变）和数据类型。`outputs_attr`则描述了BERT模块能提供的输出对象，包含`word_embedding`, `embedding_table`, `encoder_outputs`等。
 
-其中，backbone的输入元素来自于reader的输出，paradgim
+当用户创建任务实例时，只需要保证每个组件的输入对象是包含在上游组件的输出内的，那么这些组件就可以搭配在一起使用。其中，backbone的上游组件是reader，paradigm的上游组件同时包含reader和backbone。
 
 ### 训练终止条件与预期训练步数
 
@@ -579,7 +579,7 @@ the gakkel ridge is a boundary between which two tectonic plates Mid-Atlantic Ri
 
 ***注意：数据集的第一列必须为header，即标注每一列的列名***
 
-reader的输出（生成器每次yield出的数据）包含以下字段：
+reader的输出（生成器每次yield出的数据）包含以下对象：
 
 ```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
@@ -597,17 +597,58 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 
 #### BERT
 
+BERT包含了如下输入对象
+
+```yaml
+token_ids: 。一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的0/1矩阵，用于支持BERT、ERNIE等模型的输入，当元素为0时，代表当前token属于分类任务或匹配任务的text1，为1时代表当前token属于匹配任务的text2.
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+```
+
+提供了如下输出对象供下游组件使用。
+
+```yaml
+word_embedding: 一个shape为[batch_size, seq_len, emb_size]的张量（Tensor），float32类型。表示当前batch中各个样本的（上下文无关）词向量序列。
+embedding_table: 一个shape为[vocab_size, emb_size]的矩阵，float32类型。表示BERT当前维护的词向量查找表矩阵。
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+```
+
 #### ERNIE
+
+ERNIE包含了如下输入对象
+
+```yaml
+token_ids: 。一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的0/1矩阵，用于支持BERT、ERNIE等模型的输入，当元素为0时，代表当前token属于分类任务或匹配任务的text1，为1时代表当前token属于匹配任务的text2.
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+segment_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
+task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE finetuning。
+```
+
+提供了如下输出对象供下游组件使用。
+
+```yaml
+word_embedding: 一个shape为[batch_size, seq_len, emb_size]的张量（Tensor），float32类型。表示当前batch中各个样本的（上下文无关）词向量序列。
+embedding_table: 一个shape为[vocab_size, emb_size]的矩阵，float32类型。表示BERT当前维护的词向量查找表矩阵。
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+```
+
 
 ## 内置任务范式（paradigm）
 
-#### 分类任务
+#### 分类范式
 
-#### 匹配任务
+#### 匹配范式
 
-#### 机器阅读理解任务
+#### 机器阅读理解范式
 
-#### 掩码语言模型任务
+#### 掩码语言模型范式
 
 ## License
 
