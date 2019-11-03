@@ -362,6 +362,33 @@ cls3: inference model saved at output_model/thirdrun/infer_model
 ## 进阶篇
 本章节更深入的对paddlepalm的使用方法展开介绍，并提供一些提高使用效率的小技巧。
 
+### reader、backbone与paradigm的选择
+
+reader、backbone和paradigm是实现各类任务的三大基础组件，其中reader为数据集载入与处理工具，将一定格式的输入数据集自动转换成确定的输出元素字典（如单词id序列，位置id序列等）；backbone为主干网络，将来自reader的一部分输出转换为高阶抽象的输出元素字典（如词向量、句向量、编码器输出的上下文相关词向量等）；paradigm为任务范式，将来自reader的一部分输出和backbone输出的对原始输入的高阶抽象转换为训练所需要的loss以及预测所需要的输出等。
+
+框架对这三部分组件的实现基于一种解耦合的设计，每个组件都会包括对输入对象的描述inputs_attr(s)和对输出对象的描述outputs_attr，每个输入或输出对象都会包含名字（描述含义）、形状（tensor shape）和数值类型（data type）。例如，主干网络BERT的输入输出对象的声明如下
+
+```python
+    @property
+    def inputs_attr(self):
+        return {"token_ids": [[None, None], 'int64'],
+                "position_ids": [[None, None], 'int64'],
+                "segment_ids": [[None, None], 'int64'],
+                "input_mask": [[None, None], 'float32']}
+
+    @property
+    def outputs_attr(self):
+        return {"word_embedding": [[None, None, self._emb_size], 'float32'],
+                "embedding_table": [[None, self._voc_size, self._emb_size], 'float32'],
+                "encoder_outputs": [[None, None, self._emb_size], 'float32'],
+                "sentence_embedding": [[None, self._emb_size], 'float32'],
+                "sentence_pair_embedding": [[None, self._emb_size], 'float32']}
+```
+
+通过
+
+其中，backbone的输入元素来自于reader的输出，paradgim
+
 ### 训练终止条件与预期训练步数
 
 #### 训练终止条件
@@ -566,7 +593,7 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 
 ## 内置主干网络（backbone）
 
-框架中内置了BERT
+框架中内置了BERT和ERNIE作为主干网络，未来框架会引入更多的骨干网络如XLNet等。
 
 #### BERT
 
