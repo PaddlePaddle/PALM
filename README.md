@@ -44,6 +44,13 @@ cd PALM && python setup.py install
 
 框架默认采用任务采样+mini-batch采样的方式（alternating mini-batches optimization）进行模型训练，即对于每个训练step，首先对候选任务进行采样（采样权重取决于用户设置的`mix_ratio`），而后从该任务的训练集中采样出一个mini-batch（采样出的样本数取决于用户设置的`batch_size`）。
 
+### 框架原理
+paddlepalm框架的运行原理图如图所示
+
+![PALM原理图](https://tva1.sinaimg.cn/large/006y8mN6ly1g8j1isf3fcj31ne0tyqbd.jpg)
+
+首先用户为数据集载入与处理、主干网络和任务编写配置文件（框架实现了灵活易用的[配置广播机制]，详情见进阶篇），而后用其创建多任务学习的控制器（`Controller`）。进而控制器创建任务实例，并根据用户调用的训练和预测接口对其参数和各个任务实例进行管理和调度。下面我们通过三个DEMO和进阶篇来快速入门并更深入的理解paddlepalm。
+
 ### 模型准备
 
 我们提供了BERT、ERNIE等主干模型及其相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在多任务学习时尽量在预训练模型的基础上进行（而不是从参数随机初始化开始）。用户可通过运行`script/download_pretrain_models <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型的命令如下
@@ -66,33 +73,6 @@ bash script/convert_params.sh pretrain_model/bert/params
 bash script/recover_params.sh pretrain_model/bert/params
 ```
 
-
-## 框架运行原理与配置广播机制
-
-### 运行原理
-框架的运行原理图如图所示
-
-![PALM原理图](https://tva1.sinaimg.cn/large/006y8mN6ly1g8j1isf3fcj31ne0tyqbd.jpg)
-
-### 配置广播机制
-要完成多任务学习，我们需要对主干网络、各个任务以及训练方式进行必要的配置，为此，框架实现了一套高效的配置广播机制。如上图，通过yaml语言可以描述主干网络和各个任务实例的相关配置，并存储于文件中。由于任务实例可能有多个，且部分超参数会同时被主干网络和任务实例用到，因此对于这些需要“重复配置”却取值相同的超参数，可以写入全局配置文件中，框架在解析全局配置文件时会自动将其“广播”给主干网络和各个任务实例。
-
-此外，全局配置文件的优先级要高于主干网络和任务实例的配置文件，因此当某个超参数在全局配置文件的取值与其在其余位置的取值冲突时，框架以全局配置文件中的取值为准。
-
-同时，为了方便进行大规模实验和超参数调优，凡是在**全局配置文件**中出现的超参数，均可以通过命令行进行控制，例如，对于如下全局配置文件
-
-```yaml
-...
-learning_rate: 1e-3
-batch_size: 32
-...
-```
-
-我们可能希望通过命令行临时调整学习率`learning_rate`和批大小`batch_size`，因此我们在运行训练脚本时可以通过如下方式对其进行改变。
-
-```shell
-python demo3.py --learning_rate 1e-4 --batch_size 64
-```
 
 ## 3个DEMO入门PaddlePALM
 
@@ -362,6 +342,26 @@ cls3: inference model saved at output_model/thirdrun/infer_model
 ## 进阶篇
 本章节更深入的对paddlepalm的使用方法展开介绍，并提供一些提高使用效率的小技巧。
 
+### 配置广播机制
+要完成多任务学习，我们需要对主干网络、各个任务以及训练方式进行必要的配置，为此，框架实现了一套高效的配置广播机制。如上图，通过yaml语言可以描述主干网络和各个任务实例的相关配置，并存储于文件中。由于任务实例可能有多个，且部分超参数会同时被主干网络和任务实例用到，因此对于这些需要“重复配置”却取值相同的超参数，可以写入全局配置文件中，框架在解析全局配置文件时会自动将其“广播”给主干网络和各个任务实例。
+
+此外，全局配置文件的优先级要高于主干网络和任务实例的配置文件，因此当某个超参数在全局配置文件的取值与其在其余位置的取值冲突时，框架以全局配置文件中的取值为准。
+
+同时，为了方便进行大规模实验和超参数调优，凡是在**全局配置文件**中出现的超参数，均可以通过命令行进行控制，例如，对于如下全局配置文件
+
+```yaml
+...
+learning_rate: 1e-3
+batch_size: 32
+...
+```
+
+我们可能希望通过命令行临时调整学习率`learning_rate`和批大小`batch_size`，因此我们在运行训练脚本时可以通过如下方式对其进行改变。
+
+```shell
+python demo3.py --learning_rate 1e-4 --batch_size 64
+```
+
 ### reader、backbone与paradigm的选择
 
 reader、backbone和paradigm是实现各类任务的三大基础组件，其中reader为数据集载入与处理工具，将一定格式的输入数据集自动转换成确定的输出元素字典（如单词id序列，位置id序列等）；backbone为主干网络，将来自reader的一部分输出转换为高阶抽象的输出元素字典（如词向量、句向量、编码器输出的上下文相关词向量等）；paradigm为任务范式，将来自reader的一部分输出和backbone输出的对原始输入的高阶抽象转换为训练所需要的loss以及预测所需要的输出等。
@@ -424,7 +424,9 @@ mix_ratio: 1.0, 0.5, 0.5
 
 当用户在多卡环境下希望仅用一张卡进行训练时，可以通过改变环境变量[CUDA_VISIBLE_DEVICES](https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/)来进行控制。
 
-## 内置数据集载入与处理工具（reader）
+
+
+## 附录A：内置数据集载入与处理工具（reader）
 
 所有的内置reader均同时支持中英文输入数据，**默认读取的数据为英文数据**，希望读入中文数据时，需在配置文件中设置
 
@@ -591,7 +593,7 @@ mask_pos": 一个shape为[None]的向量，长度与`mask_pos`一致且元素一
 task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
 ```
 
-## 内置主干网络（backbone）
+## 附录A：内置主干网络（backbone）
 
 框架中内置了BERT和ERNIE作为主干网络，未来框架会引入更多的骨干网络如XLNet等。
 
@@ -640,7 +642,7 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 ```
 
 
-## 内置任务范式（paradigm）
+## 附录C：内置任务范式（paradigm）
 
 #### 分类范式
 
