@@ -391,11 +391,11 @@ mix_ratio: 1.0, 0.5, 0.5
 
 预测模型则描述的是某个任务的完整预测模型，该模型内不会包含其他任务的参数，也不会保存优化器、dropout层等推理阶段不需要的节点。在保存预测模型时，`Controller`会同时保存预测相关的必要配置，如预测模型的输入输出列表，在进行预测时，可以调用实例化后的`Controller`的预测接口`pred`直接对相关任务进行预测。关于预测的用法示例可以参加DEMO2。
 
-### 分布式训练与推理
+### 分布式训练
 
 框架将单机单卡训练与单机多卡训练进行了无缝集成。当环境内有多张可用的GPU显卡时，框架会自动将模型复制到多张卡上，并且对于每个step，每张卡都会计算`batch_size`个训练样本，框架会自动对多卡的梯度进行合并。例如，环境中存在8张显卡，且`batch_size`设置为32时，这时每个step的实际batch size为32\*8=256。
 
-当用户在多卡环境下希望仅用一张卡进行训练时，可以通过改变环境变量*[CUDA_VISIBLE_DEVICES](https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/)*来进行控制。
+当用户在多卡环境下希望仅用一张卡进行训练时，可以通过改变环境变量[CUDA_VISIBLE_DEVICES](https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/)来进行控制。
 
 ## 内置数据集载入与处理工具（reader）
 
@@ -442,12 +442,14 @@ label   text_a
 
 reader的输出（生成器每次yield出的数据）包含以下字段
 
+```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
 position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
 segment_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
 input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
 label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
 task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+```
 
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
@@ -468,12 +470,14 @@ label   text_a  text_b
 
 reader的输出（生成器每次yield出的数据）包含以下字段：
 
+```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本（文本对），其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
 position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
 segment_ids": 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
 input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
 label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配。
 task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+```
 
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
 
@@ -518,7 +522,7 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 ```yaml
 doc_stride (REQUIRED): int类型。对context应用滑动窗口时的滑动步长。
 max_query_len (REQUIRED): int类型。query的最大长度。
-···
+```
 
 
 reader的输出（生成器每次yield出的数据）包含以下字段：
@@ -538,7 +542,7 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 #### 掩码语言模型数据集reader工具：mlm
 该reader完成掩码语言模型数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，MLM任务为自监督任务，数据集仅包含一列`text_a`，reader会自动为每个样本生成随机的训练标签。格式如下
 
-```yaml
+```
 text_a                                                                                           
 Subsequent to these developments, Randall Collins (2004) formulated his interaction ritual theory by drawing on Durkheim's work on totemic rituals that was extended by Goffman (1964/2013; 1967) into everyday focused encounters. 
 Presidential spokesman Abigail Valte earlier Saturday urged residents of low-lying and mountainous areas that could be hit hard by the storm to evacuate, the state news agency said, citing an interview conducted on a government radio station. World Vision, the Christian humanitarian organization, said Saturday that it had to postpone some of its relief efforts due to Nalgae, with two of three emergency teams set to deploy once the storm passes. Another team is in Bulcan province, most of which is "still submerged" because of Nesat. The group is focusing its post-Nesat efforts on two communities in Manila and three in the northern Isabela and Zambales provinces. 
