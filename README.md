@@ -6,7 +6,14 @@ PaddlePALM (Paddle for Multi-task) 是一个强大快速、灵活易用的NLP大
 
 ## 目录
 
-- 安装
+- [安装](#安装)
+- [前期准备](#前期准备)
+    - [理论准备](#理论准备)
+    - [框架原理](#框架原理)
+    - [模型准备](#模型准备)
+- 三个DEMO入门PaddlePALM
+    - DEMO1：单任务训练
+    - DEMO2
 
 
 ## 安装
@@ -79,7 +86,7 @@ bash script/recover_params.sh pretrain_model/bert/params
 ```
 
 
-## 3个DEMO入门PaddlePALM
+## 三个DEMO入门PaddlePALM
 
 ### DEMO1：单任务训练
 
