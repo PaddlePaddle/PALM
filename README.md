@@ -137,9 +137,9 @@ vocab_path: "pretrain_model/bert/vocab.txt"
 
 更详细的任务实例配置方法（为任务实例选择合适的reader、paradigm和backbone）可参考[这里](#readerbackbone与paradigm的选择)
 
-**2.配置backbone和其他全局参数**
+**2.配置backbone和训练规则**
 
-然后我们配置全局的学习规则，同样使用yaml格式描述，我们新建`mtl_conf.yaml`。在这里我们配置一下需要学习的任务、模型的保存路径`save_path`和规则、使用的模型骨架`backbone`、学习器`optimizer`等。
+然后我们编写全局配置文件`config_demo1.yaml`。在这里可以完成对主干网络(backbone)、多任务学习规则以及[广播到任务实例](#配置广播机制)的配置。同样使用yaml格式描述，例如在这里我们可以配置一下需要学习的任务`task_instance`、模型的保存路径`save_path`、基于的主干网络`backbone`、优化器`optimizer`等。
 
 ```yaml
 task_instance: "mrqa"
@@ -157,13 +157,15 @@ num_epochs: 2
 warmup_proportion: 0.1 
 ```
 
-其中，backbone的相关配置
+这里的task_instance即填写我们刚刚编写的任务实例配置文件的文件名`mrqa`**（注意不要包括.yaml后缀！）**。框架启动多任务学习后会根据`task_instance`中指定的任务实例来寻找相关配置文件，并创建任务实例。
+
+此外，backbone的相关配置除了可以直接写入全局配置文件以外，还可以在额外的一个json文件中进行描述，并在全局配置文件中通过`backbone_config_path`进行该配置文件路径的指定。
 
 *注：框架支持的其他内置全局参数见[这里]()*
 
 **3.开始训练**
 
-下面我们开始尝试启动MRQA任务的训练（该代码位于`demo1.py`中）。框架的核心组件是`Controller`，
+下面我们开始尝试启动MRQA任务的训练（该代码位于`demo1.py`中）。如[框架原理](#框架原理)所述，框架的核心组件是`Controller`，负责多任务学习的启动。
 
 ```python
 # Demo 1: single task training of MRQA 
