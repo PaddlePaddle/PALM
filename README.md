@@ -505,18 +505,18 @@ label   text_a
 该reader额外包含以下配置字段
 
 ```yaml
-- n_classes（REQUIRED）: int类型。分类任务的类别数。
+n_classes（REQUIRED）: int类型。分类任务的类别数。
 ```
 
 reader的输出（生成器每次yield出的数据）包含以下字段
 
 ```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
-position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
-segment_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
-input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
-label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
-task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
+task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
 ```
 
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
@@ -540,11 +540,11 @@ reader的输出（生成器每次yield出的数据）包含以下字段：
 
 ```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本（文本对），其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
-position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
-segment_ids": 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
-input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
-label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配。
-task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配。
+task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
 ```
 
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
@@ -590,6 +590,8 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 ```yaml
 doc_stride (REQUIRED): int类型。对context应用滑动窗口时的滑动步长。
 max_query_len (REQUIRED): int类型。query的最大长度。
+max_answer_len (REQUIRED): int类型。预测阶段answer的最大长度，不训练时该字段可为空。
+n_best_size (OPTIONAL): int类型。预测阶段合并滑动窗口的样本时，每个样本所取的n_best列表大小。
 ```
 
 
@@ -629,12 +631,12 @@ reader的输出（生成器每次yield出的数据）包含以下对象：
 
 ```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
-position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
-segment_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
-input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
-mask_label": 一个shape为[None]的向量，其中的每个元素为被mask掉的单词的真实单词id。
-mask_pos": 一个shape为[None]的向量，长度与`mask_pos`一致且元素一一对应。每个元素表示被mask掉的单词的位置。
-task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+mask_label: 一个shape为[None]的向量，其中的每个元素为被mask掉的单词的真实单词id。
+mask_pos: 一个shape为[None]的向量，长度与`mask_pos`一致且元素一一对应。每个元素表示被mask掉的单词的位置。
+task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
 ```
 
 ## 附录B：内置主干网络（backbone）
@@ -646,7 +648,7 @@ task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 BERT包含了如下输入对象
 
 ```yaml
-token_ids: 。一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
+token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
 position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
 segment_ids: 一个shape为[batch_size, seq_len]的0/1矩阵，用于支持BERT、ERNIE等模型的输入，当元素为0时，代表当前token属于分类任务或匹配任务的text1，为1时代表当前token属于匹配任务的text2.
 input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
@@ -695,7 +697,7 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 训练阶段：
 ```yaml
 sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
-label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
+label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
 ```
 
 预测阶段：
@@ -745,7 +747,7 @@ unique_ids: 一个shape为[batch_size, seq_len]的矩阵，代表每个样本的
 该任务范式为无监督任务范式，不支持预测，仅用于（辅助）训练。包含如下的输入对象：
 
 ```yaml
-mask_label": 一个shape为[None]的向量，其中的每个元素为被mask掉的单词的真实单词id。
+mask_label: 一个shape为[None]的向量，其中的每个元素为被mask掉的单词的真实单词id。
 mask_pos": 一个shape为[None]的向量，长度与`mask_pos`一致且元素一一对应。每个元素表示被mask掉的单词的位置。
 embedding_table: 一个shape为[vocab_size, emb_size]的矩阵，float32类型。表示BERT当前维护的词向量查找表矩阵。
 encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
