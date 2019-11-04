@@ -27,6 +27,7 @@ PaddlePALM (Paddle for Multi-task) 是一个强大快速、灵活易用的NLP大
 - [附录A：内置数据集载入与处理工具（reader）](#附录a内置数据集载入与处理工具reader)
 - [附录B：内置主干网络（backbone）](#附录b内置主干网络backbone)
 - [附录C：内置任务范式（paradigm）](#附录c内置任务范式paradigm)
+- [附录D：可配置的全局参数列表](#附录d可配置的全局参数列表)
 
 
 ## 安装
@@ -161,7 +162,7 @@ warmup_proportion: 0.1
 
 此外，backbone的相关配置除了可以直接写入全局配置文件以外，还可以在额外的一个json文件中进行描述，并在全局配置文件中通过`backbone_config_path`进行该配置文件路径的指定。
 
-*注：框架支持的其他内置全局参数见[这里]()*
+*注：框架支持的其他内置全局参数见[这里](#附录d可配置的全局参数列表)*
 
 **3.开始训练**
 
@@ -592,10 +593,15 @@ position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样�
 segment_ids: 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
 input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
 task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
-start_positions: 答案片段
+start_positions: 一个shape为[batch_size]的向量，每个元素代表当前样本的答案片段的起始位置。
+end_positions: 一个shape为[batch_size]的向量，每个元素代表当前样本的答案片段的结束位置。
 ```
 
-当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
+当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段，但会额外的包含`unique_ids`字段：
+
+```yaml
+unique_ids: 一个shape为[batch_size, seq_len]的矩阵，代表每个样本的全局唯一的id，用于预测后对滑动窗口的结果进行合并。
+```
 
 
 #### 掩码语言模型数据集reader工具：mlm
@@ -715,9 +721,27 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 训练阶段：
 ```yaml
 encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+start_positions: 一个shape为[batch_size]的向量，每个元素代表当前样本的答案片段的起始位置。
+end_positions: 一个shape为[batch_size]的向量，每个元素代表当前样本的答案片段的结束位置。
+```
+
+预测阶段：
+```yaml
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+unique_ids: 一个shape为[batch_size, seq_len]的矩阵，代表每个样本的全局唯一的id，用于预测后对滑动窗口的结果进行合并。
+```
 
 
 #### 掩码语言模型范式：mlm
+
+该任务范式为无监督任务范式，不支持预测，仅用于（辅助）训练。包含如下的输入对象：
+
+```yaml
+mask_label": 一个shape为[None]的向量，其中的每个元素为被mask掉的单词的真实单词id。
+mask_pos": 一个shape为[None]的向量，长度与`mask_pos`一致且元素一一对应。每个元素表示被mask掉的单词的位置。
+embedding_table: 一个shape为[vocab_size, emb_size]的矩阵，float32类型。表示BERT当前维护的词向量查找表矩阵。
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+```
 
 ## 附录D：可配置的全局参数列表
 
