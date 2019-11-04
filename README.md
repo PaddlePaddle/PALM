@@ -588,11 +588,11 @@ reader的输出（生成器每次yield出的数据）包含以下字段：
 
 ```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本（文本对），文本1为context，文本2为question，其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
-position_ids": 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
-segment_ids": 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
-input_mask": 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
-label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配。
-task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的矩阵，在文本1的token位置，元素取值为0；在文本2的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+start_positions: 答案片段
 ```
 
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
@@ -674,15 +674,50 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 
 ## 附录C：内置任务范式（paradigm）
 
-#### 分类范式
+#### 分类范式：cls
 
-分类
+分类范式包含如下的输入对象：
 
-#### 匹配范式
+训练阶段：
+```yaml
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+label_ids": 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
+```
 
-#### 机器阅读理解范式
+预测阶段：
+```yaml
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+```
 
-#### 掩码语言模型范式
+在训练阶段，输出loss；预测阶段输出各个类别的预测概率。
+
+#### 匹配范式：match
+
+匹配范式包含如下的输入对象：
+
+训练阶段：
+```yaml
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配
+```
+
+预测阶段：
+```yaml
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+```
+
+在训练阶段，输出loss；预测阶段输出匹配与否的概率分布。
+
+#### 机器阅读理解范式：mrc
+
+机器阅读理解范式包含如下的输入对象：
+
+训练阶段：
+```yaml
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+
+
+#### 掩码语言模型范式：mlm
 
 ## 附录D：可配置的全局参数列表
 
