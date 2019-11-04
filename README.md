@@ -684,6 +684,31 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 
 ## 附录D：可配置的全局参数列表
 
+```yaml
+
+task_instance: (str) 需要进行训练或预测的任务实例名。在多任务模式下，多个任务之间使用逗号`,`隔开。名称选取自任务实例配置文件的文件名（不包含后缀.yaml）
+mix_ratio: (str) 每个任务的训练阶段的采样概率，各个值通过逗号`,`隔开，且与task_instance中的元素一一对应。默认每个任务的采样概率均为1.0，即所有任务等概率采样（代表与主任务采样次数的期望相同）。详情见 《进阶篇-训练终止条件与预期训练步数》
+target_tag: (str) 目标/辅助任务标志位，各个值通过逗号`,`隔开，且与task_instance中的元素一一对应。标记为1的任务代表目标任务，标记为0的任务代表辅助任务。默认每个值均为1（即默认每个任务为目标任务）。相关使用示例见DEMO2。
+task_reuse_tag: (str) 任务层复用标志位，各个值通过逗号`,`隔开，且与task_instance中的元素一一对应。元素取值相同的任务会自动共享任务层参数，取值不同的任务不复用任务层参数。相关使用示例见DEMO3。
+
+vocab_path: (str) 字典文件，纯文本格式存储，其中每行为一个单词，供reader、backbone和各个任务使用
+do_lower_case: (bool) 大小写标志位。默认为False，即全小写。
+print_every_n_steps：(int) 默认为5。训练阶段打印日志的频率（step为单位）
+save_every_n_steps：（int）默认为-1。训练过程中保存checkpoint模型的频率，默认不保存
+
+optimizer: (str) 优化器名称，目前框架只支持adam，未来会支持更多优化器
+learning_rate：(str) 训练阶段的学习率
+batch_size：(int) 批大小，即每个训练或推理step所使用样本数。
+epoch：(int) 主任务的训练epoch数
+
+
+use_cpu：(bool) 默认为False。框架默认使用GPU进行单机单卡或分布式训练，若希望使用cpu训练或推理，可将该标志位置True
+warmup_proportion：(float) 默认为0。对预训练模型finetuning时的warmup的训练step占预估的全部训练步数的比例
+use_ema：(bool) 默认为False。是否开启[ema](https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average) 进行训练和推理
+ema_decay：(float) 默认为0。开启ema时的权重衰减指数
+random_seed：(int) 随机种子
+```
+
 ## License
 
 This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) and licensed under the [Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE).
@@ -691,5 +716,4 @@ This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/P
 ## 许可证书
 
 此向导由[PaddlePaddle](https://github.com/PaddlePaddle/Paddle)贡献，受[Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE)许可认证。
-
 
