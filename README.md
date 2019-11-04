@@ -336,14 +336,66 @@ mrqa: inference model saved at output_model/secondrun/mrqa/infer_model
 
 如图，在同一个方框内的任务共享相同的任务层参数。
 
-在paddlepalm中可以轻松完成上述的复杂复用关系的定义，我们使用`task_reuse_tag`来描述任务层的参数复用关系，与`target_tag`一样，`task_reuse_tag`中的元素与`task_instance`一一对应，元素取值相同的任务会自动共享任务层参数，取值不同的任务不复用任务层参数。因此可以在yaml文件中如下描述
+用户可通过运行如下脚本一键开始学习本节任务目标：
+
+```shell
+bash run_demo3.sh
+```
+
+**1. 配置任务实例**
+
+为了演示方便，我们使用同一份数据集来创建6个分类的任务实例，分别命名为`cls1.yaml`, `cls2.yaml`, `cls3.yaml`, `cls4.yaml`, `cls5.yaml`, `cls6.yaml`。每个实例的配置文件中填入如下必要字段
+
+```yaml
+train_file: "data/cls4mrqa/train.tsv"
+reader: cls
+paradigm: cls
+
+n_classes: 4
+```
+
+**2.配置全局参数**
+
+在paddlepalm中可以轻松完成上述的复杂复用关系的定义，我们使用`task_reuse_tag`来描述任务层的参数复用关系，与`target_tag`一样，`task_reuse_tag`中的元素与`task_instance`一一对应，元素取值相同的任务会自动共享任务层参数，取值不同的任务不复用任务层参数。因此可以在全局配置文件中如下描述
+
 ```yaml
 task_instance: "cls1, cls2, cls3, cls4, cls5, cls6"
 task_reuse_tag: 0, 0, 1, 1, 0, 2
 ```
-同时，这6个任务均为目标任务，因此我们不需要手动设置`target_tag`了（任务默认即为目标任务）。不过，**设置多个目标的情况下，依然可以添加辅助任务陪同这些目标任务进行训练**，这时候就需要引入`target_tag`来区分目标任务和辅助任务了。
 
-而后我们像DEMO1和DEMO2一样创建`Controller`启动多任务训练，可以看到如下日志输出。
+同时，这6个任务均为目标任务，因此我们不需要手动设置`target_tag`了（任务默认即为目标任务）。不过，**设置多个目标的情况下，依然可以添加辅助任务陪同这些目标任务进行训练**，这时候就需要引入`target_tag`来区分目标任务和辅助任务了。而后，我们在全局配置文件中写入其他必要的参数（backbone、优化器等）。
+
+```yaml
+save_path: "output_model/secondrun"
+
+backbone: "ernie"
+backbone_config_path: "pretrain_model/ernie/ernie_config.json"
+
+vocab_path: "pretrain_model/ernie/vocab.txt"
+do_lower_case: True
+max_seq_len: 512 # 写入全局配置文件的参数会被自动广播到各个任务实例
+
+batch_size: 4
+num_epochs: 2
+optimizer: "adam"
+learning_rate: 3e-5
+warmup_proportion: 0.1 
+weight_decay: 0.1 
+```
+**3.开始多目标任务训练**
+
+最后，我们像DEMO1和DEMO2一样创建`Controller`，实例化各个任务实例、载入预训练模型并启动多任务训练：
+
+```yaml
+import paddlepalm as palm
+
+if __name__ == '__main__':
+    controller = palm.Controller('config_demo3.yaml', task_dir='demo3_tasks')
+    controller.load_pretrain('pretrain_model/ernie/params')
+    controller.train()
+ ```
+
+可以看到如下日志输出。
 
 ```
 Global step: 1. Task: cls4, step 1/15 (epoch 0), loss: 1.344, speed: 0.50 steps/s
