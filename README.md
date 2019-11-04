@@ -11,9 +11,22 @@ PaddlePALM (Paddle for Multi-task) 是一个强大快速、灵活易用的NLP大
     - [理论准备](#理论准备)
     - [框架原理](#框架原理)
     - [模型准备](#模型准备)
-- 三个DEMO入门PaddlePALM
-    - DEMO1：单任务训练
-    - DEMO2
+- [三个DEMO入门PaddlePALM](#三个demo入门paddlepalm)
+    - [DEMO1：单任务训练](#demo1单任务训练)
+    - [DEMO2：多任务辅助训练与目标任务预测](#demo2多任务辅助训练与目标任务预测)
+    - [DEMO3：多目标任务联合训练与任务层参数复用](#demo3多目标任务联合训练与任务层参数复用)
+- [进阶篇](#进阶篇)
+    - [配置广播机制](#配置广播机制)
+    - [reader、backbone与paradigm的选择](#readerbackbone与paradigm的选择)
+    - [训练终止条件与预期训练步数](#训练终止条件与预期训练步数)
+        - [训练终止条件](#训练终止条件)
+        - [任务采样概率与预期训练步数](#任务采样概率与预期训练步数)
+        - [多个目标任务时预期训练步数的计算](#多个目标任务时预期训练步数的计算)
+    - [模型保存与预测机制](#模型保存与预测机制)
+    - [分布式训练](#分布式训练)
+- [附录A：内置数据集载入与处理工具（reader）](#附录a内置数据集载入与处理工具reader)
+- [附录B：内置主干网络（backbone）](#附录b内置主干网络backbone)
+- [附录C：内置任务范式（paradigm）](#附录c内置任务范式paradigm)
 
 
 ## 安装
@@ -61,7 +74,7 @@ paddlepalm框架的运行原理图如图所示
 
 ![PALM原理图](https://tva1.sinaimg.cn/large/006y8mN6ly1g8j1isf3fcj31ne0tyqbd.jpg)
 
-首先用户为数据集载入与处理、主干网络和任务编写配置文件（框架实现了灵活易用的[配置广播机制]，详情见进阶篇），而后用其创建多任务学习的控制器（`Controller`）。进而控制器创建任务实例，并根据用户调用的训练和预测接口对其参数和各个任务实例进行管理和调度。下面我们通过三个DEMO和进阶篇来快速入门并更深入的理解paddlepalm。
+首先用户为数据集载入与处理、主干网络和任务编写配置文件（框架实现了灵活易用的[配置广播机制](#配置广播机制)），而后用其创建多任务学习的控制器（`Controller`）。进而控制器创建任务实例，并根据用户调用的训练和预测接口对其参数和各个任务实例进行管理和调度。下面我们通过三个DEMO和进阶篇来快速入门并更深入的理解paddlepalm。
 
 ### 模型准备
 
@@ -110,9 +123,9 @@ reader: mrc
 paradigm: mrc
 ```
 
-*注：框架内置的其他数据集载入与处理工具和任务范式列表见[这里]()*
+*注：框架内置的其他数据集载入与处理工具见[这里](#附录a内置数据集载入与处理工具reader)，任务范式列表见[这里](#附录c内置任务范式paradigm)*
 
-此外，我们还需要配置reader的预处理规则，各个预置reader支持的预处理配置和规则请参考【这里】。预处理规则同样直接写入`mrqa.yaml`中。
+此外，我们还需要配置reader的预处理规则，各个预置reader支持的预处理配置和规则请参考[这里](#附录a内置数据集载入与处理工具reader)。预处理规则同样直接写入`mrqa.yaml`中。
 
 ```yaml
 max_seq_len: 512
@@ -122,9 +135,9 @@ do_lower_case: True
 vocab_path: "pretrain_model/bert/vocab.txt"
 ```
 
-更详细的任务实例配置方法可参考这里
+更详细的任务实例配置方法（为任务实例选择合适的reader、paradigm和backbone）可参考[这里](#readerbackbone与paradigm的选择)
 
-**2.配置全局参数**
+**2.配置backbone和其他全局参数**
 
 然后我们配置全局的学习规则，同样使用yaml格式描述，我们新建`mtl_conf.yaml`。在这里我们配置一下需要学习的任务、模型的保存路径`save_path`和规则、使用的模型骨架`backbone`、学习器`optimizer`等。
 
@@ -144,7 +157,9 @@ num_epochs: 2
 warmup_proportion: 0.1 
 ```
 
-*注：框架支持的其他backbone参数如日志打印控制等见[这里]()*
+其中，backbone的相关配置
+
+*注：框架支持的其他内置全局参数见[这里]()*
 
 **3.开始训练**
 
@@ -305,7 +320,7 @@ mrqa: inference model saved at output_model/secondrun/mrqa/infer_model
 
 其中的每一行是测试集中的一个question对应的预测答案（其中的key为question的id，详情见mrc reader的说明文档）。
 
-### DEMO3: 多目标任务联合训练与任务层参数复用
+### DEMO3：多目标任务联合训练与任务层参数复用
 
 框架内支持设定多个目标任务，当全局配置文件的`task_instance`字段指定超过一个任务实例时，**这多个任务实例默认均为目标任务（即`target_tag`字段被自动填充为全1）**。对于被设置成目标任务的任务实例，框架会为其计算预期的训练步数（详情见下一节《进阶篇》）并在达到预期训练步数后为其保存预测模型。
 
@@ -400,6 +415,7 @@ reader、backbone和paradigm是实现各类任务的三大基础组件，其中r
 其中`inputs_attr`描述了BERT的输入对象，包含`token_ids`, `position_ids`, `segment_ids`和`input_mask`，并且附带了它们的形状（None表示Tensor在该维度的大小可变）和数据类型。`outputs_attr`则描述了BERT模块能提供的输出对象，包含`word_embedding`, `embedding_table`, `encoder_outputs`等。
 
 当用户创建任务实例时，只需要保证每个组件的输入对象是包含在上游组件的输出内的，那么这些组件就可以搭配在一起使用。其中，backbone的上游组件是reader，paradigm的上游组件同时包含reader和backbone。
+
 
 ### 训练终止条件与预期训练步数
 
@@ -605,7 +621,7 @@ mask_pos": 一个shape为[None]的向量，长度与`mask_pos`一致且元素一
 task_ids": 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
 ```
 
-## 附录A：内置主干网络（backbone）
+## 附录B：内置主干网络（backbone）
 
 框架中内置了BERT和ERNIE作为主干网络，未来框架会引入更多的骨干网络如XLNet等。
 
