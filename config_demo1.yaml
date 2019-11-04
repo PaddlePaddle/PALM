@@ -12,4 +12,4 @@ learning_rate: 3e-5
 warmup_proportion: 0.1
 weight_decay: 0.1
 
-print_every_n_steps: 1
+print_every_n_steps: 10
