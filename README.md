@@ -676,6 +676,8 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 
 #### 分类范式
 
+分类
+
 #### 匹配范式
 
 #### 机器阅读理解范式
