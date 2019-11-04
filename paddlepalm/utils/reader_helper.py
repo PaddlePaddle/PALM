@@ -51,7 +51,6 @@ def _zero_batch(attrs):
 def _zero_batch_x(attrs, batch_size):
     pos_attrs = []
     for shape, dtype in attrs:
-        # pos_shape = [size if size and size > 0 else 5 for size in shape]
         pos_shape = [size for size in shape]
         if pos_shape[0] == -1:
             pos_shape[0] = batch_size
@@ -72,7 +71,6 @@ def create_net_inputs(input_attrs, async=False, iterator_fn=None, dev_count=1, n
 
     if async:
         assert iterator_fn is not None, "iterator_fn is needed for building async input layer."
-        # reader = fluid.io.PyReader(inputs, capacity=dev_count*n_prefetch, iterable=False)
         reader = fluid.io.PyReader(inputs, capacity=dev_count, iterable=False)
         reader.decorate_batch_generator(iterator_fn)
         reader.start()
@@ -117,8 +115,6 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
     if not keep_one_task:
         dev_count = 1
 
-    # build fake batch
-    # 注意这种方法会导致一个问题，用户将某任务的mix ratio设置成0后，并不能避免从该任务上读数据，若用户将数据集删掉则会导致崩溃；不过相比之前的zero batch方法，这种方法不必作出只能有一个size=-1的维度且第0维的-1必须是batch size的假设
     results = _zero_batch(joint_shape_and_dtypes)
     outbuf = {}
     for id in task_ids:
@@ -151,12 +147,9 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                 print('----- debug joint iterator -----')
                 print('sampled task id: '+str(id))
             task_id_tensor = np.array([[id]]).astype("int64")
-            # results[0] = task_id_tensor
             
             for i in range(dev_count):
                 
-                # 这两个应该是等价的
-                # results[0] = task_id_tensor
                 results[outname_to_pos['__task_id']] = task_id_tensor
                 assert outname_to_pos['__task_id'] == 0
 

@@ -54,7 +54,6 @@ class TaskParadigm(task_paradigm):
         mask_pos = inputs["reader"]["mask_pos"]
         if self._is_training:
             mask_label = inputs["reader"]["mask_label"] 
-            # 多任务学习时才需要引入这个，防止其他run其他任务时导致seqlen过小，gather超范围
             max_position = inputs["reader"]["batchsize_x_seqlen"] - 1
             mask_pos = fluid.layers.elementwise_min(mask_pos, max_position)
             mask_pos.stop_gradient = True
@@ -89,14 +88,6 @@ class TaskParadigm(task_paradigm):
         mask_lm_out_bias_attr = fluid.ParamAttr(
             name=scope_name+"mask_lm_out_fc.b_0",
             initializer=fluid.initializer.Constant(value=0.0))
-
-        # print fluid.default_main_program().global_block()
-
-        # fc_out = fluid.layers.matmul(
-        #     x=mask_trans_feat,
-        #     y=fluid.default_main_program().global_block().var(
-        #         _word_emb_name),
-        #     transpose_y=True)
 
         fc_out = fluid.layers.matmul(
             x=mask_trans_feat,

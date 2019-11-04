@@ -26,7 +26,7 @@ class TaskInstance(object):
         self._config = config
         self._verbose = verbose
 
-        self._save_infermodel_path = os.path.join(self._config['save_path'], 'infer_model')
+        self._save_infermodel_path = os.path.join(self._config['save_path'], self._name, 'infer_model')
         self._save_ckpt_path = os.path.join(self._config['save_path'], 'ckpt')
 
         # following flags can be fetch from instance config file
@@ -87,13 +87,7 @@ class TaskInstance(object):
         dirpath = self._save_infermodel_path + suffix
         self._pred_input_varname_list = [str(i) for i in self._pred_input_varname_list]
 
-        # del self._pred_input_varname_list[0]
-        # del self._pred_input_varname_list[0]
-        # del self._pred_input_varname_list[0]
-        # print(self._pred_input_varname_list)
-
         fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, export_for_deployment = True)
-        # fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, params_filename='__params__')
 
         conf = {}
         for k, strv in self._save_protocol.items():
@@ -111,8 +105,6 @@ class TaskInstance(object):
             exec('{}=v'.format(strv))
         pred_prog, self._pred_input_varname_list, self._pred_fetch_var_list = \
             fluid.io.load_inference_model(infer_model_path, self._exe)
-        # pred_prog, self._pred_input_varname_list, self._pred_fetch_var_list = \
-        #     fluid.io.load_inference_model(infer_model_path, self._exe, params_filename='__params__')
         print(self._name+': inference model loaded from ' + infer_model_path)
         return pred_prog
 
@@ -159,7 +151,6 @@ class TaskInstance(object):
         assert isinstance(val, dict)
         self._pred_input_name_list, self._pred_input_varname_list = \
             zip(*[[k, v.name] for k,v in val.items()])
-        # print(self._pred_input_name_list)
 
     @property
     def pred_fetch_list(self):
@@ -243,7 +234,6 @@ class TaskInstance(object):
             self._cur_train_step = 1
         if self._is_target and self._cur_train_step + self._cur_train_epoch * self._steps_pur_epoch >= self._expected_train_steps:
             self._train_finish = True
-            # fluid.io.save_inference_model(self._save_infermodel_path, )
 
     @property
     def steps_pur_epoch(self):
