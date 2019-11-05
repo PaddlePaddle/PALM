@@ -93,10 +93,6 @@ class Reader(reader):
         for batch in self._data_generator():
             yield list_to_dict(batch)
 
-    def get_epoch_outputs(self):
-        return {'examples': self._reader.get_examples(self._phase),
-                'features': self._reader.get_features(self._phase)}
-
     @property
     def num_examples(self):
         return self._reader.get_num_examples(phase=self._phase)

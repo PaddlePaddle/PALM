@@ -182,21 +182,17 @@ def _fit_attr(conf, fit_attr, strict=False):
 
 class Controller(object):
 
-    def __init__(self, config=None, task_dir='.', for_train=True):
+    def __init__(self, config, task_dir='.', for_train=True):
         """
         Args:
             config: (str|dict) 字符串类型时，给出yaml格式的config配置文件路径；
         """
 
         self._for_train = for_train
-        # default mtl_conf
-        # if config is None and config_path is None:
-        #     raise ValueError('For config and config_path, at least one of them should be set.')
+        assert isinstance(config, str) or isinstance(config, dict), "a config dict or config file path is required to create a Controller."
 
         if isinstance(config, str):
             mtl_conf = _parse_yaml(config, support_cmd_line=True)
-            # if config is not None:
-            #     mtl_conf = _merge_conf(config, mtl_conf)
         else:
             mtl_conf = config
                 
@@ -518,6 +514,11 @@ class Controller(object):
 
     def _init_pred(self, instance, infer_model_path):
         inst = instance
+        if 'pred_output_path' not in inst.config:
+            inst.config['pred_output_path'] = os.path.join(inst.config.get('save_path', '.'), inst.name)
+
+        if not os.path.exists(inst.config['pred_output_path']):
+            os.makedirs(inst.config['pred_output_path'])
 
         pred_backbone = self.Backbone(self.bb_conf, phase='pred')
         pred_parad = inst.Paradigm(inst.config, phase='pred', backbone_config=self.bb_conf)
@@ -563,7 +564,12 @@ class Controller(object):
         finish = []
         for inst in instances:
             if inst.is_target:
-                finish.append(False)
+                if inst.expected_train_steps > 0:
+                    finish.append(False)
+                else:
+                    finish.append(True)
+                    print(inst.name+': train finished!')
+                    inst.save()
         
         def train_finish():
             for inst in instances:
@@ -641,9 +647,11 @@ class Controller(object):
         pred_prog = self._init_pred(instance, inference_model_dir)
                 
         inst = instance
+        print(inst.name+": loading data...")
         inst.reader['pred'].load_data()
         fetch_names, fetch_vars = inst.pred_fetch_list
 
+        print('predicting...')
         mapper = {k:v for k,v in inst.pred_input}
         buf = []
         for feed in inst.reader['pred'].iterator():
@@ -653,10 +661,11 @@ class Controller(object):
             rt_outputs = self.exe.run(pred_prog, feed, fetch_vars)
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             inst.postprocess(rt_outputs, phase='pred')
-        reader_outputs = inst.reader['pred'].get_epoch_outputs()
+        if inst.task_layer['pred'].epoch_inputs_attrs:
+            reader_outputs = inst.reader['pred'].get_epoch_outputs()
+        else:
+            reader_outputs = None
         inst.epoch_postprocess({'reader':reader_outputs}, phase='pred')
-
-
 
 
 if __name__ == '__main__':
