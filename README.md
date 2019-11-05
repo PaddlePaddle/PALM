@@ -830,7 +830,7 @@ learning_rate（REQUIRED）: str类型。训练阶段的学习率。
 batch_size（REQUIRED）: int类型。批大小，即每个训练或推理step所使用样本数。
 epoch（REQUIRED）: int类型。主任务的训练epoch数。
 
-use_cpu (OPTIONAL): bool类型。默认为False。框架默认使用GPU进行单机单卡或分布式训练，若希望使用cpu训练或推理，可将该标志位置True。
+use_gpu (OPTIONAL): bool类型。默认为True。框架默认使用GPU进行单机单卡或分布式训练，若希望使用cpu训练或推理，可将该标志位置为False。
 
 warmup_proportion (OPTIONAL): float类型。默认为0。对预训练模型finetuning时的warmup的训练step占预估的全部训练步数的比例。
 use_ema (OPTIONAL): bool类型。默认为False。是否开启[ema](https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average) 进行训练和推理。
