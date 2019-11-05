@@ -14,8 +14,10 @@
 # limitations under the License.
 
 import paddle.fluid as fluid
-from paddlepalm.interface import task_paradigm
 from paddle.fluid import layers
+from paddlepalm.interface import task_paradigm
+import numpy as np
+import os
 
 class TaskParadigm(task_paradigm):
     '''
@@ -35,6 +37,8 @@ class TaskParadigm(task_paradigm):
             self._dropout_prob = config['dropout_prob']
         else:
             self._dropout_prob = backbone_config.get('hidden_dropout_prob', 0.0)
+        self._pred_output_path = config.get('pred_output_path', None)
+        self._preds = []
 
     @property
     def inputs_attrs(self):
@@ -78,3 +82,20 @@ class TaskParadigm(task_paradigm):
         else:
             return {"logits":logits}
 
+    def postprocess(self, rt_outputs):
+        if not self._is_training:
+            logits = rt_outputs['logits']
+            preds = np.argmax(logits, -1)
+            self._preds.extend(preds.tolist())
+
+    def epoch_postprocess(self, post_inputs):
+        # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
+        if not self._is_training:
+            if self._pred_output_path is None:
+                raise ValueError('argument pred_output_path not found in config. Please add it into config dict/file.')
+            with open(os.path.join(self._pred_output_path, 'predictions.json'), 'w') as writer:
+                for p in self._preds:
+                    writer.write(str(p)+'\n')
+            print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
+
+                

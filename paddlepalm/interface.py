@@ -154,7 +154,11 @@ class task_paradigm(object):
 
         raise NotImplementedError()
 
-    def build(self, inputs):
+    @property
+    def epoch_inputs_attrs(self):
+        return {}
+
+    def build(self, inputs, scope_name=""):
         """建立task_layer的计算图。将符合inputs_attrs描述的来自各个对象集的静态图Variables映射成符合outputs_attr描述的静态图Variable输出。
         Args:
             inputs: dict类型。字典中包含inputs_attrs中的对象名到计算图Variable的映射，inputs中至少会包含inputs_attr中定义的对象
@@ -168,6 +172,6 @@ class task_paradigm(object):
         """每个训练或推理step后针对当前batch的task_layer的runtime计算结果进行相关后处理。注意，rt_outputs除了包含build方法，还自动包含了loss的计算结果。"""
         pass
         
-    def post_postprocess(self, global_buffer):
+    def epoch_postprocess(self, post_inputs):
         pass
 
