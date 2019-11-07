@@ -118,10 +118,12 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
     results = _zero_batch(joint_shape_and_dtypes)
     outbuf = {}
     for id in task_ids:
+        print(id)
         outputs = next(iterators[id]) # dict type
         outbuf[id] = outputs
         prefix = iterator_prefixes[id]
         for outname, val in outputs.items():
+            print(outname)
             task_outname = prefix + '/' + outname
 
             if outname in outname_to_pos:
@@ -133,6 +135,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                 idx = outname_to_pos[task_outname]
                 val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx], message=task_outname+': ')
                 results[idx] = val
+    print('ok')
 
     fake_batch = results
     dev_count_bak = dev_count

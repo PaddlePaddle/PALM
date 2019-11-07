@@ -222,6 +222,8 @@ class BaseReader(object):
     def _prepare_batch_data(self, examples, batch_size, phase=None):
         """generate batch records"""
         batch_records, max_len = [], 0
+        if len(examples) < batch_size:
+            raise Exception('CLS dataset contains too few samples. Expect more than '+str(batch_size))
         for index, example in enumerate(examples):
             if phase == "train":
                 self.current_example = index
@@ -308,7 +310,6 @@ class MaskLMReader(BaseReader):
         tokens_a = tokenizer.tokenize(text_a)
         tokens_b = None 
 
-
         has_text_b = False
         if isinstance(example, dict):
             has_text_b = "text_b" in example.keys()
@@ -379,6 +380,8 @@ class MaskLMReader(BaseReader):
     def batch_reader(self, examples, batch_size, in_tokens, phase):
         batch = []
         total_token_num = 0
+        if len(examples) < batch_size:
+            raise Exception('MaskLM dataset contains too few samples. Expect more than '+str(batch_size))
         for e in examples:
             parsed_line = self._convert_example_to_record(e, self.max_seq_len, self.tokenizer)
             to_append = len(batch) < batch_size
@@ -865,6 +868,9 @@ class MRCReader(BaseReader):
     def _prepare_batch_data(self, records, batch_size, phase=None):
         """generate batch records"""
         batch_records, max_len = [], 0
+
+        if len(records) < batch_size:
+            raise Exception('mrc dataset contains too few samples. Expect more than '+str(batch_size))
 
         for index, record in enumerate(records):
             if phase == "train":

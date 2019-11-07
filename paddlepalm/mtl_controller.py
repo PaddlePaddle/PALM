@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
+
 import os
 import sys
 import importlib
@@ -397,8 +399,9 @@ class Controller(object):
 
         # load data
         for inst in instances:
-            print(inst.name+": preparing data...")
+            print(inst.name+": preparing data...", end='')
             inst.reader['train'].load_data()
+            print('ok!')
 
         # merge dataset iterators and create net input vars
         iterators = []
