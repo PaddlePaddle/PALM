@@ -762,7 +762,10 @@ class MRCReader(BaseReader):
         features = []
         unique_id = 1000000000
 
+        print('converting examples to features...')
         for (example_index, example) in enumerate(examples):
+            if example_index % 1000 == 0:
+                print('processing {}th example...'.format(example_index))
             query_tokens = tokenizer.tokenize(example.question_text)
             if len(query_tokens) > self.max_query_length:
                 query_tokens = query_tokens[0:self.max_query_length]
