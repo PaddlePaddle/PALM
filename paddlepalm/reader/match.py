@@ -28,7 +28,7 @@ class Reader(reader):
 
         reader = ClassifyReader(config['vocab_path'],
             max_seq_len=config['max_seq_len'],
-            do_lower_case=config.get('do_lower_case', False),
+            do_lower_case=config.get('do_lower_case', True),
             for_cn=config.get('for_cn', False),
             random_seed=config.get('seed', None))
         self._reader = reader
