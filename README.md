@@ -55,7 +55,7 @@ cd PALM && python setup.py install
 - cudnn >= 7.0
 - PaddlePaddle >= 1.6.1 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
-## PaddlePALM目录结构
+## 框架代码结构
 
 ```text
 .
