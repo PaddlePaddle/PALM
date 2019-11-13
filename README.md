@@ -55,6 +55,35 @@ cd PALM && python setup.py install
 - cudnn >= 7.0
 - PaddlePaddle >= 1.6.1 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
+## PaddlePALM目录结构
+
+```text
+.
+├── mtl_controller.py                 # 任务控制器，负责创建和调度各个任务实例来完成多任务学习
+├── task_instance.py                  # 任务实例类，完成任务实例的配置管理、训练进程管理、保存与载入等
+├── default_settings.py               # 默认的环境变量和框架配置
+├── utils                             # 框架核心工具集
+│   ├── config_helper.py                  # 配置工具类，完成命令行与json、yaml的联合解析
+│   ├── reader_helper.py                  # 完成多任务数据集iterators的合并、采样、调度和归一化，连接python生成器与计算图
+│   ├── saver.py                          # 模型保存与载入
+│   ├── print_helper.py                   # 日志打印规范化工具 
+│   ├── plot_helper.py                    # 命令行绘图工具   
+│   └── textprocess_helper.py             # 文本数据处理工具函数
+├── backbone                          # 框架预置的主干网络
+│   ├── ernie.py                          # ERNIE模型
+│   ├── bert.py                           # BERT模型
+│   └── utils                             # 实现主干网络的一些可复用的工具函数
+├── reader                            # 框架内置的数据集载入与处理工具
+│   ├── cls.py                            # 文本分类数据集工具
+│   ├── match.py                          # 文本匹配数据集工具
+│   ├── mrc.py                            # 机器阅读理解数据集工具
+│   └── mlm.py                            # 掩码语言模型（mask language model）数据集生成与处理工具
+├── paradigm                            # 任务范式
+│   ├── cls.py                            # 文本分类
+│   ├── match.py                          # 文本匹配
+│   ├── mrc.py                            # 机器阅读理解
+│   └── mlm.py                            # 掩码语言模型（mask language model）
+```
 
 
 ## 前期准备
