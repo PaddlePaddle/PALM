@@ -751,6 +751,13 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 
 #### 分类范式：cls
 
+分类范式额外包含以下配置字段：
+
+```yaml
+n_classes（REQUIRED）: int类型。分类任务的类别数。
+pred_output_path (OPTIONAL) : str类型。预测输出结果的保存路径，当该参数未空时，保存至全局配置文件中的`save_path`字段指定路径下的任务目录。
+```
+
 分类范式包含如下的输入对象：
 
 训练阶段：
@@ -768,6 +775,13 @@ sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类
 
 #### 匹配范式：match
 
+
+匹配范式额外包含以下配置字段：
+
+```yaml
+pred_output_path (OPTIONAL) : str类型。预测输出结果的保存路径，当该参数未空时，保存至全局配置文件中的`save_path`字段指定路径下的任务目录。
+```
+
 匹配范式包含如下的输入对象：
 
 训练阶段：
@@ -784,6 +798,15 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 在训练阶段，输出loss；预测阶段输出匹配与否的概率分布。
 
 #### 机器阅读理解范式：mrc
+
+
+分类范式额外包含以下配置字段：
+
+```yaml
+max_answer_len（REQUIRED）: int类型。预测的最大答案长度
+n_best_size (OPTIONAL) : int类型，默认为20。预测时保存的nbest回答文件中每条样本的n_best数量
+pred_output_path (OPTIONAL) : str类型。预测输出结果的保存路径，当该参数未空时，保存至全局配置文件中的`save_path`字段指定路径下的任务目录
+```
 
 机器阅读理解范式包含如下的输入对象：
 
