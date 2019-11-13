@@ -78,11 +78,11 @@ cd PALM && python setup.py install
 │   ├── match.py                          # 文本匹配数据集工具
 │   ├── mrc.py                            # 机器阅读理解数据集工具
 │   └── mlm.py                            # 掩码语言模型（mask language model）数据集生成与处理工具
-├── paradigm                            # 任务范式
-│   ├── cls.py                            # 文本分类
-│   ├── match.py                          # 文本匹配
-│   ├── mrc.py                            # 机器阅读理解
-│   └── mlm.py                            # 掩码语言模型（mask language model）
+└── paradigm                          # 任务范式
+    ├── cls.py                            # 文本分类
+    ├── match.py                          # 文本匹配
+    ├── mrc.py                            # 机器阅读理解
+    └── mlm.py                            # 掩码语言模型（mask language model）
 ```
 
 
