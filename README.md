@@ -116,7 +116,8 @@ paddlepalm框架的运行原理图如图所示
 bash script/download_pretrain_backbone.sh bert
 ```
 
-脚本会自动在当前文件夹中创建一个pretrain_model目录，并在其中创建bert子目录，里面存放预训练模型(`params`文件夹内)、相关的网络参数(`bert_config.json`)和字典(`vocab.txt`)。除了BERT模型，脚本还提供了ERNIE预训练模型（uncased large）的一键下载，将`<model_name>`改成`ernie`即可。全部可用的预训练模型列表见[paddlenlp/lark](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/PaddleLARK)
+脚本会自动在**当前文件夹**中创建一个pretrain_model目录（注：运行DEMO时，需保证pretrain_model文件夹在PALM项目目录下），并在其中创建bert子目录，里面存放预训练模型(`params`文件夹内)、相关的网络参数(`bert_config.json`)和字典(`vocab.txt`)。除了BERT模型，脚本还提供了ERNIE预训练模型（uncased large）的一键下载，将`<model_name>`改成`ernie`即可。全部可用的预训练模型列表见[paddlenlp/lark](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/PaddleLARK)
+
 
 #### 转换
 注意，预训练模型不能直接被框架使用。我们提供了转换脚本可以将其转换成paddlepalm的模型格式。如下，通过运行`script/convert_params.sh`可将预训练模型bert转换成框架的模型格式。
@@ -125,7 +126,8 @@ bash script/download_pretrain_backbone.sh bert
 bash script/convert_params.sh pretrain_model/bert/params
 ```
 
-若用户希望从paddlepalm模型中恢复出原始的预训练模型，可以运行`script/recover_params.sh`进行恢复。
+注意，以下恢复操作在执行后述DEMO流程中**无需执行**。
+若用户需将转换成的paddlepalm模型恢复为原始的预训练模型，可以运行`script/recover_params.sh`进行恢复。
 
 ```shell
 bash script/recover_params.sh pretrain_model/bert/params
