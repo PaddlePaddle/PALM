@@ -126,7 +126,7 @@ bash script/download_pretrain_backbone.sh bert
 bash script/convert_params.sh pretrain_model/bert/params
 ```
 
-注意，以下恢复操作在执行DEMO时**无需执行**。
+注意，以下恢复操作在执行后述DEMO流程中**无需执行**。
 若用户需将转换成的paddlepalm模型恢复为原始的预训练模型，可以运行`script/recover_params.sh`进行恢复。
 
 ```shell
