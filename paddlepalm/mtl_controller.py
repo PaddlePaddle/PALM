@@ -304,19 +304,6 @@ class Controller(object):
                     instances[i].task_reuse_scope = instances[j].name
                     break
 
-        # parse Reader and Paradigm for each instance
-        for inst in instances:
-            reader_name = inst.config['reader']
-            reader_mod = importlib.import_module(READER_DIR + '.' + reader_name)
-            Reader = getattr(reader_mod, 'Reader')
-
-            parad_name = inst.config['paradigm']
-            parad_mod = importlib.import_module(PARADIGM_DIR + '.' + parad_name)
-            Paradigm = getattr(parad_mod, 'TaskParadigm')
-
-            inst.Reader = Reader
-            inst.Paradigm = Paradigm
-        
         self.instances = instances
         self.mrs = mrs
         self.Backbone = Backbone
@@ -361,7 +348,6 @@ class Controller(object):
         task_attrs = []
         pred_task_attrs = []
         for inst in instances:
-
             train_reader = inst.Reader(inst.config, phase='train')
             inst.reader['train'] = train_reader
             train_parad = inst.Paradigm(inst.config, phase='train', backbone_config=bb_conf)
@@ -605,6 +591,9 @@ class Controller(object):
             global_step += 1
             cur_task.cur_train_step += 1
 
+            if cur_task.save_infermodel_every_n_steps > 0 and cur_task.cur_train_step % cur_task.save_infermodel_every_n_steps == 0:
+                cur_task.save(suffix='.step'+str(cur_task.cur_train_step))
+
             if global_step % main_conf.get('print_every_n_steps', 5) == 0:
                 loss = rt_outputs[cur_task.name+'/loss']
                 loss = np.mean(np.squeeze(loss)).tolist()
@@ -635,8 +624,11 @@ class Controller(object):
         assert isinstance(task_instance, str)
         if isinstance(inference_model_dir, str):
             assert os.path.exists(inference_model_dir), inference_model_dir+" not found."
-        if not self.has_init_pred and inference_model_dir is None:
-            raise ValueError('infer_model_path is required for prediction.')
+        # if not self.has_init_pred and inference_model_dir is None:
+        #     raise ValueError('infer_model_path is required for prediction.')
+        if inference_model_dir is None:
+            assert 'save_path' in self.mtl_conf, "one of the `inference_model_dir` and 'save_path' should be set to load inference model."
+            inference_model_dir = os.path.join(self.mtl_conf['save_path'], task_instance, 'infer_model')
 
         instance = None
         for inst in self.instances:

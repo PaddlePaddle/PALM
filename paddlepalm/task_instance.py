@@ -18,16 +18,40 @@ from paddlepalm.interface import task_paradigm as base_paradigm
 import os
 import json
 from paddle import fluid
+import importlib
+from paddlepalm.default_settings import *
+
+
+def check_req_args(conf, name):
+    assert 'reader' in conf, name+': reader is required to build TaskInstance.'
+    assert 'paradigm' in conf, name+': paradigm is required to build TaskInstance.'
+    assert 'train_file' in conf or 'pred_file' in conf, name+': at least train_file or pred_file should be provided to build TaskInstance.'
+
 
 class TaskInstance(object):
     
-    def __init__(self, name, id, config={}, verbose=True):
+    def __init__(self, name, id, config, verbose=True):
         self._name = name
         self._config = config
         self._verbose = verbose
 
+        check_req_args(config, name)
+
+        # parse Reader and Paradigm
+        reader_name = config['reader']
+        reader_mod = importlib.import_module(READER_DIR + '.' + reader_name)
+        Reader = getattr(reader_mod, 'Reader')
+
+        parad_name = config['paradigm']
+        parad_mod = importlib.import_module(PARADIGM_DIR + '.' + parad_name)
+        Paradigm = getattr(parad_mod, 'TaskParadigm')
+
+        self._Reader = Reader
+        self._Paradigm = Paradigm
+
         self._save_infermodel_path = os.path.join(self._config['save_path'], self._name, 'infer_model')
         self._save_ckpt_path = os.path.join(self._config['save_path'], 'ckpt')
+        self._save_infermodel_every_n_steps = config.get('save_infermodel_every_n_steps', -1)
 
         # following flags can be fetch from instance config file
         self._is_target = config.get('is_target', True)
@@ -55,9 +79,6 @@ class TaskInstance(object):
         self._pred_input_varname_list = []
         self._pred_fetch_name_list = []
         self._pred_fetch_var_list = []
-
-        self._Reader = None
-        self._Paradigm = None
 
         self._exe = fluid.Executor(fluid.CPUPlace())
 
@@ -87,7 +108,9 @@ class TaskInstance(object):
         dirpath = self._save_infermodel_path + suffix
         self._pred_input_varname_list = [str(i) for i in self._pred_input_varname_list]
 
-        fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, export_for_deployment = True)
+        # fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, export_for_deployment = True)
+        prog = fluid.default_main_program().clone()
+        fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, prog)
 
         conf = {}
         for k, strv in self._save_protocol.items():
@@ -116,23 +139,23 @@ class TaskInstance(object):
     def Reader(self):
         return self._Reader
 
-    @Reader.setter
-    def Reader(self, cls):
-        assert base_reader.__name__ == cls.__bases__[-1].__name__, \
-            "expect: {}, receive: {}.".format(base_reader.__name__, \
-                                              cls.__bases__[-1].__name__)
-        self._Reader = cls
+    # @Reader.setter
+    # def Reader(self, cls):
+    #     assert base_reader.__name__ == cls.__bases__[-1].__name__, \
+    #         "expect: {}, receive: {}.".format(base_reader.__name__, \
+    #                                           cls.__bases__[-1].__name__)
+    #     self._Reader = cls
 
     @property
     def Paradigm(self):
         return self._Paradigm
 
-    @Paradigm.setter
-    def Paradigm(self, cls):
-        assert base_paradigm.__name__ == cls.__bases__[-1].__name__, \
-            "expect: {}, receive: {}.".format(base_paradigm.__name__, \
-                                              cls.__bases__[-1].__name__)
-        self._Paradigm = cls
+    # @Paradigm.setter
+    # def Paradigm(self, cls):
+    #     assert base_paradigm.__name__ == cls.__bases__[-1].__name__, \
+    #         "expect: {}, receive: {}.".format(base_paradigm.__name__, \
+    #                                           cls.__bases__[-1].__name__)
+    #     self._Paradigm = cls
 
     @property
     def config(self):
@@ -200,6 +223,10 @@ class TaskInstance(object):
         self._mix_ratio = float(value)
         if self._verbose:
             print('{}: mix_ratio is set to {}'.format(self._name, self._mix_ratio))
+
+    @property
+    def save_infermodel_every_n_steps(self):
+        return self._save_infermodel_every_n_steps
 
     @property
     def expected_train_steps(self):
