@@ -348,7 +348,6 @@ class Controller(object):
         task_attrs = []
         pred_task_attrs = []
         for inst in instances:
-
             train_reader = inst.Reader(inst.config, phase='train')
             inst.reader['train'] = train_reader
             train_parad = inst.Paradigm(inst.config, phase='train', backbone_config=bb_conf)
@@ -593,7 +592,7 @@ class Controller(object):
             cur_task.cur_train_step += 1
 
             if cur_task.save_infermodel_every_n_steps > 0 and cur_task.cur_train_step % cur_task.save_infermodel_every_n_steps == 0:
-                cur_task.save(suffix='-step'+str(cur_task.cur_train_step))
+                cur_task.save(suffix='.step'+str(cur_task.cur_train_step))
 
             if global_step % main_conf.get('print_every_n_steps', 5) == 0:
                 loss = rt_outputs[cur_task.name+'/loss']
