@@ -123,7 +123,7 @@ class TaskInstance(object):
     def load(self, infer_model_path=None):
         if infer_model_path is None:
             infer_model_path = self._save_infermodel_path
-        or k,v in list(json.load(open(os.path.join(infer_model_path, '__conf__'))).items()): # py3
+        for k,v in list(json.load(open(os.path.join(infer_model_path, '__conf__'))).items()): # py3
             strv = self._save_protocol[k]
             exec('{}=v'.format(strv))
         pred_prog, self._pred_input_varname_list, self._pred_fetch_var_list = \
