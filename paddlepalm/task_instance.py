@@ -115,8 +115,8 @@ class TaskInstance(object):
         conf = {}
         for k, strv in list(self._save_protocol.items()): # py3
             d = None
-            v = {}
-            exec('d={}'.format(strv), v)
+            v = locals()
+            exec('d={}'.format(strv), globals(), v)
             conf[k] = v['d']
         with open(os.path.join(dirpath, '__conf__'), 'w') as writer:
             writer.write(json.dumps(conf, indent=1))
