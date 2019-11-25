@@ -24,6 +24,7 @@ import paddle.fluid as fluid
 import paddle.fluid.layers as layers
 
 from paddle.fluid.layer_helper import LayerHelper as LayerHelper
+from functools import reduce # py3
 def layer_norm(x, begin_norm_axis=1, epsilon=1e-6, param_attr=None, bias_attr=None):
     helper = LayerHelper('layer_norm', **locals())
     mean = layers.reduce_mean(x, dim=begin_norm_axis, keep_dim=True)

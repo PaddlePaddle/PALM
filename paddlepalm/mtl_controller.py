@@ -95,7 +95,7 @@ def _try_float(s):
 def _check_conf(conf, checklist=None):
     assert isinstance(conf, dict), "{} is not a dict.".format(conf)
     ret = {}
-    for k,v in conf.items():
+    for k,v in list(conf.items()):
         if isinstance(v, str):
             v = _try_float(v)
         ret[k] = v

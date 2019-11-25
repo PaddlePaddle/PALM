@@ -92,7 +92,7 @@ class TaskInstance(object):
         output_vars = self._task_layer[phase].build(net_inputs, scope_name=scope)
         if phase == 'pred':
             if output_vars is not None:
-                self._pred_fetch_name_list, self._pred_fetch_var_list = zip(*output_vars.items())
+                self._pred_fetch_name_list, self._pred_fetch_var_list = list(zip(*list(output_vars.items())))
             else:
                 self._pred_fetch_name_list = []
                 self._pred_fetch_var_list = []
@@ -113,7 +113,7 @@ class TaskInstance(object):
         fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, prog)
 
         conf = {}
-        for k, strv in self._save_protocol.items():
+        for k, strv in list(self._save_protocol.items()): # py3
             exec('v={}'.format(strv))
             conf[k] = v
         with open(os.path.join(dirpath, '__conf__'), 'w') as writer:
@@ -123,7 +123,7 @@ class TaskInstance(object):
     def load(self, infer_model_path=None):
         if infer_model_path is None:
             infer_model_path = self._save_infermodel_path
-        for k,v in json.load(open(os.path.join(infer_model_path, '__conf__'))).items():
+        or k,v in list(json.load(open(os.path.join(infer_model_path, '__conf__'))).items()): # py3
             strv = self._save_protocol[k]
             exec('{}=v'.format(strv))
         pred_prog, self._pred_input_varname_list, self._pred_fetch_var_list = \
@@ -167,13 +167,13 @@ class TaskInstance(object):
 
     @property
     def pred_input(self):
-        return zip(*[self._pred_input_name_list, self._pred_input_varname_list])
+        return list(zip(*[self._pred_input_name_list, self._pred_input_varname_list])) # py3
 
     @pred_input.setter
     def pred_input(self, val):
         assert isinstance(val, dict)
         self._pred_input_name_list, self._pred_input_varname_list = \
-            zip(*[[k, v.name] for k,v in val.items()])
+            list(zip(*[[k, v.name] for k,v in list(val.items())])) # py3s
 
     @property
     def pred_fetch_list(self):
