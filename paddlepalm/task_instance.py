@@ -114,8 +114,10 @@ class TaskInstance(object):
 
         conf = {}
         for k, strv in list(self._save_protocol.items()): # py3
-            exec('v={}'.format(strv))
-            conf[k] = v
+            d = None
+            v = {}
+            exec('d={}'.format(strv), v)
+            conf[k] = v['d']
         with open(os.path.join(dirpath, '__conf__'), 'w') as writer:
             writer.write(json.dumps(conf, indent=1))
         print(self._name + ': inference model saved at ' + dirpath)
@@ -125,7 +127,10 @@ class TaskInstance(object):
             infer_model_path = self._save_infermodel_path
         for k,v in list(json.load(open(os.path.join(infer_model_path, '__conf__'))).items()): # py3
             strv = self._save_protocol[k]
+            print(v)
             exec('{}=v'.format(strv))
+        print('self list')
+        print(self._pred_input_varname_list)
         pred_prog, self._pred_input_varname_list, self._pred_fetch_var_list = \
             fluid.io.load_inference_model(infer_model_path, self._exe)
         print(self._name+': inference model loaded from ' + infer_model_path)
@@ -168,12 +173,13 @@ class TaskInstance(object):
     @property
     def pred_input(self):
         return list(zip(*[self._pred_input_name_list, self._pred_input_varname_list])) # py3
+     #   return zip(*[self._pred_input_name_list, self._pred_input_varname_list])
 
     @pred_input.setter
     def pred_input(self, val):
         assert isinstance(val, dict)
         self._pred_input_name_list, self._pred_input_varname_list = \
-            list(zip(*[[k, v.name] for k,v in list(val.items())])) # py3s
+            list(zip(*[[k, v.name] for k,v in list(val.items())])) # py3
 
     @property
     def pred_fetch_list(self):
