@@ -87,7 +87,7 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
 
             outputs = next(iterator) # dict type
             prefix = iterator_prefixe
-            for outname, val in list(outputs.items()):
+            for outname, val in outputs.items():
                 task_outname = prefix + '/' + outname
 
                 if outname in outname_to_pos:
@@ -121,7 +121,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
         outputs = next(iterators[id]) # dict type
         outbuf[id] = outputs
         prefix = iterator_prefixes[id]
-        for outname, val in list(outputs.items()):
+        for outname, val in outputs.items():
             task_outname = prefix + '/' + outname
 
             if outname in outname_to_pos:
@@ -176,7 +176,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                         has_show_warn = True
 
                 prefix = iterator_prefixes[id]
-                for outname, val in list(outputs.items()):
+                for outname, val in outputs.items():
                     if v > 0:
                         print('reader generate: '+outname)
                     task_outname = prefix + '/' + outname
