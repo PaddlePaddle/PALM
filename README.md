@@ -50,7 +50,7 @@ cd PALM && python setup.py install
 
 **环境依赖**
 
-- Python >= 2.7 (即将支持python3)
+- Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
 - PaddlePaddle >= 1.6.1 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
