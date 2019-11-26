@@ -162,10 +162,12 @@ class BasicTokenizer(object):
 
     def __init__(self, do_lower_case=True):
         """Constructs a BasicTokenizer.
+
         Args:
             do_lower_case: Whether to lower case the input.
         """
         self.do_lower_case = do_lower_case
+        self._never_lowercase = ['[UNK]', '[SEP]', '[PAD]', '[CLS]', '[MASK]']
 
     def tokenize(self, text):
         """Tokenizes a piece of text."""
@@ -183,10 +185,13 @@ class BasicTokenizer(object):
         orig_tokens = whitespace_tokenize(text)
         split_tokens = []
         for token in orig_tokens:
-            if self.do_lower_case:
+            if self.do_lower_case and token not in self._never_lowercase:
                 token = token.lower()
                 token = self._run_strip_accents(token)
-            split_tokens.extend(self._run_split_on_punc(token))
+            if token in self._never_lowercase:
+                split_tokens.extend([token])
+            else:
+                split_tokens.extend(self._run_split_on_punc(token))
 
         output_tokens = whitespace_tokenize(" ".join(split_tokens))
         return output_tokens
@@ -281,14 +286,18 @@ class WordpieceTokenizer(object):
 
     def tokenize(self, text):
         """Tokenizes a piece of text into its word pieces.
+
         This uses a greedy longest-match-first algorithm to perform tokenization
         using the given vocabulary.
+
         For example:
             input = "unaffable"
             output = ["un", "##aff", "##able"]
+
         Args:
             text: A single token or whitespace separated tokens. This should have
                 already been passed through `BasicTokenizer.
+
         Returns:
             A list of wordpiece tokens.
         """

@@ -24,8 +24,8 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
-    name="paddle-palm",
-    version="1.2",
+    name="paddlepalm",
+    version="1.0.0",
     author="PaddlePaddle",
     author_email="zhangyiming04@baidu.com",
     description="A Multi-task Learning Lib for PaddlePaddle Users.",
@@ -63,6 +63,9 @@ setuptools.setup(
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
           ],
+    install_requires = [
+        'paddlepaddle-gpu>=1.6.1'
+    ]
 )
 
 
