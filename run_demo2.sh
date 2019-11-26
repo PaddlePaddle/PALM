@@ -1,4 +1,3 @@
 export CUDA_VISIBLE_DEVICES=0
-
-python run.py
+python demo2.py 
 

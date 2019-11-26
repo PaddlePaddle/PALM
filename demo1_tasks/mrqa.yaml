@@ -2,7 +2,7 @@ train_file: data/mrqa/train.json
 reader: mrc
 paradigm: mrc
 
-vocab_path: "../../pretrain_model/bert/vocab.txt"
+vocab_path: "pretrain_model/bert/vocab.txt"
 do_lower_case: True
 max_seq_len: 512
 doc_stride: 128
