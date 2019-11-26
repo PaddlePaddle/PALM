@@ -5,9 +5,9 @@ task_reuse_tag: 0,0,1,1,0,2
 save_path: "output_model/thirdrun"
 
 backbone: "ernie"
-backbone_config_path: "pretrain_model/ernie/ernie_config.json"
+backbone_config_path: "../../pretrain_model/ernie/ernie_config.json"
 
-vocab_path: "pretrain_model/ernie/vocab.txt"
+vocab_path: "../../pretrain_model/ernie/vocab.txt"
 do_lower_case: True
 max_seq_len: 512
 
