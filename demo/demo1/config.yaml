@@ -3,7 +3,7 @@ task_instance: "mrqa"
 save_path: "output_model/firstrun"
 
 backbone: "bert"
-backbone_config_path: "pretrain_model/bert/bert_config.json"
+backbone_config_path: "../../pretrain_model/bert/bert_config.json"
 
 batch_size: 4
 num_epochs: 2
