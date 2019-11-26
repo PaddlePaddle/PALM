@@ -113,9 +113,11 @@ class TaskInstance(object):
         fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, prog)
 
         conf = {}
-        for k, strv in self._save_protocol.items():
-            exec('v={}'.format(strv))
-            conf[k] = v
+        for k, strv in self._save_protocol.items(): 
+            d = None
+            v = locals()
+            exec('d={}'.format(strv), globals(), v)
+            conf[k] = v['d']
         with open(os.path.join(dirpath, '__conf__'), 'w') as writer:
             writer.write(json.dumps(conf, indent=1))
         print(self._name + ': inference model saved at ' + dirpath)
@@ -123,7 +125,7 @@ class TaskInstance(object):
     def load(self, infer_model_path=None):
         if infer_model_path is None:
             infer_model_path = self._save_infermodel_path
-        for k,v in json.load(open(os.path.join(infer_model_path, '__conf__'))).items():
+        for k,v in json.load(open(os.path.join(infer_model_path, '__conf__'))).items(): 
             strv = self._save_protocol[k]
             exec('{}=v'.format(strv))
         pred_prog, self._pred_input_varname_list, self._pred_fetch_var_list = \
