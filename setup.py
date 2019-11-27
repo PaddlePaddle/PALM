@@ -21,7 +21,7 @@ Authors: zhouxiangyang(zhouxiangyang@baidu.com)
 Date:    2019/09/29 21:00:01
 """
 import setuptools
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 setuptools.setup(
     name="paddlepalm",
