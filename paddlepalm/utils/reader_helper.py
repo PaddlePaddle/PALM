@@ -161,14 +161,14 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
 
                 if 'token_ids' in outputs:
                     val1 = len(outputs['token_ids'])
-                    val = _check_and_adapt_shape_dtype([val1], [[1], 'int64'])
+                    val = _check_and_adapt_shape_dtype(np.array([val1], dtype='int64'), [[1], 'int64'], iterator_prefixes[id]+' tokenids: ')
                     results[outname_to_pos['batch_size']] = val
 
                     val2 = len(outputs['token_ids'][0])
-                    val = _check_and_adapt_shape_dtype([val2], [[1], 'int64'])
+                    val = _check_and_adapt_shape_dtype(np.array([val2], dtype='int64'), [[1], 'int64'])
                     results[outname_to_pos['seqlen']] = val
 
-                    val = _check_and_adapt_shape_dtype([val1*val2], [[1], 'int64'])
+                    val = _check_and_adapt_shape_dtype(np.array([val1*val2], dtype='int64'), [[1], 'int64'])
                     results[outname_to_pos['batchsize_x_seqlen']] = val
                 else:
                     if not has_show_warn:
