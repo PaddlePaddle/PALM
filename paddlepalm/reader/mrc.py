@@ -32,6 +32,7 @@ class Reader(reader):
             tokenizer='FullTokenizer',
             for_cn=config.get('for_cn', False),
             doc_stride=config['doc_stride'],
+            remove_noanswer=config.get('remove_noanswer', True),
             max_query_length=config['max_query_len'],
             random_seed=config.get('seed', None))
         self._reader = reader
