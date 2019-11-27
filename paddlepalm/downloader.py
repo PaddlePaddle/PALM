@@ -33,6 +33,44 @@ _items = {
     'tasktype': {'utils': None},
 }
 
+def _download(item, scope, path, silent=False):
+    if not silent:
+        print('Downloading {}: {} from {}...'.format(item, scope, _items[item][scope]))
+    data_url = _items[item][scope]
+    data_dir = path + '/' + item + '/' + scope
+    if not os.path.exists(data_dir):
+        os.makedirs(os.path.join(data_dir))
+    filename = data_dir + '/' + data_url.split('/')[-1]
+
+    def chunk_report(bytes_so_far, total_size):
+        percent = float(bytes_so_far) / float(total_size)
+        if percent > 1:
+            percent = 1
+        if not silent:
+            print('\r>> Downloading... {:.1%}'.format(percent), end = "")
+
+    def chunk_read(response, url, chunk_size = 16 * 1024, report_hook = None):
+        total_size = response.info().getheader('Content-Length').strip()
+        total_size = int(total_size)
+        bytes_so_far = 0
+        with open("%s" % filename, "wb") as f:
+            while 1:
+                chunk = response.read(chunk_size)
+                f.write(chunk)
+                f.flush() 
+                bytes_so_far += len(chunk)
+                if not chunk:
+                    break
+                if report_hook:
+                    report_hook(bytes_so_far, total_size)
+        return bytes_so_far
+
+    response = urlopen(data_url)
+    chunk_read(response, data_url, report_hook=chunk_report)
+    
+    if not silent:
+        print(' done!')
+
 
 def _convert():
     raise NotImplementedError()
@@ -42,59 +80,16 @@ def download(item, scope='all', path='.'):
     item = item.lower()
     scope = scope.lower()
     assert item in _items, '{} is not found. Support list: {}'.format(item, list(_items.keys()))
-
-   # if not os.path.exists(path + '/' + item):
-   #     os.makedirs(os.path.join(path + '/' + item))
-
-
-    def _download(item, scope, silent=False):
-        if not silent:
-            print('Downloading {}: {} from {}...'.format(item, scope, _items[item][scope]))
-        data_url = _items[item][scope]
-        data_dir = path + '/' + item + '/' + scope
-        if not os.path.exists(data_dir):
-            os.makedirs(os.path.join(data_dir))
-        filename = data_dir + '/' + data_url.split('/')[-1]
-
-        def chunk_report(bytes_so_far, total_size):
-            percent = float(bytes_so_far) / float(total_size) * 100.0
-            if percent > 100:
-                percent = 100
-            if not silent:
-                print('\r>> Downloading... %.1f%%' %  percent, end="\r")
-
-
-        def chunk_read(response, url, chunk_size = 16 * 1024, report_hook = None):
-            total_size = response.info().getheader('Content-Length').strip()
-            total_size = int(total_size)
-            bytes_so_far = 0
-            with open("%s" % filename, "wb") as f:
-                while 1:
-                    chunk = response.read(chunk_size)
-                    f.write(chunk)
-                    f.flush() 
-                    bytes_so_far += len(chunk)
-                    if not chunk:
-                        break
-                    if report_hook:
-                        report_hook(bytes_so_far, total_size)
-            return bytes_so_far
-
-        response = urlopen(data_url)
-        chunk_read(response, data_url, report_hook=chunk_report)
-       
-        if not silent:
-            print('done!')
-        
+   
     if _items[item]['utils'] is not None:
-        _download(item, 'utils', silent=True)
+        _download(item, 'utils', path, silent=True)
 
     if scope != 'all':
         assert scope in _items[item], '{} is not found. Support scopes: {}'.format(item, list(_items[item].keys()))
-        _download(item, scope)
+        _download(item, scope, path)
     else:
         for s in _items[item].keys():
-            _download(item, s)
+            _download(item, s, path)
 
 
 def ls(item=None, scope='all'):
