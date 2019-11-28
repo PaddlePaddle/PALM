@@ -113,11 +113,9 @@ def _convert(path, silent=False):
             for root, dirs, files in os.walk(path + '/params1/'):
                 for file in files:
                     src_file = os.path.join(root, file)
-                    newname = path + '/params1/' + '__paddlepalm_' + file
-                    os.rename(src_file, newname)
-                    tar_model.add(newname)
-                    tar_info.write(newname)
-                    os.remove(newname)
+                    tar_model.add(src_file, '__paddlepalm_' + file)
+                    tar_info.write('__paddlepalm_' + file)
+                    os.remove(src_file)
             tar_model.close()
             tar_info.close()
             os.removedirs(path + '/params1/') 
