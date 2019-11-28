@@ -84,11 +84,22 @@ def _download(item, scope, path, silent=False):
             tar.extractall(path = data_dir)
             tar.close()
             os.remove(filename)
+        if scope == 'bert-en-uncased-large':
+            source_path = data_dir + '/' + data_name.split('.')[0]
+            fileList = os.listdir(source_path)
+            print('source: {}'.format(source_path))
+            print('filelist: {}'.format(fileList))
+            for file in fileList:
+                filePath = os.path.join(source_path, file)
+                print('filepath: {}'.format(filePath))
+                print('datadir: {}'.format(data_dir))
+                shutil.move(filePath, data_dir)
+            os.removedirs(source_path)
         if not silent:
             print ('done!')
         if not silent:
             print ('Converting params...', end=" ")
-        _convert(data_dir + '/' + data_name.split('.')[0], silent)
+        _convert(data_dir, silent)
         if not silent:
             print ('done!')
 
@@ -115,9 +126,6 @@ def _convert(path, silent=False):
             tar_info.close()
             os.removedirs(path + '/params1/') 
 
-    # raise NotImplementedError()
-
-
 def download(item, scope='all', path='.'):
     item = item.lower()
     scope = scope.lower()
@@ -136,5 +144,3 @@ def download(item, scope='all', path='.'):
 
 def ls(item=None, scope='all'):
     pass
-
-
