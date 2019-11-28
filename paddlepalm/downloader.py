@@ -87,12 +87,8 @@ def _download(item, scope, path, silent=False):
         if scope == 'bert-en-uncased-large':
             source_path = data_dir + '/' + data_name.split('.')[0]
             fileList = os.listdir(source_path)
-            print('source: {}'.format(source_path))
-            print('filelist: {}'.format(fileList))
             for file in fileList:
                 filePath = os.path.join(source_path, file)
-                print('filepath: {}'.format(filePath))
-                print('datadir: {}'.format(data_dir))
                 shutil.move(filePath, data_dir)
             os.removedirs(source_path)
         if not silent:
