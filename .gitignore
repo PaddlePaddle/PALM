@@ -1,6 +1,6 @@
 *.pyc
 __pycache__
-pretrain_model
+pretrain
 output_model
 build
 dist

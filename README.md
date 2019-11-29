@@ -110,28 +110,22 @@ paddlepalm框架的运行原理图如图所示
 ### 预训练模型
 
 #### 下载
-我们提供了BERT、ERNIE等主干网络的相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在多任务学习时尽量在预训练模型的基础上进行（而不是从参数随机初始化开始）。用户可通过运行`script/download_pretrain_models <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型（uncased large）的命令如下
+我们提供了BERT、ERNIE等主干网络的相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在多任务学习时尽量在预训练模型的基础上进行（而不是从参数随机初始化开始）。用户可以查看可供下载的预训练模型：
 
 ```shell
-bash script/download_pretrain_backbone.sh bert
+python download_models.py ls pretrain
 ```
 
-脚本会自动在**当前文件夹**中创建一个pretrain_model目录（注：运行DEMO时，需保证pretrain_model文件夹在PALM项目目录下），并在其中创建bert子目录，里面存放预训练模型(`params`文件夹内)、相关的网络参数(`bert_config.json`)和字典(`vocab.txt`)。除了BERT模型，脚本还提供了ERNIE预训练模型（uncased large）的一键下载，将`<model_name>`改成`ernie`即可。全部可用的预训练模型列表见[paddlenlp/lark](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/PaddleLARK)
-
-
-#### 转换
-注意，预训练模型不能直接被框架使用。我们提供了转换脚本可以将其转换成paddlepalm的模型格式。如下，通过运行`script/convert_params.sh`可将预训练模型bert转换成框架的模型格式。
+用户可通过运行`python download_models.py download <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型（uncased large）的命令如下：
 
 ```shell
-bash script/convert_params.sh pretrain_model/bert/params
+python download_models.py download bert-en-uncased-large
 ```
 
-注意，以下恢复操作在执行后述DEMO流程中**无需执行**。
-若用户需将转换成的paddlepalm模型恢复为原始的预训练模型，可以运行`script/recover_params.sh`进行恢复。
+此外，用户也可通过运行`python download_models.py download all`下载已提供的所有预训练模型。
 
-```shell
-bash script/recover_params.sh pretrain_model/bert/params
-```
+脚本会自动在**当前文件夹**中创建一个pretrain目录（注：运行DEMO时，需保证pretrain文件夹在PALM项目目录下），并在其中创建bert子目录，里面存放预训练模型(`params`文件夹内)、相关的网络参数(`bert_config.json`)和字典(`vocab.txt`)。除了BERT模型，脚本还提供了ERNIE预训练模型（uncased large）的一键下载，将`<model_name>`改成`ernie-en-uncased-large`即可。全部可用的预训练模型列表见[paddlenlp/lark](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/PaddleLARK)
+
 
 
 ## 三个DEMO入门PaddlePALM
@@ -169,7 +163,7 @@ max_seq_len: 512
 max_query_len: 64
 doc_stride: 128 # 在MRQA数据集中，存在较长的文档，因此我们这里使用滑动窗口处理样本，滑动步长设置为128
 do_lower_case: True
-vocab_path: "../../pretrain_model/bert/vocab.txt"
+vocab_path: "../../pretrain/bert-en-uncased-large/vocab.txt"
 ```
 
 更详细的任务实例配置方法（为任务实例选择合适的reader、paradigm和backbone）可参考[这里](#readerbackbone与paradigm的选择)
@@ -184,7 +178,7 @@ task_instance: "mrqa"
 save_path: "output_model/firstrun"
 
 backbone: "bert"
-backbone_config_path: "../../pretrain_model/bert/bert_config.json"
+backbone_config_path: "../../pretrain/bert-en-uncased-large/bert_config.json"
 
 optimizer: "adam"
 learning_rate: 3e-5
@@ -210,7 +204,7 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
     controller = palm.Controller('config.yaml')
-    controller.load_pretrain('../../pretrain_model/bert/params')
+    controller.load_pretrain('../../pretrain/bert-en-uncased-large/params')
     controller.train()
 ```
 
@@ -277,9 +271,9 @@ target_tag: 1,0,0
 save_path: "output_model/secondrun"
 
 backbone: "ernie"
-backbone_config_path: "../../pretrain_model/ernie/ernie_config.json"
+backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
 
-vocab_path: "../../pretrain_model/ernie/vocab.txt"
+vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"
 do_lower_case: True
 max_seq_len: 512 # 写入全局配置文件的参数会被自动广播到各个任务实例
 
@@ -314,7 +308,7 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
     controller = palm.Controller('config.yaml', task_dir='tasks')
-    controller.load_pretrain('../../pretrain_model/ernie/params')
+    controller.load_pretrain('../../pretrain/ernie-en-uncased-large/params')
     controller.train()
 
 ```
@@ -406,9 +400,9 @@ task_reuse_tag: 0, 0, 1, 1, 0, 2
 save_path: "output_model/secondrun"
 
 backbone: "ernie"
-backbone_config_path: "../../pretrain_model/ernie/ernie_config.json"
+backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
 
-vocab_path: "../../pretrain_model/ernie/vocab.txt"
+vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"
 do_lower_case: True
 max_seq_len: 512 # 写入全局配置文件的参数会被自动广播到各个任务实例
 
@@ -428,7 +422,7 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
     controller = palm.Controller('config.yaml', task_dir='tasks')
-    controller.load_pretrain('../../pretrain_model/ernie/params')
+    controller.load_pretrain('../../pretrain/ernie-en-uncased-large/params')
     controller.train()
  ```
 

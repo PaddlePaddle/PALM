@@ -33,7 +33,7 @@ from paddlepalm.utils.print_helper import print_dict
 from paddlepalm.utils.reader_helper import create_net_inputs, create_iterator_fn, create_joint_iterator_fn, merge_input_attrs 
 
 from paddlepalm.default_settings import *
-from paddlepalm.task_instance import TaskInstance, check_instances
+from task_instance import TaskInstance, check_instances
 
 DEBUG=False
 VERBOSE=0
@@ -234,7 +234,7 @@ class Controller(object):
             bb_conf = _merge_conf(mtl_conf, bb_conf)
         else:
             bb_conf = mtl_conf
-        print_dict(bb_conf, title='backbone configuration'.format(instname))
+        print_dict(bb_conf, title = 'backbone configuration'.format(instname))
 
         bb_name = mtl_conf['backbone']
         bb_mod = importlib.import_module(BACKBONE_DIR + '.' + bb_name)
@@ -522,15 +522,15 @@ class Controller(object):
             inst.reader['pred'] = pred_reader
         return pred_prog
 
-    def load_pretrain(self, pretrain_model_path=None):
+    def load_pretrain(self, pretrain_path=None):
         # load pretrain model (or ckpt)
-        if pretrain_model_path is None:
-            assert 'pretrain_model_path' in self.main_conf, "pretrain_model_path NOT set."
-            pretrain_model_path = self.main_conf['pretrain_model_path']
+        if pretrain_path is None:
+            assert 'pretrain_path' in self.main_conf, "pretrain_path NOT set."
+            pretrain_path = self.main_conf['pretrain_path']
 
         init_pretraining_params(
             self.exe,
-            pretrain_model_path,
+            pretrain_path,
             main_program=fluid.default_startup_program())
 
 
@@ -673,6 +673,7 @@ if __name__ == '__main__':
 
 
 
+__all__ = ["Controller"]
 
             
 
