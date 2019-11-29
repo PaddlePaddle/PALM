@@ -61,6 +61,7 @@ cd PALM && python setup.py install
 .
 ├── mtl_controller.py                 # 任务控制器，负责创建和调度各个任务实例来完成多任务学习
 ├── task_instance.py                  # 任务实例类，完成任务实例的配置管理、训练进程管理、保存与载入等
+├── downloader.py                     # 下载器，用于支持预训练模型的下载
 ├── default_settings.py               # 默认的环境变量和框架配置
 ├── utils                             # 框架核心工具集
 │   ├── config_helper.py                  # 配置工具类，完成命令行与json、yaml的联合解析
