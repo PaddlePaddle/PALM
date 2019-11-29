@@ -131,12 +131,33 @@ def download(item, scope='all', path='.'):
         _download(item, 'utils', path, silent=True)
 
     if scope != 'all':
-        assert scope in _items[item], '{} is not found. Support scopes: {}'.format(item, list(_items[item].keys()))
+        assert scope in _items[item], '{} is not found. Support items: {}'.format(item, list(_items.keys()))
         _download(item, scope, path)
     else:
         for s in _items[item].keys():
             _download(item, s, path)
 
 
-def ls(item=None, scope='all'):
-    pass
+def _ls(item, scope, l = 10):
+    if scope != 'all':
+        assert scope in _items[item], '{} is not found. Support scopes: {}'.format(scope, list(_items[item].keys()))
+        print ('{}  ==>  {}'.format(item, scope))
+    else:
+        for s in _items[item].keys():
+            if s == 'utils':
+                continue
+            print ('{}  ==>  {}'.format(item.ljust(l), s))
+
+def ls(item='all', scope='all'):
+    
+    if scope == 'utils':
+        return
+    print ('Download list:')
+    if item != 'all':
+        assert item in _items, '{} is not found. Support scopes: {}'.format(item, list(_items.keys()))
+        _ls(item, scope)
+    else:
+        l = max(map(len, _items.keys()))
+        for i in _items.keys():
+            _ls(i, scope, l)
+    
