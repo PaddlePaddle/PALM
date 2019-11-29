@@ -1,2 +1,2 @@
-from downloader import *
-from Controller import *
+import downloader
+import Controller
