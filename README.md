@@ -163,7 +163,7 @@ max_seq_len: 512
 max_query_len: 64
 doc_stride: 128 # 在MRQA数据集中，存在较长的文档，因此我们这里使用滑动窗口处理样本，滑动步长设置为128
 do_lower_case: True
-vocab_path: "../../pretrain_model/bert/vocab.txt"
+vocab_path: "../../pretrain/bert-en-uncased-large/vocab.txt"
 ```
 
 更详细的任务实例配置方法（为任务实例选择合适的reader、paradigm和backbone）可参考[这里](#readerbackbone与paradigm的选择)
@@ -178,7 +178,7 @@ task_instance: "mrqa"
 save_path: "output_model/firstrun"
 
 backbone: "bert"
-backbone_config_path: "../../pretrain_model/bert/bert_config.json"
+backbone_config_path: "../../pretrain/bert-en-uncased-large/bert_config.json"
 
 optimizer: "adam"
 learning_rate: 3e-5
@@ -204,7 +204,7 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
     controller = palm.Controller('config.yaml')
-    controller.load_pretrain('../../pretrain_model/bert/params')
+    controller.load_pretrain('../../pretrain/bert-en-uncased-large/params')
     controller.train()
 ```
 
@@ -271,9 +271,9 @@ target_tag: 1,0,0
 save_path: "output_model/secondrun"
 
 backbone: "ernie"
-backbone_config_path: "../../pretrain_model/ernie/ernie_config.json"
+backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
 
-vocab_path: "../../pretrain_model/ernie/vocab.txt"
+vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"
 do_lower_case: True
 max_seq_len: 512 # 写入全局配置文件的参数会被自动广播到各个任务实例
 
@@ -308,7 +308,7 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
     controller = palm.Controller('config.yaml', task_dir='tasks')
-    controller.load_pretrain('../../pretrain_model/ernie/params')
+    controller.load_pretrain('../../pretrain/ernie-en-uncased-large/params')
     controller.train()
 
 ```
@@ -400,9 +400,9 @@ task_reuse_tag: 0, 0, 1, 1, 0, 2
 save_path: "output_model/secondrun"
 
 backbone: "ernie"
-backbone_config_path: "../../pretrain_model/ernie/ernie_config.json"
+backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
 
-vocab_path: "../../pretrain_model/ernie/vocab.txt"
+vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"
 do_lower_case: True
 max_seq_len: 512 # 写入全局配置文件的参数会被自动广播到各个任务实例
 
@@ -422,7 +422,7 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
     controller = palm.Controller('config.yaml', task_dir='tasks')
-    controller.load_pretrain('../../pretrain_model/ernie/params')
+    controller.load_pretrain('../../pretrain/ernie-en-uncased-large/params')
     controller.train()
  ```
 

@@ -522,15 +522,15 @@ class Controller(object):
             inst.reader['pred'] = pred_reader
         return pred_prog
 
-    def load_pretrain(self, pretrain_model_path=None):
+    def load_pretrain(self, pretrain_path=None):
         # load pretrain model (or ckpt)
-        if pretrain_model_path is None:
-            assert 'pretrain_model_path' in self.main_conf, "pretrain_model_path NOT set."
-            pretrain_model_path = self.main_conf['pretrain_model_path']
+        if pretrain_path is None:
+            assert 'pretrain_path' in self.main_conf, "pretrain_path NOT set."
+            pretrain_path = self.main_conf['pretrain_path']
 
         init_pretraining_params(
             self.exe,
-            pretrain_model_path,
+            pretrain_path,
             main_program=fluid.default_startup_program())
 
 
