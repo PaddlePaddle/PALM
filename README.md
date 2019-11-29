@@ -113,7 +113,7 @@ paddlepalm框架的运行原理图如图所示
 我们提供了BERT、ERNIE等主干网络的相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在多任务学习时尽量在预训练模型的基础上进行（而不是从参数随机初始化开始）。用户可以查看可供下载的预训练模型：
 
 ```shell
-python download_models.py
+python download_models.py ls pretrain
 ```
 
 用户可通过运行`python download_models.py download <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型（uncased large）的命令如下：

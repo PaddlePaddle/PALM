@@ -16,6 +16,6 @@
 import paddlepalm as palm
 import sys
 if(sys.argv[1] == 'ls'):
-  palm.ls(sys.argv[1], sys.argv[2])
+  palm.ls(sys.argv[2])
 if(sys.argv[1] == 'download'):
-  palm.download(sys.argv[1], sys.argv[2])
+  palm.download('pretrain', sys.argv[2])
