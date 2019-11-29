@@ -36,9 +36,11 @@ _items = {
 }
 
 def _download(item, scope, path, silent=False):
-    if not silent:
-        print('Downloading {}: {} from {}...'.format(item, scope, _items[item][scope]))
     data_url = _items[item][scope]
+    if data_url == None:
+        return
+    if not silent:
+        print('Downloading {}: {} from {}...'.format(item, scope, data_url))
     data_dir = path + '/' + item + '/' + scope
     if not os.path.exists(data_dir):
         os.makedirs(os.path.join(data_dir))
