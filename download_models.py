@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import paddlepalm as palm 
-
-palm.download('pretrain')
+import paddlepalm as palm
+import sys
+if(sys.argv[1] == 'ls'):
+  palm.ls(sys.argv[1], sys.argv[2])
+if(sys.argv[1] == 'download'):
+  palm.download(sys.argv[1], sys.argv[2])
