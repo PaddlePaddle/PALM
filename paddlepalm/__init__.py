@@ -1,2 +1,9 @@
 import downloader
-from _mtl_controller import Controller 
+from mtl_controller import Controller 
+
+
+del interface
+del task_instance
+del default_settings
+del utils
+del mtl_controller
