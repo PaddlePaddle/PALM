@@ -2,7 +2,7 @@ task_instance: "mrqa"
 
 save_path: "output_model/firstrun"
 
-backbone: "bert-en-uncased-large"
+backbone: "bert"
 backbone_config_path: "../../pretrain/bert-en-uncased-large/bert_config.json"
 
 batch_size: 4
