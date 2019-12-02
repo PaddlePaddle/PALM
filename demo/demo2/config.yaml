@@ -4,7 +4,7 @@ mix_ratio: 1.0, 0.5, 0.5
 
 save_path: "output_model/secondrun"
 
-backbone: "ernie-en-uncased-large"
+backbone: "ernie"
 backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
 
 vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"

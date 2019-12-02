@@ -4,7 +4,7 @@ task_reuse_tag: 0,0,1,1,0,2
 
 save_path: "output_model/thirdrun"
 
-backbone: "ernie-en-uncased-large"
+backbone: "ernie"
 backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
 
 vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"
