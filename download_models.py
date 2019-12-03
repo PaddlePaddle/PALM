@@ -15,6 +15,10 @@
 
 import paddlepalm as palm
 import sys
+
+items = ['ls', 'download']
+assert len(sys.argv) == 3, 'please input 2 parameters.'
+assert sys.argv[1] in items, '{} is not found. Support methods: {}'.format(sys.argv[1], items)
 if(sys.argv[1] == 'ls'):
   palm.downloader.ls(sys.argv[2])
 if(sys.argv[1] == 'download'):
