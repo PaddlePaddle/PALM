@@ -18,12 +18,15 @@ import sys
 import argparse
  
 # create parser
-parser = argparse.ArgumentParser(description = 'Download pretrain models for initializing params of backbones. ')
-parser.add_argument("-l", "--list", action = 'store_true', help = 'show the list of pretrain models')
-parser.add_argument("-d", "--download", action = 'store', help = 'download pretrain models') 
+parser = argparse.ArgumentParser(prog='download_models.py', usage='%(prog)s < -l | -d <model_name> > [-h] ',description = 'Download pretrain models for initializing params of backbones. ')
+parser1= parser.add_argument_group("pretrain models")
+parser1.add_argument('-l','--list', action = 'store_true', help = 'show the list of pretrain models', default = False)
+parser1.add_argument('-d','--download', action = 'store', help = 'download pretrain models') 
 args = parser.parse_args()
 
 if(args.list):
   palm.downloader.ls('pretrain')
-if(args.download):
+elif(args.download):
   palm.downloader.download('pretrain', args.download)
+else:
+  print (parser.parse_args(['-h']))
