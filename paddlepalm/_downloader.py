@@ -131,15 +131,13 @@ def _convert(path, silent=False):
 def download(item, scope='all', path='.'):
     item = item.lower()
     scope = scope.lower()
-    print('1111111111111')
     assert item in _items, '{} is not found. Support list: {}'.format(item, list(_items.keys()))
    
     if _items[item]['utils'] is not None:
         _download(item, 'utils', path, silent=True)
 
     if scope != 'all':
-        print('222222')
-      #  assert scope in _items[item], '{} is not found. Support scopes: {}'.format(scope, list(_items[item].keys()))
+        assert scope in _items[item], '{} is not found. Support scopes: {}'.format(scope, list(_items[item].keys()))
         _download(item, scope, path)
     else:
         for s in _items[item].keys():
@@ -148,7 +146,6 @@ def download(item, scope='all', path='.'):
 
 def _ls(item, scope, l = 10):
     if scope != 'all':
-        print('33333')
         assert scope in _items[item], '{} is not found. Support scopes: {}'.format(scope, list(_items[item].keys()))
         print ('{}  ==>  {}'.format(item, scope))
     else:
@@ -163,7 +160,6 @@ def ls(item='all', scope='all'):
         return
     print ('Download list:')
     if item != 'all':
-        print('44444')
         assert item in _items, '{} is not found. Support scopes: {}'.format(item, list(_items.keys()))
         _ls(item, scope)
     else:
