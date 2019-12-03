@@ -38,8 +38,6 @@ _items = {
     'backbone': {'utils': None},
     'tasktype': {'utils': None},
 }
-def lll():
-    pass
 
 def _download(item, scope, path, silent=False):
     data_url = _items[item][scope]
@@ -137,7 +135,7 @@ def download(item, scope='all', path='.'):
         _download(item, 'utils', path, silent=True)
 
     if scope != 'all':
-        assert scope in _items[item], '{} is not found. Support items: {}'.format(item, list(_items.keys()))
+        assert scope in _items[item], '{} is not found. Support scopes: {}'.format(scope, list(_items[item].keys()))
         _download(item, scope, path)
     else:
         for s in _items[item].keys():
