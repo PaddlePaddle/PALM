@@ -38,8 +38,6 @@ _items = {
     'backbone': {'utils': None},
     'tasktype': {'utils': None},
 }
-def lll():
-    pass
 
 def _download(item, scope, path, silent=False):
     data_url = _items[item][scope]
