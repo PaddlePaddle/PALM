@@ -150,7 +150,7 @@ def _ls(item, scope, l = 10):
         for s in _items[item].keys():
             if s == 'utils':
                 continue
-            print ('{}'.format(s))
+            print ('  => '+s)
 
 def ls(item='all', scope='all'):
     
@@ -158,13 +158,12 @@ def ls(item='all', scope='all'):
         return
     if item != 'all':
         assert item in _items, '{} is not found. Support scopes: {}'.format(item, list(_items.keys()))
-        print ('Download list of \'{}\':'.format(item))
+        print ('Available {} items:'.format(item))
         _ls(item, scope)
     else:
         l = max(map(len, _items.keys()))
-        print ('Download list: ')
         for i in _items.keys():
-            print ('\'{}\':'.format(i))
+            print ('Available {} items: '.format(i))
             _ls(i, scope, l)
 
 
