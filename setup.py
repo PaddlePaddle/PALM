@@ -24,14 +24,15 @@ import setuptools
 from io import open
 with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
+
 setuptools.setup(
     name="paddlepalm",
     version="0.2.1",
     author="PaddlePaddle",
     author_email="zhangyiming04@baidu.com",
     description="A Multi-task Learning Lib for PaddlePaddle Users.",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
+    # long_description=long_description,
+    # long_description_content_type="text/markdown",
     url="https://github.com/PaddlePaddle/PALM",
     # packages=setuptools.find_packages(),
     packages = ['paddlepalm', 
