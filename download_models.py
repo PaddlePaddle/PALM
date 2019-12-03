@@ -15,11 +15,15 @@
 
 import paddlepalm as palm
 import sys
+import argparse
+ 
+# create parser
+parser = argparse.ArgumentParser(description = 'Download pretrain models for initializing params of backbones. ')
+parser.add_argument("-l", "--list", action = 'store_true', help = 'show the list of pretrain models')
+parser.add_argument("-d", "--download", action = 'store', help = 'download pretrain models') 
+args = parser.parse_args()
 
-items = ['ls', 'download']
-assert len(sys.argv) == 3, 'please input 2 parameters.'
-assert sys.argv[1] in items, '{} is not found. Support methods: {}'.format(sys.argv[1], items)
-if(sys.argv[1] == 'ls'):
-  palm.downloader.ls(sys.argv[2])
-if(sys.argv[1] == 'download'):
-  palm.downloader.download('pretrain', sys.argv[2])
+if(args.list):
+  palm.downloader.ls('pretrain')
+if(args.download):
+  palm.downloader.download('pretrain', args.download)
