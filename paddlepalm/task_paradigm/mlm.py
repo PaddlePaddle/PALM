@@ -33,8 +33,8 @@ class TaskParadigm(task_paradigm):
     @property
     def inputs_attrs(self):
         reader = {
-            "mask_label": [[-1, 1], 'int64'],
-            "mask_pos": [[-1, 1], 'int64']}
+            "mask_label": [[-1], 'int64'],
+            "mask_pos": [[-1], 'int64']}
         if not self._is_training:
             del reader['mask_label']
             del reader['batchsize_x_seqlen']

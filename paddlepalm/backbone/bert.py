@@ -52,10 +52,10 @@ class Model(backbone):
 
     @property
     def inputs_attr(self):
-        return {"token_ids": [[-1, -1, 1], 'int64'],
-                "position_ids": [[-1, -1, 1], 'int64'],
-                "segment_ids": [[-1, -1, 1], 'int64'],
-                "input_mask": [[-1, -1, 1], 'float32']}
+        return {"token_ids": [[-1, -1], 'int64'],
+                "position_ids": [[-1, -1], 'int64'],
+                "segment_ids": [[-1, -1], 'int64'],
+                "input_mask": [[-1, -1], 'float32']}
 
     @property
     def outputs_attr(self):

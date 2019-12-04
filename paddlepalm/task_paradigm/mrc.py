@@ -49,11 +49,11 @@ class TaskParadigm(task_paradigm):
     @property
     def inputs_attrs(self):
         if self._is_training:
-            reader = {"start_positions": [[-1, 1], 'int64'],
-                      "end_positions": [[-1, 1], 'int64'],
+            reader = {"start_positions": [[-1], 'int64'],
+                      "end_positions": [[-1], 'int64'],
                       }
         else:
-            reader = {'unique_ids': [[-1, 1], 'int64']}
+            reader = {'unique_ids': [[-1], 'int64']}
         bb = {"encoder_outputs": [[-1, -1, self._hidden_size], 'float32']}
         return {'reader': reader, 'backbone': bb}
         
@@ -68,9 +68,9 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {'loss': [[1], 'float32']}
         else:
-            return {'start_logits': [[-1, -1, 1], 'float32'],
-                    'end_logits': [[-1, -1, 1], 'float32'],
-                    'unique_ids': [[-1, 1], 'int64']}
+            return {'start_logits': [[-1, -1], 'float32'],
+                    'end_logits': [[-1, -1], 'float32'],
+                    'unique_ids': [[-1], 'int64']}
 
 
     def build(self, inputs, scope_name=""):

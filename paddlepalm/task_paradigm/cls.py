@@ -43,7 +43,7 @@ class TaskParadigm(task_paradigm):
     @property
     def inputs_attrs(self):
         if self._is_training:
-            reader = {"label_ids": [[-1, 1], 'int64']}
+            reader = {"label_ids": [[-1], 'int64']}
         else:
             reader = {}
         bb = {"sentence_embedding": [[-1, self._hidden_size], 'float32']}
