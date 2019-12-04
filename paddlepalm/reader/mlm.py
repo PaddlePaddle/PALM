@@ -63,10 +63,10 @@ class Reader(reader):
         return {"token_ids": [[-1, -1], 'int64'],
                 "position_ids": [[-1, -1], 'int64'],
                 "segment_ids": [[-1, -1], 'int64'],
-                "input_mask": [[-1, -1], 'float32'],
+                "input_mask": [[-1, -1, 1], 'float32'],
                 "task_ids": [[-1, -1], 'int64'],
-                "mask_label": [[-1], 'int64'],
-                "mask_pos": [[-1], 'int64'],
+                "mask_label": [[-1, 1], 'int64'],
+                "mask_pos": [[-1, 1], 'int64'],
                 }
 
 

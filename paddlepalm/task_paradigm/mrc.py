@@ -68,8 +68,8 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {'loss': [[1], 'float32']}
         else:
-            return {'start_logits': [[-1, -1], 'float32'],
-                    'end_logits': [[-1, -1], 'float32'],
+            return {'start_logits': [[-1, -1, 1], 'float32'],
+                    'end_logits': [[-1, -1, 1], 'float32'],
                     'unique_ids': [[-1], 'int64']}
 
 

@@ -71,7 +71,7 @@ class Reader(reader):
             return {"token_ids": [[-1, -1], 'int64'],
                     "position_ids": [[-1, -1], 'int64'],
                     "segment_ids": [[-1, -1], 'int64'],
-                    "input_mask": [[-1, -1], 'float32'],
+                    "input_mask": [[-1, -1, 1], 'float32'],
                     "start_positions": [[-1], 'int64'],
                     "end_positions": [[-1], 'int64'],
                     "task_ids": [[-1, -1], 'int64']
@@ -81,7 +81,7 @@ class Reader(reader):
                     "position_ids": [[-1, -1], 'int64'],
                     "segment_ids": [[-1, -1], 'int64'],
                     "task_ids": [[-1, -1], 'int64'],
-                    "input_mask": [[-1, -1], 'float32'],
+                    "input_mask": [[-1, -1, 1], 'float32'],
                     "unique_ids": [[-1], 'int64']
                     }
 

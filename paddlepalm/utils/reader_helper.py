@@ -22,6 +22,8 @@ from paddle import fluid
 
 
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
+    print(rt_val)
+    print(attr)
     if not isinstance(rt_val, np.ndarray):
         rt_val = np.array(rt_val)
         assert rt_val.dtype != np.dtype('O'), "yielded data is not a valid tensor(number of elements on some dimension may differ)."
