@@ -85,7 +85,7 @@ class Model(backbone):
         task_ids = inputs['task_ids']
 
         # padding id in vocabulary must be set to 0
-        emb_out = fluid.layers.embedding(
+        emb_out = fluid.embedding(
             input=src_ids,
             size=[self._voc_size, self._emb_size],
             dtype=self._emb_dtype,
@@ -96,14 +96,14 @@ class Model(backbone):
         # fluid.global_scope().find_var('backbone-word_embedding').get_tensor()
         embedding_table = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
         
-        position_emb_out = fluid.layers.embedding(
+        position_emb_out = fluid.embedding(
             input=pos_ids,
             size=[self._max_position_seq_len, self._emb_size],
             dtype=self._emb_dtype,
             param_attr=fluid.ParamAttr(
                 name=scope_name+self._pos_emb_name, initializer=self._param_initializer))
 
-        sent_emb_out = fluid.layers.embedding(
+        sent_emb_out = fluid.embedding(
             sent_ids,
             size=[self._sent_types, self._emb_size],
             dtype=self._emb_dtype,
@@ -113,7 +113,7 @@ class Model(backbone):
         emb_out = emb_out + position_emb_out
         emb_out = emb_out + sent_emb_out
 
-        task_emb_out = fluid.layers.embedding(
+        task_emb_out = fluid.embedding(
             task_ids,
             size=[self._task_types, self._emb_size],
             dtype=self._emb_dtype,
