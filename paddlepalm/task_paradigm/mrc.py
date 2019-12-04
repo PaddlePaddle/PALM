@@ -121,7 +121,7 @@ class TaskParadigm(task_paradigm):
     def postprocess(self, rt_outputs):
         """this func will be called after each step(batch) of training/evaluating/predicting process."""
         if not self._is_training:
-            unique_ids = np.squeeze(rt_outputs['unique_ids'], -1)
+            unique_ids = rt_outputs['unique_ids']
             start_logits = rt_outputs['start_logits']
             end_logits = rt_outputs['end_logits']
             for idx in range(len(unique_ids)):
