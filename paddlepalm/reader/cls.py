@@ -62,19 +62,19 @@ class Reader(reader):
     @property
     def outputs_attr(self):
         if self._is_training:
-            return {"token_ids": [[-1, -1, 1], 'int64'],
-                    "position_ids": [[-1, -1, 1], 'int64'],
-                    "segment_ids": [[-1, -1, 1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32'],
-                    "label_ids": [[-1,1], 'int64'],
-                    "task_ids": [[-1, -1, 1], 'int64']
+            return {"token_ids": [[-1, -1], 'int64'],
+                    "position_ids": [[-1, -1], 'int64'],
+                    "segment_ids": [[-1, -1], 'int64'],
+                    "input_mask": [[-1, -1], 'float32'],
+                    "label_ids": [[-1], 'int64'],
+                    "task_ids": [[-1, -1], 'int64']
                     }
         else:
-            return {"token_ids": [[-1, -1, 1], 'int64'],
-                    "position_ids": [[-1, -1, 1], 'int64'],
-                    "segment_ids": [[-1, -1, 1], 'int64'],
-                    "task_ids": [[-1, -1, 1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32']
+            return {"token_ids": [[-1, -1], 'int64'],
+                    "position_ids": [[-1, -1], 'int64'],
+                    "segment_ids": [[-1, -1], 'int64'],
+                    "task_ids": [[-1, -1], 'int64'],
+                    "input_mask": [[-1, -1], 'float32']
                     }
 
 

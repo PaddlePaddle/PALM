@@ -218,7 +218,7 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
     names = []
     start = 0
     if insert_taskid:
-        ret.append(([1,1], 'int64'))
+        ret.append(([1], 'int64'))
         names.append('__task_id')
         start += 1
     

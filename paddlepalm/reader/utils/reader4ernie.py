@@ -920,7 +920,7 @@ class MRCReader(BaseReader):
 
         batch_unique_ids = [record.unique_id for record in batch_records]
         batch_unique_ids = np.array(batch_unique_ids).astype("int64").reshape(
-            [-1, 1])
+            [-1])
 
         # padding
         padded_token_ids, input_mask = pad_batch_data(
