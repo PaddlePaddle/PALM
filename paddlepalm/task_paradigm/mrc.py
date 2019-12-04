@@ -100,9 +100,10 @@ class TaskParadigm(task_paradigm):
         start_logits, end_logits = fluid.layers.unstack(x=logits, axis=0)
 
         def _compute_single_loss(logits, positions):
-            """Compute start/end loss for mrc model"""
-            loss = fluid.layers.softmax_with_cross_entropy(
-                logits=logits, label=positions)
+            """Compute start/en
+            d loss for mrc model"""
+            loss = fluid.layers.cross_entropy(
+                input=logits, label=positions)
             loss = fluid.layers.mean(x=loss)
             return loss
 

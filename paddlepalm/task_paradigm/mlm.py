@@ -100,8 +100,8 @@ class TaskParadigm(task_paradigm):
             is_bias=True)
 
         if self._is_training:
-            mask_lm_loss = fluid.layers.softmax_with_cross_entropy(
-                logits=fc_out, label=mask_label)
+            mask_lm_loss = fluid.layers.cross_entropy(
+                input=fc_out, label=mask_label)
             loss = fluid.layers.mean(mask_lm_loss)
             return {'loss': loss}
         else:
