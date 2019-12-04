@@ -338,6 +338,7 @@ class Controller(object):
         main_conf = main_inst.config
         if not os.path.exists(main_conf['save_path']):
             os.makedirs(main_conf['save_path'])
+            os.makedirs(os.path.join(main_conf['save_path'], 'ckpt'))
         
         # prepare backbone
         train_backbone = Backbone(bb_conf, phase='train')
@@ -611,9 +612,15 @@ class Controller(object):
                 cur_task.save()
 
             if 'save_every_n_steps' in main_conf and global_step % main_conf['save_every_n_steps'] == 0:
-                save_path = os.path.join(main_conf['save_path'],
+                save_path = os.path.join(main_conf['save_path'], 'ckpt', 
                                          "step_" + str(global_step))
                 fluid.io.save_persistables(self.exe, save_path, saver_program)
+                print('checkpoint has been saved at '+save_path)
+
+        save_path = os.path.join(main_conf['save_path'], 'ckpt',
+                                 "step_" + str(global_step))
+        fluid.io.save_persistables(self.exe, save_path, saver_program)
+        print('checkpoint has been saved at '+save_path)
 
         print("ALL tasks train finished, exiting...")
             
