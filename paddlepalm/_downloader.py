@@ -77,8 +77,8 @@ def _download(item, scope, path, silent=False):
                     report_hook(bytes_so_far, total_size)
         return bytes_so_far
 
-    # response = urlopen(data_url)
-    # _chunk_read(response, data_url, report_hook=_chunk_report)
+    response = urlopen(data_url)
+    _chunk_read(response, data_url, report_hook=_chunk_report)
     
     if not silent:
         print(' done!')
