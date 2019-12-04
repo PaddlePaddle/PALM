@@ -91,7 +91,7 @@ def _download(item, scope, path, silent=False):
             tar.extractall(path = data_dir)
             tar.close()
             os.remove(filename)
-        if scope == 'bert-en-uncased-large':
+        if scope.startswith('bert'):
             source_path = data_dir + '/' + data_name.split('.')[0]
             fileList = os.listdir(source_path)
             for file in fileList:
