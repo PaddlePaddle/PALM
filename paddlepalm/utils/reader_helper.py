@@ -105,10 +105,12 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
     return iterator
 
 
-def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0):
+def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0, return_type='list'):
     """
         joint_shape_and_dtypes: 本质上是根据bb和parad的attr设定的，并且由reader中的attr自动填充-1（可变）维度得到，因此通过与iterator的校验可以完成runtime的batch正确性检查
     """
+
+    pos_to_outname = {j:i for i,j in outname_to_pos.items()}
 
     task_ids = range(len(iterators))
     weights = [mr / float(sum(mrs)) for mr in mrs]
@@ -202,7 +204,13 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                         print(np.shape(i))
                     print('')
                     v -= 1
-                yield results
+               if return_type == 'list':
+                   yield results
+               elif return_type == 'dict':
+                   temp = {}
+                   for pos, i in enumerate(results):
+                       temp[pos_to_outname[pos]] = i
+                   yield temp
 
     return iterator
 
