@@ -114,7 +114,7 @@ def _convert(path, silent=False):
         if os.path.exists(path + '/params/'):
             os.rename(path + '/params/', path + '/params1/')
             os.mkdir(path + '/params/')
-            tar_model = tarfile.open(path + '/params/' + '__palmmodel__', 'w:gz')
+            tar_model = tarfile.open(path + '/params/' + '__palmmodel__', 'w')
             tar_info = open(path + '/params/'+ '__palminfo__', 'w')
             for root, dirs, files in os.walk(path + '/params1/'):
                 for file in files:

@@ -55,7 +55,7 @@ def init_pretraining_params(exe,
     print("Loading pretraining parameters from {}...".format(
         pretraining_params_path))
 
-    with tarfile.open(os.path.join(pretraining_params_path, '__palmmodel__'), 'r:gz') as f:
+    with tarfile.open(os.path.join(pretraining_params_path, '__palmmodel__'), 'r') as f:
         f.extractall(os.path.join(pretraining_params_path, '.temp'))
     
     log_path = os.path.join(pretraining_params_path, '__palmmodel__')
