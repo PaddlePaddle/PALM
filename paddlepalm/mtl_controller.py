@@ -592,8 +592,9 @@ class Controller(object):
             global_step += 1
             cur_task.cur_train_step += 1
 
-            if cur_task.save_infermodel_every_n_steps > 0 and cur_task.cur_train_step % cur_task.save_infermodel_every_n_steps == 0:
-                cur_task.save(suffix='.step'+str(cur_task.cur_train_step))
+            cur_task_global_step = cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch
+            if cur_task.save_infermodel_every_n_steps > 0 and cur_task_global_step % cur_task.save_infermodel_every_n_steps == 0:
+                cur_task.save(suffix='.step'+str(cur_task_global_step))
 
             if global_step % main_conf.get('print_every_n_steps', 5) == 0:
                 loss = rt_outputs[cur_task.name+'/loss']
