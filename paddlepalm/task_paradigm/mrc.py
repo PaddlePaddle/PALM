@@ -102,8 +102,9 @@ class TaskParadigm(task_paradigm):
         def _compute_single_loss(logits, positions):
             """Compute start/en
             d loss for mrc model"""
+            inputs = fluid.layers.softmax(logits)
             loss = fluid.layers.cross_entropy(
-                input=logits, label=positions)
+                input=inputs, label=positions)
             loss = fluid.layers.mean(x=loss)
             return loss
 

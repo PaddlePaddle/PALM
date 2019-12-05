@@ -79,8 +79,9 @@ class TaskParadigm(task_paradigm):
                 initializer=fluid.initializer.Constant(0.)))
 
         if self._is_training:
+            inputs = fluid.layers.softmax(logits)
             ce_loss = fluid.layers.cross_entropy(
-                input=logits, label=labels)
+                input=inputs, label=labels)
             loss = fluid.layers.mean(x=ce_loss)
             return {'loss': loss}
         else:
