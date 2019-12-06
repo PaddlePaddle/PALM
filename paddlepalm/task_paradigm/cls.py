@@ -43,7 +43,7 @@ class TaskParadigm(task_paradigm):
     @property
     def inputs_attrs(self):
         if self._is_training:
-            reader = {"label_ids": [[-1, 1], 'int64']}
+            reader = {"label_ids": [[-1], 'int64']}
         else:
             reader = {}
         bb = {"sentence_embedding": [[-1, self._hidden_size], 'float32']}
@@ -75,8 +75,9 @@ class TaskParadigm(task_paradigm):
                 name=scope_name+"cls_out_b", initializer=fluid.initializer.Constant(0.)))
 
         if self._is_training:
-            loss = fluid.layers.softmax_with_cross_entropy(
-                logits=logits, label=label_ids)
+            inputs = fluid.layers.softmax(logits)
+            loss = fluid.layers.cross_entropy(
+                input=inputs, label=label_ids)
             loss = layers.mean(loss)
             return {"loss": loss}
         else:
