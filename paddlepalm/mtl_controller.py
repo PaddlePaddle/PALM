@@ -454,7 +454,7 @@ class Controller(object):
 
         # compute loss
         task_id_var = net_inputs['__task_id']
-        task_id_vec = layers.one_hot(task_id_var, num_instances)
+        task_id_vec = fluid.one_hot(task_id_var, num_instances)
         losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
         loss = layers.reduce_sum(task_id_vec * losses)
 
