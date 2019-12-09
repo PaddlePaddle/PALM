@@ -31,12 +31,11 @@ from paddlepalm.utils.saver import init_pretraining_params, init_checkpoint
 from paddlepalm.utils.config_helper import PDConfig
 from paddlepalm.utils.print_helper import print_dict
 from paddlepalm.utils.reader_helper import create_net_inputs, create_iterator_fn, create_joint_iterator_fn, merge_input_attrs 
+from paddlepalm.distribute import data_feeder
 
-from paddlepalm.default_settings import *
+from default_settings import *
 from task_instance import TaskInstance, check_instances
 
-import Queue
-from threading import Thread
 
 DEBUG=False
 VERBOSE=0
@@ -183,6 +182,20 @@ def _fit_attr(conf, fit_attr, strict=False):
                 continue
         conf[i] = attr(conf[i])
     return conf
+
+
+def create_feed_batch_process_fn(net_inputs):
+
+    def feed_batch_process_fn(data):
+        temp = {}
+        for q, var in net_inputs.items():
+            if isinstance(var, str) or isinstance(var, unicode):
+                temp[var] = data[q]
+            else:
+                temp[var.name] = data[q]
+        return temp
+
+    return feed_batch_process_fn
 
 
 class Controller(object):
@@ -524,6 +537,7 @@ class Controller(object):
             insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
 
         pred_prog = inst.load(infer_model_path)
+        pred_prog = fluid.CompiledProgram(pred_prog).with_data_parallel()
         if inst.reader['pred'] is None:
             pred_reader = inst.Reader(inst.config, phase='pred')
             inst.reader['pred'] = pred_reader
@@ -574,18 +588,6 @@ class Controller(object):
                         return False
             return True
 
-        def pack_multicard_feed(iterator, net_inputs, dev_count):
-            ret = []
-            mask = []
-            for i in range(dev_count):
-                temp = {}
-                content, flag = next(iterator)
-                for q, var in net_inputs.items():
-                    temp[var.name] = content[q]
-                ret.append(temp)
-                mask.append(1 if flag else 0)
-            return ret, mask
-
         # do training
         fetch_names, fetch_list = zip(*fetches.items())
 
@@ -594,50 +596,18 @@ class Controller(object):
         epoch = 0
         time_begin = time.time()
         backbone_buffer = []
-
-        def multi_dev_reader(reader, dev_count):
-            def worker(reader, dev_count, queue):
-                dev_batches = []
-                for index, data in enumerate(reader()):
-                    if len(dev_batches) < dev_count:
-                        dev_batches.append(data)
-                    if len(dev_batches) == dev_count:
-                        queue.put((dev_batches, 0))
-                        dev_batches = []
-                # For the prediction of the remained batches, pad more batches to 
-                # the number of devices and the padded samples would be removed in
-                # prediction outputs. 
-                if len(dev_batches) > 0:
-                    num_pad = dev_count - len(dev_batches)
-                    for i in range(len(dev_batches), dev_count):
-                        dev_batches.append(dev_batches[-1])
-                    queue.put((dev_batches, num_pad))
-                queue.put(None)
-
-            queue = Queue.Queue(dev_count*2)
-            p = Thread(
-                target=worker, args=(reader, dev_count, queue))
-            p.daemon = True
-            p.start()
-            while True:
-                ret = queue.get()
-                if ret is not None:
-                    batches, num_pad = ret
-                    queue.task_done()
-                    for batch in batches:
-                        flag = num_pad == 0
-                        if num_pad > 0:
-                            num_pad -= 1
-                        yield batch, flag
-                else:
-                    break
-            queue.join()
         
-        joint_iterator = multi_dev_reader(self._joint_iterator_fn, self.dev_count)
+        feed_batch_process_fn = create_feed_batch_process_fn(self._net_inputs)
+        distribute_feeder = data_feeder(self._joint_iterator_fn, feed_batch_process_fn)
+
+        # palm.distribute.reader(self._joint_iterator_fn, self._net_inputs, prefetch_steps=2)
         
         while not train_finish():
-            feed, mask = pack_multicard_feed(joint_iterator, self._net_inputs, self.dev_count)
+            feed, mask = next(distribute_feeder)
             rt_outputs = self.exe.run(train_program, feed=feed, fetch_list=fetch_list)
+            while mask.pop() == False:
+                rt_outputs.pop()
+
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             rt_task_id = np.squeeze(rt_outputs['__task_id']).tolist()
             rt_task_id = rt_task_id[0] if isinstance(rt_task_id, list) else rt_task_id
@@ -714,19 +684,38 @@ class Controller(object):
         fetch_names, fetch_vars = inst.pred_fetch_list
 
         print('predicting...')
-        mapper = {k:v for k,v in inst.pred_input}
-        buf = []
-        for feed in inst.reader['pred'].iterator():
-            feed = _encode_inputs(feed, inst.name, cand_set=mapper)
-            feed = {mapper[k]: v for k,v in feed.items()}
+        feed_batch_process_fn = create_feed_batch_process_fn(inst.pred_input)
+        distribute_feeder = data_feeder(inst.reader['pred'].iterator, feed_batch_process_fn, prefetch_steps=1)
 
+        buf = []
+        for feed, mask in distribute_feeder:
+            print('before run')
             rt_outputs = self.exe.run(pred_prog, feed, fetch_vars)
+            print('after run')
+            splited_rt_outputs = []
+            for item in rt_outputs:
+                splited_rt_outputs.append(np.split(item, len(mask)))
+
+            # assert len(rt_outputs) == len(mask), [len(rt_outputs), len(mask)]
+            print(mask)
+            
+            while mask.pop() == False:
+                print(mask)
+                for item in splited_rt_outputs:
+                    item.pop()
+            rt_outputs = []
+            print('cancat')
+            for item in splited_rt_outputs:
+                rt_outputs.append(np.concatenate(item))
+                
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             inst.postprocess(rt_outputs, phase='pred')
+        print('leave feeder')
         if inst.task_layer['pred'].epoch_inputs_attrs:
             reader_outputs = inst.reader['pred'].get_epoch_outputs()
         else:
             reader_outputs = None
+        print('epoch postprocess')
         inst.epoch_postprocess({'reader':reader_outputs}, phase='pred')
 
 

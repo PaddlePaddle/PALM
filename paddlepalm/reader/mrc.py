@@ -15,6 +15,7 @@
 
 from paddlepalm.interface import reader
 from paddlepalm.reader.utils.reader4ernie import MRCReader
+import numpy as np
 
 class Reader(reader):
     
@@ -73,6 +74,7 @@ class Reader(reader):
                     "segment_ids": [[-1, -1, 1], 'int64'],
                     "input_mask": [[-1, -1, 1], 'float32'],
                     "start_positions": [[-1, 1], 'int64'],
+                    "unique_ids": [[-1, 1], 'int64'],
                     "end_positions": [[-1, 1], 'int64'],
                     "task_ids": [[-1, -1, 1], 'int64']
                     }
@@ -108,6 +110,7 @@ class Reader(reader):
             return outputs
 
         for batch in self._data_generator():
+            print(len(list_to_dict(batch)))
             yield list_to_dict(batch)
 
     def get_epoch_outputs(self):

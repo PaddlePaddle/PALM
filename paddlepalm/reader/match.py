@@ -16,6 +16,18 @@
 from paddlepalm.interface import reader
 from paddlepalm.reader.utils.reader4ernie import ClassifyReader
 
+
+def match(learning_strategy='pointwise', siamese=False):
+
+    if siamese::
+        SiameseMatchReader(..., learning_strategy)
+    else:
+        ClassifyReader(..., learning_strategy)
+
+    
+
+
+
 class Reader(reader):
     
     def __init__(self, config, phase='train', dev_count=1, print_prefix=''):
@@ -67,6 +79,28 @@ class Reader(reader):
                     "label_ids": [[-1,1], 'int64'],
                     "task_ids": [[-1, -1, 1], 'int64']
                     }
+            if siamese:
+                if learning_strategy == 'pointwise':
+                    {'token_ids_A':...,
+                     'token_ids_B':...,
+                     "position_ids_A": [[-1, -1, 1], 'int64'],
+                     "position_ids_B": [[-1, -1, 1], 'int64'],
+                elif ...:
+                    {
+                     'token_ids_A',
+                     'token_ids_B':...,
+                     'tokeb_ids_A_neg':...
+                     }
+
+            else:
+                if learning_strategy == 'pairwise':
+                    return {
+                        "token_ids": ...,
+                        "token_ids_neg": ...
+                        ...
+                        }
+                else:
+                    
         else:
             return {"token_ids": [[-1, -1, 1], 'int64'],
                     "position_ids": [[-1, -1, 1], 'int64'],

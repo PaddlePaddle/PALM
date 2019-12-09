@@ -169,7 +169,7 @@ class TaskInstance(object):
 
     @property
     def pred_input(self):
-        return zip(*[self._pred_input_name_list, self._pred_input_varname_list])
+        return dict(zip(*[self._pred_input_name_list, self._pred_input_varname_list]))
 
     @pred_input.setter
     def pred_input(self, val):

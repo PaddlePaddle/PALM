@@ -204,13 +204,13 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                         print(np.shape(i))
                     print('')
                     v -= 1
-               if return_type == 'list':
-                   yield results
-               elif return_type == 'dict':
-                   temp = {}
-                   for pos, i in enumerate(results):
-                       temp[pos_to_outname[pos]] = i
-                   yield temp
+                if return_type == 'list':
+                    yield results
+                elif return_type == 'dict':
+                    temp = {}
+                    for pos, i in enumerate(results):
+                        temp[pos_to_outname[pos]] = i
+                    yield temp
 
     return iterator
 

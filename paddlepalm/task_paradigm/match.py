@@ -59,8 +59,13 @@ class TaskParadigm(task_paradigm):
 
     def build(self, inputs, scope_name=""):
         if self._is_training:
-            labels = inputs["reader"]["label_ids"] 
+            if learning_strategy == 'pointwise':
+                labels = inputs["reader"]["label_ids"] 
+            elif learning_strategy == 'pairwise':
+                inputs['backbone']["sentence_enbedding_neg"]
+                
         cls_feats = inputs["backbone"]["sentence_pair_embedding"]
+        cls_feats = inputs["backbone"]["sentence_pair_embedding_neg"]
 
         if self._is_training:
             cls_feats = fluid.layers.dropout(
