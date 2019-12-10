@@ -113,8 +113,8 @@ def mask(batch_tokens,
 
         pre_sent_len = len(sent)
 
-    mask_label = np.array(mask_label).astype("int64").reshape([-1])
-    mask_pos = np.array(mask_pos).astype("int64").reshape([-1])
+    mask_label = np.array(mask_label).astype("int64").reshape([-1, 1])
+    mask_pos = np.array(mask_pos).astype("int64").reshape([-1, 1])
     return batch_tokens, mask_label, mask_pos
 
 
@@ -136,7 +136,7 @@ def pad_batch_data(insts,
 
     inst_data = np.array(
         [inst + list([pad_idx] * (max_len - len(inst))) for inst in insts])
-    return_list += [inst_data.astype("int64").reshape([-1, max_len])]
+    return_list += [inst_data.astype("int64").reshape([-1, max_len, 1])]
 
     # position data
     if return_pos:
@@ -145,7 +145,7 @@ def pad_batch_data(insts,
             for inst in insts
         ])
 
-        return_list += [inst_pos.astype("int64").reshape([-1, max_len])]
+        return_list += [inst_pos.astype("int64").reshape([-1, max_len, 1])]
 
     if return_input_mask:
         # This is used to avoid attention on paddings.
@@ -165,7 +165,7 @@ def pad_batch_data(insts,
 
     if return_seq_lens:
         seq_lens = np.array([len(inst) for inst in insts])
-        return_list += [seq_lens.astype("int64").reshape([-1])]
+        return_list += [seq_lens.astype("int64").reshape([-1, 1])]
 
     return return_list if len(return_list) > 1 else return_list[0]
 

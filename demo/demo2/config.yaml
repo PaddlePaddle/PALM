@@ -12,8 +12,6 @@ do_lower_case: True
 max_seq_len: 512
 
 batch_size: 4
-save_ckpt_every_n_steps: 5
-save_infermodel_every_n_steps: 5
 num_epochs: 2
 optimizer: "adam"
 learning_rate: 3e-5

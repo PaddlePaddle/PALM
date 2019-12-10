@@ -33,7 +33,6 @@ ssl._create_default_https_context = ssl._create_unverified_context
 _items = {
     'pretrain': {'ernie-en-uncased-large': 'https://ernie.bj.bcebos.com/ERNIE_Large_en_stable-2.0.0.tar.gz',
                  'bert-en-uncased-large': 'https://bert-models.bj.bcebos.com/uncased_L-24_H-1024_A-16.tar.gz',
-                 'bert-en-uncased-base': 'https://bert-models.bj.bcebos.com/uncased_L-12_H-768_A-12.tar.gz',
                  'utils': None},
     'reader': {'utils': None},
     'backbone': {'utils': None},
@@ -91,7 +90,7 @@ def _download(item, scope, path, silent=False):
             tar.extractall(path = data_dir)
             tar.close()
             os.remove(filename)
-        if scope.startswith('bert'):
+        if scope == 'bert-en-uncased-large':
             source_path = data_dir + '/' + data_name.split('.')[0]
             fileList = os.listdir(source_path)
             for file in fileList:

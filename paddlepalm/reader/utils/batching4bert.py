@@ -67,8 +67,8 @@ def mask(batch_tokens, total_token_num, vocab_size, CLS=1, SEP=2, MASK=3):
                 sent[token_index] = MASK
                 mask_flag = True
                 mask_pos.append(sent_index * max_len + token_index)
-    mask_label = np.array(mask_label).astype("int64").reshape([-1])
-    mask_pos = np.array(mask_pos).astype("int64").reshape([-1])
+    mask_label = np.array(mask_label).astype("int64").reshape([-1, 1])
+    mask_pos = np.array(mask_pos).astype("int64").reshape([-1, 1])
     return batch_tokens, mask_label, mask_pos
 
 
@@ -96,7 +96,7 @@ def prepare_batch_data(insts,
     # or unique id
     for i in range(3, len(insts[0]), 1):
         labels = [inst[i] for inst in insts]
-        labels = np.array(labels).astype("int64").reshape([-1])
+        labels = np.array(labels).astype("int64").reshape([-1, 1])
         labels_list.append(labels)
     # First step: do mask without padding
     if mask_id >= 0:
@@ -154,14 +154,14 @@ def pad_batch_data(insts,
     inst_data = np.array([
         list(inst) + list([pad_idx] * (max_len - len(inst))) for inst in insts
     ])
-    return_list += [inst_data.astype("int64").reshape([-1, max_len])]
+    return_list += [inst_data.astype("int64").reshape([-1, max_len, 1])]
     # position data
     if return_pos:
         inst_pos = np.array([
             list(range(0, len(inst))) + [pad_idx] * (max_len - len(inst))
             for inst in insts
         ])
-        return_list += [inst_pos.astype("int64").reshape([-1, max_len])]
+        return_list += [inst_pos.astype("int64").reshape([-1, max_len, 1])]
     if return_input_mask:
         # This is used to avoid attention on paddings.
         input_mask_data = np.array([[1] * len(inst) + [0] *
