@@ -19,76 +19,57 @@ from __future__ import print_function
 import numpy as np
 
 
-def mask(batch_tokens, total_token_num, vocab_size, CLS=1, SEP=2, MASK=3, dev_count=1):
+def mask(batch_tokens, total_token_num, vocab_size, CLS=1, SEP=2, MASK=3):
     """
     Add mask for batch_tokens, return out, mask_label, mask_pos;
     Note: mask_pos responding the batch_tokens after padded;
     """
     max_len = max([len(sent) for sent in batch_tokens])
-
-    multidev_batch_tokens = []
-    multidev_mask_label = []
-    multidev_mask_pos = []
-
-    big_batch_tokens = batch_tokens
-    stride = len(batch_tokens) // dev_count
-    if stride == 0:
-        return None, None, None
-    p = stride
-
-    for i in range(dev_count):
-        batch_tokens = big_batch_tokens[p-stride:p]
-        p += stride
-        mask_label = []
-        mask_pos = []
-        prob_mask = np.random.rand(total_token_num)
-        # Note: the first token is [CLS], so [low=1]
-        replace_ids = np.random.randint(1, high=vocab_size, size=total_token_num)
-        pre_sent_len = 0
-        prob_index = 0
-        for sent_index, sent in enumerate(batch_tokens):
-            mask_flag = False
-            prob_index += pre_sent_len
-            for token_index, token in enumerate(sent):
-                prob = prob_mask[prob_index + token_index]
-                if prob > 0.15:
-                    continue
-                elif 0.03 < prob <= 0.15:
-                    # mask
-                    if token != SEP and token != CLS:
-                        mask_label.append(sent[token_index])
-                        sent[token_index] = MASK
-                        mask_flag = True
-                        mask_pos.append(sent_index * max_len + token_index)
-                elif 0.015 < prob <= 0.03:
-                    # random replace
-                    if token != SEP and token != CLS:
-                        mask_label.append(sent[token_index])
-                        sent[token_index] = replace_ids[prob_index + token_index]
-                        mask_flag = True
-                        mask_pos.append(sent_index * max_len + token_index)
-                else:
-                    # keep the original token
-                    if token != SEP and token != CLS:
-                        mask_label.append(sent[token_index])
-                        mask_pos.append(sent_index * max_len + token_index)
-            pre_sent_len = len(sent)
-            # ensure at least mask one word in a sentence
-            while not mask_flag:
-                token_index = int(np.random.randint(1, high=len(sent) - 1, size=1))
-                if sent[token_index] != SEP and sent[token_index] != CLS:
+    mask_label = []
+    mask_pos = []
+    prob_mask = np.random.rand(total_token_num)
+    # Note: the first token is [CLS], so [low=1]
+    replace_ids = np.random.randint(1, high=vocab_size, size=total_token_num)
+    pre_sent_len = 0
+    prob_index = 0
+    for sent_index, sent in enumerate(batch_tokens):
+        mask_flag = False
+        prob_index += pre_sent_len
+        for token_index, token in enumerate(sent):
+            prob = prob_mask[prob_index + token_index]
+            if prob > 0.15:
+                continue
+            elif 0.03 < prob <= 0.15:
+                # mask
+                if token != SEP and token != CLS:
                     mask_label.append(sent[token_index])
                     sent[token_index] = MASK
                     mask_flag = True
                     mask_pos.append(sent_index * max_len + token_index)
-        mask_label = np.array(mask_label).astype("int64").reshape([-1, 1])
-        mask_pos = np.array(mask_pos).astype("int64").reshape([-1, 1])
-
-        multidev_batch_tokens.extend(batch_tokens)
-        multidev_mask_label.append(mask_label)
-        multidev_mask_pos.append(mask_pos)
-    
-    return multidev_batch_tokens, multidev_mask_label, multidev_mask_pos
+            elif 0.015 < prob <= 0.03:
+                # random replace
+                if token != SEP and token != CLS:
+                    mask_label.append(sent[token_index])
+                    sent[token_index] = replace_ids[prob_index + token_index]
+                    mask_flag = True
+                    mask_pos.append(sent_index * max_len + token_index)
+            else:
+                # keep the original token
+                if token != SEP and token != CLS:
+                    mask_label.append(sent[token_index])
+                    mask_pos.append(sent_index * max_len + token_index)
+        pre_sent_len = len(sent)
+        # ensure at least mask one word in a sentence
+        while not mask_flag:
+            token_index = int(np.random.randint(1, high=len(sent) - 1, size=1))
+            if sent[token_index] != SEP and sent[token_index] != CLS:
+                mask_label.append(sent[token_index])
+                sent[token_index] = MASK
+                mask_flag = True
+                mask_pos.append(sent_index * max_len + token_index)
+    mask_label = np.array(mask_label).astype("int64").reshape([-1])
+    mask_pos = np.array(mask_pos).astype("int64").reshape([-1])
+    return batch_tokens, mask_label, mask_pos
 
 
 def prepare_batch_data(insts,
@@ -168,14 +149,14 @@ def pad_batch_data(insts,
     inst_data = np.array([
         list(inst) + list([pad_idx] * (max_len - len(inst))) for inst in insts
     ])
-    return_list += [inst_data.astype("int64").reshape([-1, max_len, 1])]
+    return_list += [inst_data.astype("int64").reshape([-1, max_len])]
     # position data
     if return_pos:
         inst_pos = np.array([
             list(range(0, len(inst))) + [pad_idx] * (max_len - len(inst))
             for inst in insts
         ])
-        return_list += [inst_pos.astype("int64").reshape([-1, max_len, 1])]
+        return_list += [inst_pos.astype("int64").reshape([-1, max_len])]
     if return_input_mask:
         # This is used to avoid attention on paddings.
         input_mask_data = np.array([[1] * len(inst) + [0] *
