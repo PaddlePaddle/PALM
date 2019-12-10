@@ -83,7 +83,8 @@ def prepare_batch_data(insts,
                        task_id=0,
                        return_input_mask=True,
                        return_max_len=True,
-                       return_num_token=False):
+                       return_num_token=False, 
+                       dev_count=1):
     """
     1. generate Tensor of data
     2. generate Tensor of position
@@ -101,7 +102,8 @@ def prepare_batch_data(insts,
         vocab_size=voc_size,
         CLS=cls_id,
         SEP=sep_id,
-        MASK=mask_id)
+        MASK=mask_id,
+        dev_count=dev_count)
     # Second step: padding
     src_id, self_input_mask = pad_batch_data(
         out, 
@@ -125,7 +127,7 @@ def prepare_batch_data(insts,
     return_list = [
         src_id, pos_id, sent_id, self_input_mask, task_ids, mask_label, mask_pos
     ]
-    return return_list if len(return_list) > 1 else return_list[0]
+    return return_list
 
 
 def pad_batch_data(insts,

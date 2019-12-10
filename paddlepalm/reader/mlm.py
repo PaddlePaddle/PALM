@@ -83,8 +83,6 @@ class Reader(reader):
             return outputs
 
         for batch in self._data_generator():
-            # print(np.shape(list_to_dict(batch)['token_ids']))
-            # print(list_to_dict(batch)['mask_label'].tolist())
             yield list_to_dict(batch)
 
     def get_epoch_outputs(self):
