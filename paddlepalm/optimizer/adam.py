@@ -21,6 +21,24 @@ from __future__ import print_function
 import numpy as np
 import paddle.fluid as fluid
 
+class schedualer(object):
+    
+    def __init__(self):
+        pass
+
+    def lr(self):
+        pass
+
+
+def ConstantLearning():
+    def __init__(self, lr):
+        self._lr = lr
+
+    def lr(self):
+        return self._lr
+
+
+def LinearWarmupLearning():
 def linear_warmup_decay(learning_rate, warmup_steps, num_train_steps):
     """ Applies linear warmup of learning rate from 0 and decay to 0."""
     with fluid.default_main_program()._lr_schedule_guard():

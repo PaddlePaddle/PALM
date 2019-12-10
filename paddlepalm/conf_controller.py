@@ -182,7 +182,7 @@ def _fit_attr(conf, fit_attr, strict=False):
     return conf
 
 
-class Controller(object):
+class ConfController(object):
 
     def __init__(self, config, task_dir='.', for_train=True):
         """

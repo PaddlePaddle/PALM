@@ -16,6 +16,12 @@
 from paddlepalm.interface import reader
 from paddlepalm.reader.utils.reader4ernie import ClassifyReader
 
+def match(vocab_path, max_seq_len, do_lower_case=True, phase, dev_count=1):
+    config={
+        xxx}
+
+    return Reader(config())
+
 class Reader(reader):
     
     def __init__(self, config, phase='train', dev_count=1, print_prefix=''):
