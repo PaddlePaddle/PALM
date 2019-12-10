@@ -473,7 +473,7 @@ class Controller(object):
 
         # compute loss
         task_id_var = net_inputs['__task_id']
-        task_id_vec = layers.one_hot(task_id_var, num_instances)
+        task_id_vec = fluid.one_hot(task_id_var, num_instances)
         losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
         loss = layers.reduce_sum(task_id_vec * losses)
 
@@ -622,8 +622,9 @@ class Controller(object):
             global_step += 1
             cur_task.cur_train_step += 1
 
-            if cur_task.save_infermodel_every_n_steps > 0 and cur_task.cur_train_step % cur_task.save_infermodel_every_n_steps == 0:
-                cur_task.save(suffix='.step'+str(cur_task.cur_train_step))
+            cur_task_global_step = cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch
+            if cur_task.is_target and cur_task.save_infermodel_every_n_steps > 0 and cur_task_global_step % cur_task.save_infermodel_every_n_steps == 0:
+                cur_task.save(suffix='.step'+str(cur_task_global_step))
 
             if global_step % main_conf.get('print_every_n_steps', 5) == 0:
                 loss = rt_outputs[cur_task.name+'/loss']
@@ -641,7 +642,7 @@ class Controller(object):
                 print(cur_task.name+': train finished!')
                 cur_task.save()
 
-            if 'save_every_n_steps' in main_conf and global_step % main_conf['save_every_n_steps'] == 0:
+            if 'save_ckpt_every_n_steps' in main_conf and global_step % main_conf['save_ckpt_every_n_steps'] == 0:
                 save_path = os.path.join(main_conf['save_path'], 'ckpt', 
                                          "step_" + str(global_step))
                 fluid.io.save_persistables(self.exe, save_path, saver_program)

@@ -49,11 +49,11 @@ class TaskParadigm(task_paradigm):
     @property
     def inputs_attrs(self):
         if self._is_training:
-            reader = {"start_positions": [[-1, 1], 'int64'],
-                      "end_positions": [[-1, 1], 'int64'],
+            reader = {"start_positions": [[-1], 'int64'],
+                      "end_positions": [[-1], 'int64'],
                       }
         else:
-            reader = {'unique_ids': [[-1, 1], 'int64']}
+            reader = {'unique_ids': [[-1], 'int64']}
         bb = {"encoder_outputs": [[-1, -1, self._hidden_size], 'float32']}
         return {'reader': reader, 'backbone': bb}
         
@@ -70,7 +70,7 @@ class TaskParadigm(task_paradigm):
         else:
             return {'start_logits': [[-1, -1, 1], 'float32'],
                     'end_logits': [[-1, -1, 1], 'float32'],
-                    'unique_ids': [[-1, 1], 'int64']}
+                    'unique_ids': [[-1], 'int64']}
 
 
     def build(self, inputs, scope_name=""):
@@ -102,9 +102,11 @@ class TaskParadigm(task_paradigm):
         start_logits, end_logits = fluid.layers.unstack(x=logits, axis=0)
 
         def _compute_single_loss(logits, positions):
-            """Compute start/end loss for mrc model"""
-            loss = fluid.layers.softmax_with_cross_entropy(
-                logits=logits, label=positions)
+            """Compute start/en
+            d loss for mrc model"""
+            inputs = fluid.layers.softmax(logits)
+            loss = fluid.layers.cross_entropy(
+                input=inputs, label=positions)
             loss = fluid.layers.mean(x=loss)
             return loss
 
@@ -122,7 +124,7 @@ class TaskParadigm(task_paradigm):
     def postprocess(self, rt_outputs):
         """this func will be called after each step(batch) of training/evaluating/predicting process."""
         if not self._is_training:
-            unique_ids = np.squeeze(rt_outputs['unique_ids'], -1)
+            unique_ids = rt_outputs['unique_ids']
             start_logits = rt_outputs['start_logits']
             end_logits = rt_outputs['end_logits']
             for idx in range(len(unique_ids)):
