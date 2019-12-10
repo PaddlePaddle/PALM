@@ -19,7 +19,6 @@ import random
 import numpy as np
 import paddle
 from paddle import fluid
-from paddle.fluid import layers
 
 
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
@@ -65,7 +64,7 @@ def create_net_inputs(input_attrs, async=False, iterator_fn=None, dev_count=1, n
     inputs = []
     ret = {}
     for name, shape, dtype in input_attrs:
-        p = layers.data(name, shape=shape, dtype=dtype)
+        p = fluid.data(name, shape=shape, dtype=dtype)
         ret[name] = p
         inputs.append(p)
 
@@ -227,7 +226,7 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
     names = []
     start = 0
     if insert_taskid:
-        ret.append(([1,1], 'int64'))
+        ret.append(([1, 1], 'int64'))
         names.append('__task_id')
         start += 1
     

@@ -479,17 +479,17 @@ class ClassifyReader(BaseReader):
             batch_labels = [record.label_id for record in batch_records]
             if self.is_classify:
                 batch_labels = np.array(batch_labels).astype("int64").reshape(
-                    [-1, 1])
+                    [-1])
             elif self.is_regression:
                 batch_labels = np.array(batch_labels).astype("float32").reshape(
-                    [-1, 1])
+                    [-1])
 
             if batch_records[0].qid:
                 batch_qids = [record.qid for record in batch_records]
                 batch_qids = np.array(batch_qids).astype("int64").reshape(
-                    [-1, 1])
+                    [-1])
             else:
-                batch_qids = np.array([]).astype("int64").reshape([-1, 1])
+                batch_qids = np.array([]).astype("int64").reshape([-1])
 
         # padding
         padded_token_ids, input_mask = pad_batch_data(
@@ -908,19 +908,19 @@ class MRCReader(BaseReader):
                 record.end_position for record in batch_records
             ]
             batch_start_position = np.array(batch_start_position).astype(
-                "int64").reshape([-1, 1])
+                "int64").reshape([-1])
             batch_end_position = np.array(batch_end_position).astype(
-                "int64").reshape([-1, 1])
+                "int64").reshape([-1])
 
         else:
             batch_size = len(batch_token_ids)
             batch_start_position = np.zeros(
-                shape=[batch_size, 1], dtype="int64")
-            batch_end_position = np.zeros(shape=[batch_size, 1], dtype="int64")
+                shape=[batch_size], dtype="int64")
+            batch_end_position = np.zeros(shape=[batch_size], dtype="int64")
 
         batch_unique_ids = [record.unique_id for record in batch_records]
         batch_unique_ids = np.array(batch_unique_ids).astype("int64").reshape(
-            [-1, 1])
+            [-1])
 
         # padding
         padded_token_ids, input_mask = pad_batch_data(

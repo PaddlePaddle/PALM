@@ -67,8 +67,8 @@ def mask(batch_tokens, total_token_num, vocab_size, CLS=1, SEP=2, MASK=3):
                 sent[token_index] = MASK
                 mask_flag = True
                 mask_pos.append(sent_index * max_len + token_index)
-    mask_label = np.array(mask_label).astype("int64").reshape([-1, 1])
-    mask_pos = np.array(mask_pos).astype("int64").reshape([-1, 1])
+    mask_label = np.array(mask_label).astype("int64").reshape([-1])
+    mask_pos = np.array(mask_pos).astype("int64").reshape([-1])
     return batch_tokens, mask_label, mask_pos
 
 
@@ -147,14 +147,14 @@ def pad_batch_data(insts,
     inst_data = np.array([
         list(inst) + list([pad_idx] * (max_len - len(inst))) for inst in insts
     ])
-    return_list += [inst_data.astype("int64").reshape([-1, max_len, 1])]
+    return_list += [inst_data.astype("int64").reshape([-1, max_len])]
     # position data
     if return_pos:
         inst_pos = np.array([
             list(range(0, len(inst))) + [pad_idx] * (max_len - len(inst))
             for inst in insts
         ])
-        return_list += [inst_pos.astype("int64").reshape([-1, max_len, 1])]
+        return_list += [inst_pos.astype("int64").reshape([-1, max_len])]
     if return_input_mask:
         # This is used to avoid attention on paddings.
         input_mask_data = np.array([[1] * len(inst) + [0] *
