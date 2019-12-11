@@ -57,6 +57,7 @@ class BaseReader(object):
                  do_lower_case=True,
                  in_tokens=False,
                  is_inference=False,
+                 is_inference_pairwise=False,
                  random_seed=None,
                  tokenizer="FullTokenizer",
                  is_classify=True,
@@ -73,6 +74,7 @@ class BaseReader(object):
         self.mask_id = self.vocab["[MASK]"]
         self.in_tokens = in_tokens
         self.is_inference = is_inference
+        self.is_inference_pairwise = is_inference_pairwise
         self.for_cn = for_cn
         self.task_id = task_id
 
@@ -124,6 +126,7 @@ class BaseReader(object):
                 tokens_a.pop()
             else:
                 tokens_b.pop()
+    
 
     def _convert_example_to_record(self, example, max_seq_length, tokenizer):
         """Converts a single `Example` into a single `Record`."""
@@ -133,24 +136,37 @@ class BaseReader(object):
         tokens_b = None
 
         has_text_b = False
+        has_text_b_neg = False
         if isinstance(example, dict):
             has_text_b = "text_b" in example.keys()
         else:
             has_text_b = "text_b" in example._fields
 
+        if isinstance(example, dict):
+            has_text_b_neg = "text_b_neg" in example.keys()
+        else:
+            has_text_b_neg = "text_b_neg" in example._fields
+
         if has_text_b:
             text_b = tokenization.convert_to_unicode(example.text_b)
             tokens_b = tokenizer.tokenize(text_b)
+        
+        if has_text_b_neg:
+            text_b_neg = tokenization.convert_to_unicode(example.text_b_neg)
+            tokens_b_neg = tokenizer.tokenize(text_b_neg)
 
         if tokens_b:
             # Modifies `tokens_a` and `tokens_b` in place so that the total
             # length is less than the specified length.
             # Account for [CLS], [SEP], [SEP] with "- 3"
             self._truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
+            if tokens_b_neg:
+                self._truncate_seq_pair(tokens_a, tokens_b_neg, max_seq_length - 3)
         else:
             # Account for [CLS] and [SEP] with "- 2"
             if len(tokens_a) > max_seq_length - 2:
                 tokens_a = tokens_a[0:(max_seq_length - 2)]
+        
 
         # The convention in BERT/ERNIE is:
         # (a) For sequence pairs:
@@ -173,6 +189,7 @@ class BaseReader(object):
         tokens = []
         text_type_ids = []
         tokens.append("[CLS]")
+        
         text_type_ids.append(0)
         for token in tokens_a:
             tokens.append(token)
@@ -190,6 +207,28 @@ class BaseReader(object):
         token_ids = tokenizer.convert_tokens_to_ids(tokens)
         position_ids = list(range(len(token_ids)))
 
+        tokens_neg = []
+        text_type_ids_neg = []
+        if(has_text_b_neg):
+            tokens_neg.append("[CLS]")
+            text_type_ids_neg.append(0)
+            for token in tokens_a:
+                tokens_neg.append(token)
+                text_type_ids_neg.append(0)
+            tokens_neg.append("[SEP]")
+            text_type_ids_neg.append(0)
+
+            if tokens_b_neg:
+                for token in tokens_b_neg:
+                    tokens_neg.append(token)
+                    text_type_ids_neg.append(1)
+                tokens_neg.append("[SEP]")
+                text_type_ids_neg.append(1)
+
+        token_ids_neg = tokenizer.convert_tokens_to_ids(tokens_neg)
+        position_ids_neg = list(range(len(token_ids_neg)))
+
+
         if self.is_inference:
             Record = namedtuple('Record',
                                 ['token_ids', 'text_type_ids', 'position_ids'])
@@ -197,6 +236,16 @@ class BaseReader(object):
                 token_ids=token_ids,
                 text_type_ids=text_type_ids,
                 position_ids=position_ids)
+        elif self.is_inference_pairwise:
+            Record = namedtuple('Record',
+                                ['token_ids', 'text_type_ids', 'position_ids', 'token_ids_neg', 'text_type_ids_neg', 'position_ids_neg'])
+            record = Record(
+                token_ids=token_ids,
+                text_type_ids=text_type_ids,
+                position_ids=position_ids,
+                token_ids_neg=token_ids_neg,
+                text_type_ids_neg=text_type_ids_neg,
+                position_ids_neg=position_ids_neg)
         else:
             if self.label_map:
                 label_id = self.label_map[example.label]
@@ -474,22 +523,26 @@ class ClassifyReader(BaseReader):
         batch_token_ids = [record.token_ids for record in batch_records]
         batch_text_type_ids = [record.text_type_ids for record in batch_records]
         batch_position_ids = [record.position_ids for record in batch_records]
+        batch_token_ids_neg = [record.token_ids_neg for record in batch_records]
+        batch_text_type_ids_neg = [record.text_type_ids_neg for record in batch_records]
+        batch_position_ids_neg = [record.position_ids_neg for record in batch_records]
 
         if not self.is_inference:
-            batch_labels = [record.label_id for record in batch_records]
-            if self.is_classify:
-                batch_labels = np.array(batch_labels).astype("int64").reshape(
-                    [-1])
-            elif self.is_regression:
-                batch_labels = np.array(batch_labels).astype("float32").reshape(
-                    [-1])
+            if not self.is_inference_pairwise:
+                batch_labels = [record.label_id for record in batch_records]
+                if self.is_classify:
+                    batch_labels = np.array(batch_labels).astype("int64").reshape(
+                        [-1])
+                elif self.is_regression:
+                    batch_labels = np.array(batch_labels).astype("float32").reshape(
+                        [-1])
 
-            if batch_records[0].qid:
-                batch_qids = [record.qid for record in batch_records]
-                batch_qids = np.array(batch_qids).astype("int64").reshape(
-                    [-1])
-            else:
-                batch_qids = np.array([]).astype("int64").reshape([-1])
+                if batch_records[0].qid:
+                    batch_qids = [record.qid for record in batch_records]
+                    batch_qids = np.array(batch_qids).astype("int64").reshape(
+                        [-1])
+                else:
+                    batch_qids = np.array([]).astype("int64").reshape([-1])
 
         # padding
         padded_token_ids, input_mask = pad_batch_data(
@@ -500,14 +553,30 @@ class ClassifyReader(BaseReader):
             batch_position_ids, pad_idx=self.pad_id)
         padded_task_ids = np.ones_like(
             padded_token_ids, dtype="int64") * self.task_id
-
+        
+        padded_token_ids_neg, input_mask_neg = pad_batch_data(
+            batch_token_ids_neg, pad_idx=self.pad_id, return_input_mask=True)
+        padded_text_type_ids_neg = pad_batch_data(
+            batch_text_type_ids_neg, pad_idx=self.pad_id)
+        padded_position_ids_neg = pad_batch_data(
+            batch_position_ids_neg, pad_idx=self.pad_id)
+        padded_task_ids_neg = np.ones_like(
+            padded_token_ids_neg, dtype="int64") * self.task_id
+        
         return_list = [
             padded_token_ids, padded_text_type_ids, padded_position_ids,
             padded_task_ids, input_mask
         ]
+        return_list_neg = [
+            padded_token_ids_neg, padded_text_type_ids_neg, padded_position_ids_neg,
+            padded_task_ids_neg, input_mask_neg
+        ]
         if not self.is_inference:
-            return_list += [batch_labels, batch_qids]
+            if not self.is_inference_pairwise:
+                return_list += [batch_labels, batch_qids]
 
+        if self.is_inference_pairwise:
+            return_list += [return_list_neg]
         return return_list
 
 
