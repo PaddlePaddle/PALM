@@ -55,7 +55,11 @@ class Model(backbone):
         return {"token_ids": [[-1, -1], 'int64'],
                 "position_ids": [[-1, -1], 'int64'],
                 "segment_ids": [[-1, -1], 'int64'],
-                "input_mask": [[-1, -1, 1], 'float32']}
+                "input_mask": [[-1, -1, 1], 'float32'],
+                "token_ids_neg": [[-1, -1], 'int64'],
+                "position_ids_neg": [[-1, -1], 'int64'],
+                "segment_ids_neg": [[-1, -1], 'int64'],
+                "input_mask_neg": [[-1, -1, 1], 'float32']}
 
     @property
     def outputs_attr(self):
@@ -63,7 +67,12 @@ class Model(backbone):
                 "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
                 "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
                 "sentence_embedding": [[-1, self._emb_size], 'float32'],
-                "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
+                "sentence_pair_embedding": [[-1, self._emb_size], 'float32'],
+                "word_embedding_neg": [[-1, -1, self._emb_size], 'float32'],
+                "embedding_table_neg": [[-1, self._voc_size, self._emb_size], 'float32'],
+                "encoder_outputs_neg": [[-1, -1, self._emb_size], 'float32'],
+                "sentence_embedding_neg": [[-1, self._emb_size], 'float32'],
+                "sentence_pair_embedding_neg": [[-1, self._emb_size], 'float32']}
 
     def build(self, inputs, scope_name=""):
         src_ids = inputs['token_ids']

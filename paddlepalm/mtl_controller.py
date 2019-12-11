@@ -367,8 +367,8 @@ class Controller(object):
                 inst.task_layer['pred'] = pred_parad
                 task_attr_from_reader = _encode_inputs(pred_parad.inputs_attrs['reader'], inst.name)
                 pred_task_attrs.append(task_attr_from_reader)
-                _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
-                _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
+                # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
+                # _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
                 _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
 
         # merge reader input attrs from backbone and task_instances
@@ -393,7 +393,7 @@ class Controller(object):
         iterators = []
         prefixes = []
         mrs = []
-       
+
         for inst in instances:
             iterators.append(inst.reader['train'].iterator())
             prefixes.append(inst.name)
@@ -420,27 +420,23 @@ class Controller(object):
 
         fluid.framework.switch_main_program(train_prog)
         fluid.framework.switch_startup_program(train_init_prog)
-        print('here5')
+
         task_output_vars = {}
         for inst in instances:
             task_inputs = {'backbone': bb_output_vars}
             task_inputs_from_reader = _decode_inputs(net_inputs, inst.name)
             task_inputs['reader'] = task_inputs_from_reader
-            print('here6')
+       
             scope = inst.task_reuse_scope + '/'
             with fluid.unique_name.guard(scope):
-                print('here6.5')
+               
                 output_vars = inst.build_task_layer(task_inputs, phase='train', scope=scope)
-                print('here7')
                 output_vars = {inst.name+'/'+key: val for key, val in output_vars.items()}
-                print('here8')
                 old = len(task_output_vars) # for debug
                 task_output_vars.update(output_vars)
                 assert len(task_output_vars) - old == len(output_vars) # for debug
-            print('here9')
             # prepare predict vars for saving inference model
             if inst.is_target:
-
                 with fluid.program_guard(pred_prog, pred_init_prog):
                     cur_inputs = _decode_inputs(pred_net_inputs, inst.name)
                     inst.pred_input = cur_inputs
@@ -656,7 +652,8 @@ class Controller(object):
         for feed in inst.reader['pred'].iterator():
             feed = _encode_inputs(feed, inst.name, cand_set=mapper)
             feed = {mapper[k]: v for k,v in feed.items()}
-
+        
+            # print(fetch_vars)
             rt_outputs = self.exe.run(pred_prog, feed, fetch_vars)
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             inst.postprocess(rt_outputs, phase='pred')

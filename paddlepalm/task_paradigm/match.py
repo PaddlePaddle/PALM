@@ -165,19 +165,10 @@ class TaskParadigm(task_paradigm):
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
-            if self._learning_strategy == 'pointwise':
-                logits = rt_outputs['logits']
-                preds = np.argmax(logits, -1)
-                self._preds.extend(preds.tolist())
-            else:
-                pos_score = rt_outputs['pos_score']
-                neg_score = rt_outputs['neg_score']
-                if(pos_score - neg_score > 0.958):
-                    preds = 1
-                else:
-                    preds = 0
-                self._preds.extend(preds)
-
+            logits = rt_outputs['logits']
+            preds = np.argmax(logits, -1)
+            self._preds.extend(preds.tolist())
+        
     def epoch_postprocess(self, post_inputs):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
         if not self._is_training:
