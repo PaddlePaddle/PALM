@@ -55,11 +55,8 @@ class TaskParadigm(task_paradigm):
     
     @property
     def inputs_attrs(self):
-        if self._is_training:
-            if self._learning_strategy == 'pointwise':
-                reader = {"label_ids": [[-1], 'int64']}
-            else:
-                reader = {}
+        if self._is_training and self._learning_strategy == 'pointwise':
+            reader = {"label_ids": [[-1], 'int64']}
         else:
             reader = {}
         if self._learning_strategy == 'pointwise':
@@ -80,9 +77,8 @@ class TaskParadigm(task_paradigm):
 
     def build(self, inputs, scope_name=""):
         
-        if self._is_training:
-            if self._learning_strategy == 'pointwise':
-                labels = inputs["reader"]["label_ids"] 
+        if self._is_training and self._learning_strategy == 'pointwise':
+            labels = inputs["reader"]["label_ids"] 
         cls_feats = inputs["backbone"]["sentence_pair_embedding"]
     
         if self._learning_strategy == 'pairwise':
@@ -149,13 +145,11 @@ class TaskParadigm(task_paradigm):
                 def computeHingeLoss(pos, neg):
                     loss_part1 = fluid.layers.elementwise_sub(
                         fluid.layers.fill_constant_batch_size_like(
-                            input=pos, shape=[-1, 1], value=self._margin, dtype='float32'),
-                        pos)
+                            input=pos, shape=[-1, 1], value=self._margin, dtype='float32'), pos)
                     loss_part2 = fluid.layers.elementwise_add(loss_part1, neg)
                     loss_part3 = fluid.layers.elementwise_max(
                         fluid.layers.fill_constant_batch_size_like(
-                            input=loss_part2, shape=[-1, 1], value=0.0, dtype='float32'),
-                        loss_part2)
+                            input=loss_part2, shape=[-1, 1], value=0.0, dtype='float32'), loss_part2)
                     return loss_part3
 
                 loss = fluid.layers.mean(computeHingeLoss(pos_score, neg_score))

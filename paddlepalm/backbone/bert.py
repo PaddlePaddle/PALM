@@ -60,10 +60,7 @@ class Model(backbone):
             return {"token_ids": [[-1, -1], 'int64'],
                     "position_ids": [[-1, -1], 'int64'],
                     "segment_ids": [[-1, -1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32'],
-                    "label_ids": [[-1], 'int64'],
-                    "task_ids": [[-1, -1], 'int64']
-                    }
+                    "input_mask": [[-1, -1, 1], 'float32']}
         else:
             return {"token_ids": [[-1, -1], 'int64'],
                     "position_ids": [[-1, -1], 'int64'],
@@ -73,9 +70,7 @@ class Model(backbone):
                     "token_ids_neg": [[-1, -1], 'int64'],
                     "position_ids_neg": [[-1, -1], 'int64'],
                     "segment_ids_neg": [[-1, -1], 'int64'],
-                    "input_mask_neg": [[-1, -1, 1], 'float32'],
-                    "task_ids_neg": [[-1, -1], 'int64']
-                    }
+                    "input_mask_neg": [[-1, -1, 1], 'float32']}
 
     @property
     def outputs_attr(self):

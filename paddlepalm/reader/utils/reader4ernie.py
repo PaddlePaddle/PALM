@@ -159,7 +159,7 @@ class BaseReader(object):
             # length is less than the specified length.
             # Account for [CLS], [SEP], [SEP] with "- 3"
             self._truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
-            if self.phase=='train' and tokens_b_neg:
+            if self.phase=='train' and has_text_b_neg and tokens_b_neg:
                 self._truncate_seq_pair(tokens_a, tokens_b_neg, max_seq_length - 3)
         else:
             # Account for [CLS] and [SEP] with "- 2"
@@ -540,7 +540,7 @@ class ClassifyReader(BaseReader):
         batch_token_ids = [record.token_ids for record in batch_records]
         batch_text_type_ids = [record.text_type_ids for record in batch_records]
         batch_position_ids = [record.position_ids for record in batch_records]
-        if self.phase=='train':
+        if self.phase=='train' and self.is_pairwise:
             batch_token_ids_neg = [record.token_ids_neg for record in batch_records]
             batch_text_type_ids_neg = [record.text_type_ids_neg for record in batch_records]
             batch_position_ids_neg = [record.position_ids_neg for record in batch_records]
@@ -571,7 +571,7 @@ class ClassifyReader(BaseReader):
             batch_position_ids, pad_idx=self.pad_id)
         padded_task_ids = np.ones_like(
             padded_token_ids, dtype="int64") * self.task_id
-        if self.phase=='train':
+        if self.phase=='train' and self.is_pairwise:
             padded_token_ids_neg, input_mask_neg = pad_batch_data(
                 batch_token_ids_neg, pad_idx=self.pad_id, return_input_mask=True)
             padded_text_type_ids_neg = pad_batch_data(
@@ -585,7 +585,7 @@ class ClassifyReader(BaseReader):
             padded_token_ids, padded_text_type_ids, padded_position_ids,
             padded_task_ids, input_mask
         ]
-        if self.phase=='train':
+        if self.phase=='train' and self.is_pairwise:
             return_list_neg = [
                 padded_token_ids_neg, padded_text_type_ids_neg, padded_position_ids_neg,
                 padded_task_ids_neg, input_mask_neg
