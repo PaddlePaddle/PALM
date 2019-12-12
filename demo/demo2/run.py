@@ -2,7 +2,12 @@ import paddlepalm as palm
 
 if __name__ == '__main__':
 
-    match_reader = palm.reader.match(train_file, file_format='csv', tokenizer='wordpiece', lang='en')
+    max_seqlen = 512
+    batch_size = 32
+
+    match_reader = palm.reader.match(train_file, vocab, \
+        max_seqlen, file_format='csv', tokenizer='wordpiece', \
+        lang='en', shuffle_train=True)
     mrc_reader = palm.reader.mrc(train_file, phase='train')
     mlm_reader = palm.reader.mlm(train_file, phase='train')
     palm.reader.
