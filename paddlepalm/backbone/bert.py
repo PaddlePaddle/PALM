@@ -44,6 +44,7 @@ class Model(backbone):
         self._word_emb_name = "word_embedding"
         self._pos_emb_name = "pos_embedding"
         self._sent_emb_name = "sent_embedding"
+        self._phase = phase
         if config['learning_strategy']:
             self._learning_strategy = config['learning_strategy']
         else:
@@ -56,12 +57,7 @@ class Model(backbone):
 
     @property
     def inputs_attr(self):
-        if self._learning_strategy == 'pointwise':
-            return {"token_ids": [[-1, -1], 'int64'],
-                    "position_ids": [[-1, -1], 'int64'],
-                    "segment_ids": [[-1, -1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32']}
-        else:
+        if self._learning_strategy == 'pairwise' and self._phase=='train':
             return {"token_ids": [[-1, -1], 'int64'],
                     "position_ids": [[-1, -1], 'int64'],
                     "segment_ids": [[-1, -1], 'int64'],
@@ -71,16 +67,15 @@ class Model(backbone):
                     "position_ids_neg": [[-1, -1], 'int64'],
                     "segment_ids_neg": [[-1, -1], 'int64'],
                     "input_mask_neg": [[-1, -1, 1], 'float32']}
+        else:
+            return {"token_ids": [[-1, -1], 'int64'],
+                    "position_ids": [[-1, -1], 'int64'],
+                    "segment_ids": [[-1, -1], 'int64'],
+                    "input_mask": [[-1, -1, 1], 'float32']}  
 
     @property
     def outputs_attr(self):
-        if self._learning_strategy == 'pointwise':
-            return {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
-                    "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
-                    "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
-                    "sentence_embedding": [[-1, self._emb_size], 'float32'],
-                    "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
-        else:
+        if self._learning_strategy == 'pairwise' and self._phase=='train':
             return {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
                     "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
                     "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
@@ -91,6 +86,12 @@ class Model(backbone):
                     "encoder_outputs_neg": [[-1, -1, self._emb_size], 'float32'],
                     "sentence_embedding_neg": [[-1, self._emb_size], 'float32'],
                     "sentence_pair_embedding_neg": [[-1, self._emb_size], 'float32']}
+        else:
+            return {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
+                    "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
+                    "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
+                    "sentence_embedding": [[-1, self._emb_size], 'float32'],
+                    "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
 
     def build(self, inputs, scope_name=""):
         src_ids = inputs['token_ids']
@@ -170,7 +171,7 @@ class Model(backbone):
                 name=scope_name+"pooled_fc.w_0", initializer=self._param_initializer),
             bias_attr=scope_name+"pooled_fc.b_0")
 
-        if self._learning_strategy == 'pairwise':
+        if self._learning_strategy == 'pairwise' and self._phase=='train':
             src_ids_neg = inputs['token_ids_neg']
             pos_ids_neg = inputs['position_ids_neg']
             sent_ids_neg = inputs['segment_ids_neg']
@@ -248,13 +249,7 @@ class Model(backbone):
                     name=scope_name+"pooled_fc.w_0", initializer=self._param_initializer),
                 bias_attr=scope_name+"pooled_fc.b_0")
 
-        if self._learning_strategy == 'pointwise':
-            return {'embedding_table': embedding_table,
-                    'word_embedding': emb_out,
-                    'encoder_outputs': enc_out,
-                    'sentence_embedding': next_sent_feat,
-                    'sentence_pair_embedding': next_sent_feat}
-        else:
+        if self._learning_strategy == 'pairwise' and self._phase == 'train':
             return {'embedding_table': embedding_table,
                     'word_embedding': emb_out,
                     'encoder_outputs': enc_out,
@@ -266,6 +261,13 @@ class Model(backbone):
                     'sentence_embedding_neg': next_sent_feat_neg,
                     'sentence_pair_embedding_neg': next_sent_feat_neg}
 
+        else:
+            return {'embedding_table': embedding_table,
+                    'word_embedding': emb_out,
+                    'encoder_outputs': enc_out,
+                    'sentence_embedding': next_sent_feat,
+                    'sentence_pair_embedding': next_sent_feat}
+                    
     def postprocess(self, rt_outputs):
         pass
 

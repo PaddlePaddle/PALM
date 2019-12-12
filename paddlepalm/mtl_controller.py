@@ -367,8 +367,10 @@ class Controller(object):
                 inst.task_layer['pred'] = pred_parad
                 task_attr_from_reader = _encode_inputs(pred_parad.inputs_attrs['reader'], inst.name)
                 pred_task_attrs.append(task_attr_from_reader)
-                # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
-                # _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
+                _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
+                _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
+                print(pred_parad.inputs_attrs['backbone'])
+                print(pred_backbone.outputs_attr)
                 _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
 
         # merge reader input attrs from backbone and task_instances
@@ -652,8 +654,6 @@ class Controller(object):
         for feed in inst.reader['pred'].iterator():
             feed = _encode_inputs(feed, inst.name, cand_set=mapper)
             feed = {mapper[k]: v for k,v in feed.items()}
-        
-            # print(fetch_vars)
             rt_outputs = self.exe.run(pred_prog, feed, fetch_vars)
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             inst.postprocess(rt_outputs, phase='pred')

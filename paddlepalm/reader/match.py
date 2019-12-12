@@ -108,6 +108,9 @@ class Reader(reader):
     def iterator(self): 
 
         def list_to_dict(x):
+            if not self._is_training:
+                names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
+                'label_ids', 'unique_ids']
             if self._learning_strategy == 'pointwise':
                 names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
                 'label_ids', 'unique_ids']
@@ -117,8 +120,6 @@ class Reader(reader):
                 ]
             outputs = {n: i for n,i in zip(names, x)}
             # del outputs['unique_ids']
-            if self._learning_strategy == 'pointwise' and not self._is_training:
-                del outputs['label_ids']
             return outputs
 
         for batch in self._data_generator():
