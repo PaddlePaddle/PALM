@@ -27,9 +27,9 @@ class Reader(reader):
         self._is_training = phase == 'train'
         self._is_siamese = siamese
         self._learning_strategy = config['learning_strategy']
-        self._is_ipaiwise = False
+        self._is_pairwise = False
         if(self._learning_strategy == 'pairwise'):
-            self._is_paiwise = True
+            self._is_pairwise = True
 
         if self._is_siamese:
             pass
@@ -40,7 +40,7 @@ class Reader(reader):
                 do_lower_case=config.get('do_lower_case', True),
                 for_cn=config.get('for_cn', False),
                 random_seed=config.get('seed', None),
-                is_pairwise=self._is_paiwise,
+                is_pairwise=self._is_pairwise,
                 phase=phase
                 )
             
