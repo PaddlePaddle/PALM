@@ -369,8 +369,6 @@ class Controller(object):
                 pred_task_attrs.append(task_attr_from_reader)
                 _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
                 _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
-                print(pred_parad.inputs_attrs['backbone'])
-                print(pred_backbone.outputs_attr)
                 _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
 
         # merge reader input attrs from backbone and task_instances
