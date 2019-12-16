@@ -76,7 +76,8 @@ class BaseReader(object):
         self.in_tokens = in_tokens
         self.phase = phase
         self.is_inference = is_inference
-        self.is_pairwise = is_pairwise
+        self.is_pairwise = True
+        #self.is_pairwise = is_pairwise
         self.for_cn = for_cn
         self.task_id = task_id
 
@@ -208,7 +209,7 @@ class BaseReader(object):
 
         tokens_neg = []
         text_type_ids_neg = []
-        if(has_text_b_neg) and self.phase=='train':
+        if has_text_b_neg and self.phase=='train':
             tokens_neg.append("[CLS]")
             text_type_ids_neg.append(0)
             for token in tokens_a:
@@ -586,15 +587,16 @@ class ClassifyReader(BaseReader):
             padded_task_ids, input_mask
         ]
         if self.phase=='train' and self.is_pairwise:
-            return_list_neg = [
+            return_list = [
+                padded_token_ids, padded_text_type_ids, padded_position_ids,
                 padded_token_ids_neg, padded_text_type_ids_neg, padded_position_ids_neg,
-                padded_task_ids_neg, input_mask_neg
+                padded_task_ids, input_mask, padded_task_ids_neg, input_mask_neg
             ]
         if not self.is_inference and not self.is_pairwise:
                 return_list += [batch_labels, batch_qids]
 
-        if self.is_pairwise and self.phase=='train': 
-            return_list += [return_list_neg]
+        #if self.is_pairwise and self.phase=='train': 
+        #    return_list += [return_list_neg]
         return return_list
 
 
