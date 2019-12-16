@@ -117,6 +117,23 @@ paddlepalm框架的运行原理图如图所示
 python download_models.py -l
 ```
 
+运行以上命令可以看到类似如下输出信息
+
+```
+Available pretrain items:
+  => roberta-cn-base
+  => roberta-cn-large
+  => bert-cn-base
+  => bert-cn-large
+  => bert-en-uncased-base
+  => bert-en-uncased-large
+  => bert-en-cased-base
+  => bert-en-cased-large
+  => ernie-en-uncased-base
+  => ernie-en-uncased-large
+  ...
+  ```
+
 用户可通过运行`python download_models.py -d <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型（uncased large）的命令如下：
 
 ```shell
