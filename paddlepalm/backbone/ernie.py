@@ -77,7 +77,6 @@ class Model(backbone):
                     "position_ids_neg": [[-1, -1], 'int64'],
                     "segment_ids_neg": [[-1, -1], 'int64'],
                     "input_mask_neg": [[-1, -1, 1], 'float32'],
-                    "task_ids_neg": [[-1, -1], 'int64']
                     }
         else:
             return {"token_ids": [[-1, -1], 'int64'],
@@ -114,6 +113,11 @@ class Model(backbone):
         sent_ids = inputs['segment_ids']
         input_mask = inputs['input_mask']
         task_ids = inputs['task_ids']
+        if self._learning_strategy == 'pairwise' and self._phase =='train':
+            src_ids_neg = inputs['token_ids_neg']
+            pos_ids_neg = inputs['position_ids_neg']
+            sent_ids_neg = inputs['segment_ids_neg']
+            input_mask_neg = inputs['input_mask_neg']
 
         # padding id in vocabulary must be set to 0
         emb_out = fluid.embedding(
@@ -123,7 +127,7 @@ class Model(backbone):
             param_attr=fluid.ParamAttr(
                 name=scope_name+self._word_emb_name, initializer=self._param_initializer),
             is_sparse=False)
-
+       
         # fluid.global_scope().find_var('backbone-word_embedding').get_tensor()
         embedding_table = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
         
@@ -143,6 +147,7 @@ class Model(backbone):
 
         emb_out = emb_out + position_emb_out
         emb_out = emb_out + sent_emb_out
+
 
         task_emb_out = fluid.embedding(
             task_ids,
@@ -195,14 +200,8 @@ class Model(backbone):
             param_attr=fluid.ParamAttr(
                 name=scope_name+"pooled_fc.w_0", initializer=self._param_initializer),
             bias_attr=scope_name+"pooled_fc.b_0")
-        if self._learning_strategy == 'pairwise' and self._phase =='train':
-            src_ids_neg = inputs['token_ids_neg']
-            pos_ids_neg = inputs['position_ids_neg']
-            sent_ids_neg = inputs['segment_ids_neg']
-            input_mask_neg = inputs['input_mask_neg']
-            task_ids_neg = inputs['task_ids_neg']
 
-            # padding id in vocabulary must be set to 0
+        if self._learning_strategy == 'pairwise' and self._phase =='train':
             emb_out_neg = fluid.embedding(
                 input=src_ids_neg,
                 size=[self._voc_size, self._emb_size],
@@ -210,10 +209,7 @@ class Model(backbone):
                 param_attr=fluid.ParamAttr(
                     name=scope_name+self._word_emb_name, initializer=self._param_initializer),
                 is_sparse=False)
-
-            # fluid.global_scope().find_var('backbone-word_embedding').get_tensor()
             embedding_table_neg = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
-            
             position_emb_out_neg = fluid.embedding(
                 input=pos_ids_neg,
                 size=[self._max_position_seq_len, self._emb_size],
@@ -230,17 +226,7 @@ class Model(backbone):
 
             emb_out_neg = emb_out_neg + position_emb_out_neg
             emb_out_neg = emb_out_neg + sent_emb_out_neg
-
-            task_emb_out_neg = fluid.embedding(
-                task_ids_neg,
-                size=[self._task_types, self._emb_size],
-                dtype=self._emb_dtype,
-                param_attr=fluid.ParamAttr(
-                    name=scope_name+self._task_emb_name,
-                    initializer=self._param_initializer))
-
-            emb_out_neg = emb_out_neg + task_emb_out_neg
-
+            emb_out_neg = emb_out_neg + task_emb_out
             emb_out_neg = pre_process_layer(
                 emb_out_neg, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')
 
@@ -251,7 +237,7 @@ class Model(backbone):
                 x=self_attn_mask_neg, scale=10000.0, bias=-1.0, bias_after_scale=False)
             n_head_self_attn_mask_neg = fluid.layers.stack(
                 x=[self_attn_mask_neg] * self._n_head, axis=1)
-            n_head_self_attn_mask_neg.stop_gradient_neg = True
+            n_head_self_attn_mask_neg.stop_gradient = True
 
             enc_out_neg = encoder(
                 enc_input=emb_out_neg,
@@ -271,10 +257,9 @@ class Model(backbone):
                 param_initializer=self._param_initializer,
                 name=scope_name+'encoder')
 
-            
             next_sent_feat_neg = fluid.layers.slice(
                 input=enc_out_neg, axes=[1], starts=[0], ends=[1])
-            next_sent_feat_neg = fluid.layers.reshape(next_sent_feat_neg, [-1, next_sent_feat.shape[-1]])
+            next_sent_feat_neg = fluid.layers.reshape(next_sent_feat_neg, [-1, next_sent_feat_neg.shape[-1]])
             next_sent_feat_neg = fluid.layers.fc(
                 input=next_sent_feat_neg,
                 size=self._emb_size,
@@ -284,6 +269,7 @@ class Model(backbone):
                 bias_attr=scope_name+"pooled_fc.b_0")
 
         if self._learning_strategy == 'pairwise' and self._phase=='train':
+
             return {'embedding_table': embedding_table,
                     'word_embedding': emb_out,
                     'encoder_outputs': enc_out,

@@ -91,7 +91,6 @@ class Reader(reader):
                         "position_ids_neg": [[-1, -1], 'int64'],
                         "segment_ids_neg": [[-1, -1], 'int64'],
                         "input_mask_neg": [[-1, -1, 1], 'float32'],
-                        "task_ids_neg": [[-1, -1], 'int64']
                         }
         else:
             return {"token_ids": [[-1, -1], 'int64'],
@@ -108,6 +107,7 @@ class Reader(reader):
     def iterator(self): 
 
         def list_to_dict(x):
+            
             if not self._is_training:
                 names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
                 'label_ids', 'unique_ids']
@@ -116,10 +116,9 @@ class Reader(reader):
                 'label_ids', 'unique_ids']
             else:
                 names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
-                    'unique_ids','token_ids_neg', 'segment_ids_neg', 'position_ids_neg', 'task_ids_neg', 'input_mask_neg'
+                'token_ids_neg', 'segment_ids_neg', 'position_ids_neg', 'input_mask_neg', 'unique_ids'
                 ]
             outputs = {n: i for n,i in zip(names, x)}
-            # del outputs['unique_ids']
             return outputs
 
         for batch in self._data_generator():

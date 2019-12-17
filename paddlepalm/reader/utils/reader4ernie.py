@@ -76,8 +76,8 @@ class BaseReader(object):
         self.in_tokens = in_tokens
         self.phase = phase
         self.is_inference = is_inference
-        self.is_pairwise = True
-        #self.is_pairwise = is_pairwise
+        #self.is_pairwise = True
+        self.is_pairwise = is_pairwise
         self.for_cn = for_cn
         self.task_id = task_id
 
@@ -295,7 +295,7 @@ class BaseReader(object):
             if phase == "train":
                 self.current_example = index
             record = self._convert_example_to_record(example, self.max_seq_len,
-                                                     self.tokenizer)
+                                                     self.tokenizer)                                       
             max_len = max(max_len, len(record.token_ids))
             if self.in_tokens:
                 to_append = (len(batch_records) + 1) * max_len <= batch_size
@@ -352,6 +352,7 @@ class BaseReader(object):
                     if len(all_dev_batches) == dev_count:
                         for batch in all_dev_batches:
                             yield batch
+                        
                         all_dev_batches = []
         def f():
             for i in wrapper():
@@ -524,8 +525,10 @@ class ClassifyReader(BaseReader):
                 index for index, h in enumerate(headers) if h != "label"
             ]
             Example = namedtuple('Example', headers)
+            
 
             examples = []
+            t = 5
             for line in reader:
                 for index, text in enumerate(line):
                     if index in text_indices:
@@ -535,6 +538,9 @@ class ClassifyReader(BaseReader):
                             line[index] = text
                 example = Example(*line)
                 examples.append(example)
+                
+                if t>0:
+                    t = t-1
             return examples
 
     def _pad_batch_records(self, batch_records):
@@ -579,24 +585,22 @@ class ClassifyReader(BaseReader):
                 batch_text_type_ids_neg, pad_idx=self.pad_id)
             padded_position_ids_neg = pad_batch_data(
                 batch_position_ids_neg, pad_idx=self.pad_id)
-            padded_task_ids_neg = np.ones_like(
-                padded_token_ids_neg, dtype="int64") * self.task_id
-            
-        return_list = [
-            padded_token_ids, padded_text_type_ids, padded_position_ids,
-            padded_task_ids, input_mask
-        ]
+    
+        
         if self.phase=='train' and self.is_pairwise:
             return_list = [
+                padded_token_ids, padded_text_type_ids, padded_position_ids, padded_task_ids,
+                input_mask, padded_token_ids_neg, padded_text_type_ids_neg, 
+                padded_position_ids_neg, input_mask_neg
+            ]
+        else:
+            return_list = [
                 padded_token_ids, padded_text_type_ids, padded_position_ids,
-                padded_token_ids_neg, padded_text_type_ids_neg, padded_position_ids_neg,
-                padded_task_ids, input_mask, padded_task_ids_neg, input_mask_neg
+                padded_task_ids, input_mask
             ]
         if not self.is_inference and not self.is_pairwise:
                 return_list += [batch_labels, batch_qids]
 
-        #if self.is_pairwise and self.phase=='train': 
-        #    return_list += [return_list_neg]
         return return_list
 
 
