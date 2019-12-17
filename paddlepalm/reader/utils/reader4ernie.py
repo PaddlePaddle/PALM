@@ -152,6 +152,7 @@ class BaseReader(object):
             tokens_b = tokenizer.tokenize(text_b)
         
         if has_text_b_neg and self.phase=='train':
+            tokens_a_neg = tokenizer.tokenize(text_a)
             text_b_neg = tokenization.convert_to_unicode(example.text_b_neg)
             tokens_b_neg = tokenizer.tokenize(text_b_neg)
 
@@ -161,7 +162,7 @@ class BaseReader(object):
             # Account for [CLS], [SEP], [SEP] with "- 3"
             self._truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
             if self.phase=='train' and has_text_b_neg and tokens_b_neg:
-                self._truncate_seq_pair(tokens_a, tokens_b_neg, max_seq_length - 3)
+                self._truncate_seq_pair(tokens_a_neg, tokens_b_neg, max_seq_length - 3)
         else:
             # Account for [CLS] and [SEP] with "- 2"
             if len(tokens_a) > max_seq_length - 2:
@@ -212,7 +213,7 @@ class BaseReader(object):
         if has_text_b_neg and self.phase=='train':
             tokens_neg.append("[CLS]")
             text_type_ids_neg.append(0)
-            for token in tokens_a:
+            for token in tokens_a_neg:
                 tokens_neg.append(token)
                 text_type_ids_neg.append(0)
             tokens_neg.append("[SEP]")
