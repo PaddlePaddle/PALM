@@ -586,13 +586,15 @@ class ClassifyReader(BaseReader):
                 batch_text_type_ids_neg, pad_idx=self.pad_id)
             padded_position_ids_neg = pad_batch_data(
                 batch_position_ids_neg, pad_idx=self.pad_id)
+            padded_task_ids_neg = np.ones_like(
+                padded_token_ids_neg, dtype="int64") * self.task_id
     
         
         if self.phase=='train' and self.is_pairwise:
             return_list = [
                 padded_token_ids, padded_text_type_ids, padded_position_ids, padded_task_ids,
                 input_mask, padded_token_ids_neg, padded_text_type_ids_neg, 
-                padded_position_ids_neg, input_mask_neg
+                padded_position_ids_neg, padded_task_ids_neg, input_mask_neg
             ]
         else:
             return_list = [

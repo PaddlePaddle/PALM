@@ -77,6 +77,7 @@ class Model(backbone):
                     "position_ids_neg": [[-1, -1], 'int64'],
                     "segment_ids_neg": [[-1, -1], 'int64'],
                     "input_mask_neg": [[-1, -1, 1], 'float32'],
+                    "task_ids_neg": [[-1, -1], 'int64']
                     }
         else:
             return {"token_ids": [[-1, -1], 'int64'],
@@ -95,7 +96,6 @@ class Model(backbone):
                     "sentence_embedding": [[-1, self._emb_size], 'float32'],
                     "sentence_pair_embedding": [[-1, self._emb_size], 'float32'],
                     "word_embedding_neg": [[-1, -1, self._emb_size], 'float32'],
-                    "embedding_table_neg": [[-1, self._voc_size, self._emb_size], 'float32'],
                     "encoder_outputs_neg": [[-1, -1, self._emb_size], 'float32'],
                     "sentence_embedding_neg": [[-1, self._emb_size], 'float32'],
                     "sentence_pair_embedding_neg": [[-1, self._emb_size], 'float32']}
@@ -118,6 +118,7 @@ class Model(backbone):
             pos_ids_neg = inputs['position_ids_neg']
             sent_ids_neg = inputs['segment_ids_neg']
             input_mask_neg = inputs['input_mask_neg']
+            task_ids_neg = inputs['task_ids_neg']
 
         # padding id in vocabulary must be set to 0
         emb_out = fluid.embedding(
@@ -209,7 +210,6 @@ class Model(backbone):
                 param_attr=fluid.ParamAttr(
                     name=scope_name+self._word_emb_name, initializer=self._param_initializer),
                 is_sparse=False)
-            embedding_table_neg = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
             position_emb_out_neg = fluid.embedding(
                 input=pos_ids_neg,
                 size=[self._max_position_seq_len, self._emb_size],
@@ -226,7 +226,15 @@ class Model(backbone):
 
             emb_out_neg = emb_out_neg + position_emb_out_neg
             emb_out_neg = emb_out_neg + sent_emb_out_neg
-            emb_out_neg = emb_out_neg + task_emb_out
+            task_emb_out_neg = fluid.embedding(
+                task_ids_neg,
+                size=[self._task_types, self._emb_size],
+                dtype=self._emb_dtype,
+                param_attr=fluid.ParamAttr(
+                name=scope_name+self._task_emb_name,
+                initializer=self._param_initializer))
+
+            emb_out_neg = emb_out_neg + task_emb_out_neg
             emb_out_neg = pre_process_layer(
                 emb_out_neg, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')
 
@@ -275,7 +283,6 @@ class Model(backbone):
                     'encoder_outputs': enc_out,
                     'sentence_embedding': next_sent_feat,
                     'sentence_pair_embedding': next_sent_feat,
-                    'embedding_table_neg': embedding_table_neg,
                     'word_embedding_neg': emb_out_neg,
                     'encoder_outputs_neg': enc_out_neg,
                     'sentence_embedding_neg': next_sent_feat_neg,

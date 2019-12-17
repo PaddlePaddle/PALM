@@ -66,7 +66,8 @@ class Model(backbone):
                     "token_ids_neg": [[-1, -1], 'int64'],
                     "position_ids_neg": [[-1, -1], 'int64'],
                     "segment_ids_neg": [[-1, -1], 'int64'],
-                    "input_mask_neg": [[-1, -1, 1], 'float32']}
+                    "input_mask_neg": [[-1, -1, 1], 'float32'],
+                    "task_ids_neg": [[-1, -1], 'int64']}
         else:
             return {"token_ids": [[-1, -1], 'int64'],
                     "position_ids": [[-1, -1], 'int64'],
