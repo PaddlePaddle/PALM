@@ -40,11 +40,10 @@ class Model(backbone):
         self._n_head = config['num_attention_heads']
         self._voc_size = config['vocab_size']
         self._max_position_seq_len = config['max_position_embeddings']
-        if config['reader'] == 'match':
-            if config['learning_strategy']:
-                self._learning_strategy = config['learning_strategy']
-            else:
-                self._learning_strategy = 'pointwise'
+        if 'learning_strategy' in config:
+            self._learning_strategy = config['learning_strategy']
+        else:
+            self._learning_strategy = 'pointwise'
         if config['sent_type_vocab_size']:
             self._sent_types = config['sent_type_vocab_size']
         else:
