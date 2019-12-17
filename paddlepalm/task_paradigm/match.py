@@ -127,7 +127,7 @@ class TaskParadigm(task_paradigm):
                 loss_part2 = fluid.layers.elementwise_add(loss_part1, neg)
                 loss_part3 = fluid.layers.elementwise_max(
                     fluid.layers.fill_constant_batch_size_like(
-                        input=loss_part2, shape=[-1, 1], value=0.0, dtype='float32'), loss_part2)
+                        input=loss_part2, shape=[-1, 1], value=-10.0, dtype='float32'), loss_part2)
                 return loss_part3
 
             loss = fluid.layers.mean(computeHingeLoss(pos_score, neg_score))

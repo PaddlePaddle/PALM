@@ -26,9 +26,12 @@ class Reader(reader):
 
         self._is_training = phase == 'train'
         self._is_siamese = siamese
-        self._learning_strategy = config['learning_strategy']
+        if 'learning_strategy' in config:
+            self._learning_strategy = config['learning_strategy']
+        else:
+            self._learning_strategy = 'pointwise'
         self._is_pairwise = False
-        if(self._learning_strategy == 'pairwise'):
+        if self._learning_strategy == 'pairwise':
             self._is_pairwise = True
 
         if self._is_siamese:

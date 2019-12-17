@@ -45,7 +45,7 @@ class Model(backbone):
         self._pos_emb_name = "pos_embedding"
         self._sent_emb_name = "sent_embedding"
         self._phase = phase
-        if config['learning_strategy']:
+        if 'learning_strategy' in config:
             self._learning_strategy = config['learning_strategy']
         else:
             self._learning_strategy = 'pointwise'
