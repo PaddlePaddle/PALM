@@ -37,7 +37,7 @@ class TaskParadigm(task_paradigm):
         if 'margin' in config:
             self._margin = config['margin']
         else:
-            self._margin = 0.958
+            self._margin = 0.5
 
         if 'initializer_range' in config:
             self._param_initializer = config['initializer_range']
@@ -71,7 +71,7 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {"loss": [[1], 'float32']}
         else:
-            return {"logits": [[-1, 2], 'float32']}
+            return {"probs": [[-1], 'float32']}
 
     def build(self, inputs, scope_name=""):
         
@@ -143,14 +143,15 @@ class TaskParadigm(task_paradigm):
                 bias_attr=fluid.ParamAttr(
                     name=scope_name+"cls_out_b",
                     initializer=fluid.initializer.Constant(0.)))
+            
+            probs = fluid.layers.softmax(logits) 
             if self._is_training:
-                inputs = fluid.layers.softmax(logits) 
                 ce_loss = fluid.layers.cross_entropy(
-                    input=inputs, label=labels)
+                    input=probs, label=labels)
                 loss = fluid.layers.mean(x=ce_loss)
                 return {'loss': loss}
             else:
-                return {'logits': logits}
+                return {'probs': probs}
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
