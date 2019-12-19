@@ -82,7 +82,6 @@ class Model(backbone):
                     "sentence_embedding": [[-1, self._emb_size], 'float32'],
                     "sentence_pair_embedding": [[-1, self._emb_size], 'float32'],
                     "word_embedding_neg": [[-1, -1, self._emb_size], 'float32'],
-                    "embedding_table_neg": [[-1, self._voc_size, self._emb_size], 'float32'],
                     "encoder_outputs_neg": [[-1, -1, self._emb_size], 'float32'],
                     "sentence_embedding_neg": [[-1, self._emb_size], 'float32'],
                     "sentence_pair_embedding_neg": [[-1, self._emb_size], 'float32']}
