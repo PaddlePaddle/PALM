@@ -155,8 +155,7 @@ class TaskParadigm(task_paradigm):
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
-            logits = rt_outputs['logits']
-            preds = np.argmax(logits, -1)
+            preds = rt_outputs['probs']
             self._preds.extend(preds.tolist())
         
     def epoch_postprocess(self, post_inputs):
