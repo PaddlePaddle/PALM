@@ -62,12 +62,11 @@ class Model(backbone):
                     "position_ids": [[-1, -1], 'int64'],
                     "segment_ids": [[-1, -1], 'int64'],
                     "input_mask": [[-1, -1, 1], 'float32'],
-                    "task_ids": [[-1, -1], 'int64'],
                     "token_ids_neg": [[-1, -1], 'int64'],
                     "position_ids_neg": [[-1, -1], 'int64'],
                     "segment_ids_neg": [[-1, -1], 'int64'],
                     "input_mask_neg": [[-1, -1, 1], 'float32'],
-                    "task_ids_neg": [[-1, -1], 'int64']}
+                   }
         else:
             return {"token_ids": [[-1, -1], 'int64'],
                     "position_ids": [[-1, -1], 'int64'],
@@ -101,6 +100,13 @@ class Model(backbone):
         input_mask = inputs['input_mask']
 
         self._emb_dtype = 'float32'
+
+        if self._learning_strategy == 'pairwise' and self._phase =='train':
+            src_ids_neg = inputs['token_ids_neg']
+            pos_ids_neg = inputs['position_ids_neg']
+            sent_ids_neg = inputs['segment_ids_neg']
+            input_mask_neg = inputs['input_mask_neg']
+
         # padding id in vocabulary must be set to 0
         emb_out = fluid.embedding(
             input=src_ids,
@@ -173,12 +179,6 @@ class Model(backbone):
             bias_attr=scope_name+"pooled_fc.b_0")
 
         if self._learning_strategy == 'pairwise' and self._phase=='train':
-            src_ids_neg = inputs['token_ids_neg']
-            pos_ids_neg = inputs['position_ids_neg']
-            sent_ids_neg = inputs['segment_ids_neg']
-            input_mask_neg = inputs['input_mask_neg']
-
-        
             # padding id in vocabulary must be set to 0
             emb_out_neg = fluid.embedding(
                 input=src_ids_neg,
@@ -187,10 +187,6 @@ class Model(backbone):
                 param_attr=fluid.ParamAttr(
                     name=scope_name+self._word_emb_name, initializer=self._param_initializer),
                 is_sparse=False)
-
-            # fluid.global_scope().find_var('backbone-word_embedding').get_tensor()
-            embedding_table_neg = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
-            
             position_emb_out_neg = fluid.embedding(
                 input=pos_ids_neg,
                 size=[self._max_position_seq_len, self._emb_size],
@@ -207,7 +203,7 @@ class Model(backbone):
 
             emb_out_neg = emb_out_neg + position_emb_out_neg
             emb_out_neg = emb_out_neg + sent_emb_out_neg
-
+          
             emb_out_neg = pre_process_layer(
                 emb_out_neg, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')
 
@@ -238,10 +234,9 @@ class Model(backbone):
                 param_initializer=self._param_initializer,
                 name=scope_name+'encoder')
 
-            
             next_sent_feat_neg = fluid.layers.slice(
                 input=enc_out_neg, axes=[1], starts=[0], ends=[1])
-            next_sent_feat_neg = fluid.layers.reshape(next_sent_feat_neg, [-1, next_sent_feat.shape[-1]])
+            next_sent_feat_neg = fluid.layers.reshape(next_sent_feat_neg, [-1, next_sent_feat_neg.shape[-1]])
             next_sent_feat_neg = fluid.layers.fc(
                 input=next_sent_feat_neg,
                 size=self._emb_size,
@@ -250,13 +245,13 @@ class Model(backbone):
                     name=scope_name+"pooled_fc.w_0", initializer=self._param_initializer),
                 bias_attr=scope_name+"pooled_fc.b_0")
 
+
         if self._learning_strategy == 'pairwise' and self._phase == 'train':
             return {'embedding_table': embedding_table,
                     'word_embedding': emb_out,
                     'encoder_outputs': enc_out,
                     'sentence_embedding': next_sent_feat,
                     'sentence_pair_embedding': next_sent_feat,
-                    'embedding_table_neg': embedding_table_neg,
                     'word_embedding_neg': emb_out_neg,
                     'encoder_outputs_neg': enc_out_neg,
                     'sentence_embedding_neg': next_sent_feat_neg,
