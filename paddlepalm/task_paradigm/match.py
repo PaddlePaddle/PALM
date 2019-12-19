@@ -71,7 +71,7 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {"loss": [[1], 'float32']}
         else:
-            return {"probs": [[-1], 'float32']}
+            return {"logits": [[-1], 'float32']}
 
     def build(self, inputs, scope_name=""):
         
@@ -144,18 +144,18 @@ class TaskParadigm(task_paradigm):
                     name=scope_name+"cls_out_b",
                     initializer=fluid.initializer.Constant(0.)))
             
-            probs = fluid.layers.softmax(logits) 
+            logits = fluid.layers.softmax(logits) 
             if self._is_training:
                 ce_loss = fluid.layers.cross_entropy(
-                    input=probs, label=labels)
+                    input=logits, label=labels)
                 loss = fluid.layers.mean(x=ce_loss)
                 return {'loss': loss}
             else:
-                return {'probs': probs}
+                return {'logits': logits}
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
-            preds = rt_outputs['probs']
+            preds = rt_outputs['logits']
             self._preds.extend(preds.tolist())
         
     def epoch_postprocess(self, post_inputs):
