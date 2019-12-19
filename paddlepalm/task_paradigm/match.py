@@ -157,7 +157,7 @@ class TaskParadigm(task_paradigm):
     def postprocess(self, rt_outputs):
         if not self._is_training:
             preds = rt_outputs['logits']
-            preds = np.softmax(preds, -1)
+            preds = np.argmax(preds, -1)
             self._preds.extend(preds.tolist())
         
     def epoch_postprocess(self, post_inputs):
