@@ -50,7 +50,9 @@ class TaskParadigm(task_paradigm):
             self._dropout_prob = backbone_config.get('hidden_dropout_prob', 0.0)
 
         self._pred_output_path = config.get('pred_output_path', None)
-        self._preds = []
+        self._preds_logits = []
+        self._preds_probs = []
+        self._preds_labels = []
 
     
     @property
@@ -71,7 +73,9 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {"loss": [[1], 'float32']}
         else:
-            return {"probs": [[-1,2], 'float32']}
+            return {"probs": [[-1, 2], 'float32'],
+                    "logits": [[-1, 2], 'float32']
+                    }
 
     def build(self, inputs, scope_name=""):
         if self._is_training and self._learning_strategy == 'pointwise':
@@ -143,19 +147,22 @@ class TaskParadigm(task_paradigm):
                 bias_attr=fluid.ParamAttr(
                     name=scope_name+"cls_out_b",
                     initializer=fluid.initializer.Constant(0.)))
-            logits = fluid.layers.softmax(logits) 
+            probs = fluid.layers.softmax(logits) 
             if self._is_training:
                 ce_loss = fluid.layers.cross_entropy(
                     input=logits, label=labels)
                 loss = fluid.layers.mean(x=ce_loss)
                 return {'loss': loss}
             else:
-                return {'probs': logits}
+                return {'probs': probs,
+                        'logits': logits}
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
-            preds = rt_outputs['probs']
-            self._preds.extend(preds.tolist())
+            probs = rt_outputs['probs']
+            logits = rt_outputs['logits']
+            self._preds_probs.extend(probs.tolist())
+            self._preds_logits.extend(logits.tolist())
         
     def epoch_postprocess(self, post_inputs):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
@@ -163,8 +170,10 @@ class TaskParadigm(task_paradigm):
             if self._pred_output_path is None:
                 raise ValueError('argument pred_output_path not found in config. Please add it into config dict/file.')
             with open(os.path.join(self._pred_output_path, 'predictions.json'), 'w') as writer:
-                for p in self._preds:
-                    writer.write(str(p[1])+'\n')
+                writer.write('index\tlabel\tprobs\tlogits\n')
+                for i in range(len(self._preds_probs)):
+                    label = 0 if self._preds_probs[i][0] > self._preds_probs[i][1] else 1
+                    writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds_probs[i])+'\t'+str(self._preds_logits[i])+'\n')
             print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
 
                 
