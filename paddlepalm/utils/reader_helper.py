@@ -30,12 +30,6 @@ def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
             rt_val = rt_val.astype('float32')
     
     shape, dtype = attr
-    # rt_val = np.array(rt_val, dtype = dtype)
-    # if message.endswith("neg: "):
-    #     return rt_val
-    # print(message)
-    # print(rt_val)
-    # print('******')
    
     assert rt_val.dtype == np.dtype(dtype), message+"yielded data type not consistent with attr settings. Expect: {}, receive: {}.".format(rt_val.dtype, np.dtype(dtype))
     assert len(shape) == rt_val.ndim, message+"yielded data rank(ndim) not consistent with attr settings. Expect: {}, receive: {}.".format(len(shape), rt_val.ndim)

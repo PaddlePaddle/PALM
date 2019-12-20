@@ -71,10 +71,9 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {"loss": [[1], 'float32']}
         else:
-            return {"logits": [[-1,2], 'float32']}
+            return {"probs": [[-1,2], 'float32']}
 
     def build(self, inputs, scope_name=""):
-        
         if self._is_training and self._learning_strategy == 'pointwise':
             labels = inputs["reader"]["label_ids"] 
         cls_feats = inputs["backbone"]["sentence_pair_embedding"]
@@ -93,7 +92,8 @@ class TaskParadigm(task_paradigm):
                 dropout_prob=self._dropout_prob,
                 dropout_implementation="upscale_in_train")
         
-    
+        print(self._learning_strategy == 'pairwise' and self._is_training) 
+        #exit()
         # loss
         if self._learning_strategy == 'pairwise' and self._is_training:
             pos_score = fluid.layers.fc(
@@ -143,21 +143,18 @@ class TaskParadigm(task_paradigm):
                 bias_attr=fluid.ParamAttr(
                     name=scope_name+"cls_out_b",
                     initializer=fluid.initializer.Constant(0.)))
-            
-             
+            logits = fluid.layers.softmax(logits) 
             if self._is_training:
-                logits = fluid.layers.softmax(logits)
                 ce_loss = fluid.layers.cross_entropy(
                     input=logits, label=labels)
                 loss = fluid.layers.mean(x=ce_loss)
                 return {'loss': loss}
             else:
-                return {'logits': logits}
+                return {'probs': logits}
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
-            preds = rt_outputs['logits']
-            preds = np.argmax(preds, -1)
+            preds = rt_outputs['probs']
             self._preds.extend(preds.tolist())
         
     def epoch_postprocess(self, post_inputs):
@@ -167,7 +164,7 @@ class TaskParadigm(task_paradigm):
                 raise ValueError('argument pred_output_path not found in config. Please add it into config dict/file.')
             with open(os.path.join(self._pred_output_path, 'predictions.json'), 'w') as writer:
                 for p in self._preds:
-                    writer.write(str(p)+'\n')
+                    writer.write(str(p[1])+'\n')
             print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
 
                 
