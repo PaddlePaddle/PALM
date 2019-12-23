@@ -409,9 +409,7 @@ class Controller(object):
         train_prog = fluid.default_main_program()
         train_init_prog = fluid.default_startup_program()
         bb_output_vars = train_backbone.build(net_inputs, scope_name='__paddlepalm_')
-        print(bb_output_vars.keys())
-        print('***')                  
-        print(train_backbone.outputs_attr.keys() )   
+
         assert sorted(bb_output_vars.keys()) == sorted(train_backbone.outputs_attr.keys())
 
         pred_prog = fluid.Program()
