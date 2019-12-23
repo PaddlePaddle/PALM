@@ -96,14 +96,31 @@ class TaskParadigm(task_paradigm):
                 dropout_prob=self._dropout_prob,
                 dropout_implementation="upscale_in_train")
         
-        print(self._learning_strategy == 'pairwise' and self._is_training) 
-        #exit()
         # loss
+        logits = fluid.layers.fc(
+            input=cls_feats,
+            size=2,
+            param_attr=fluid.ParamAttr(
+                name=scope_name+"cls_out_w",
+                initializer=self._param_initializer),
+            bias_attr=fluid.ParamAttr(
+                name=scope_name+"cls_out_b",
+                initializer=fluid.initializer.Constant(0.)))
+        probs = fluid.layers.softmax(logits) 
         if self._learning_strategy == 'pairwise' and self._is_training:
             pos_score = fluid.layers.fc(
-                input=cls_feats,
+                input=logits,
                 size=1,
                 act = "sigmoid",
+                param_attr=fluid.ParamAttr(
+                    name=scope_name+"cls_out_w_pr",
+                    initializer=self._param_initializer),
+                bias_attr=fluid.ParamAttr(
+                    name=scope_name+"cls_out_b_pr",
+                    initializer=fluid.initializer.Constant(0.)))
+            logits_neg = fluid.layers.fc(
+                input=cls_feats_neg,
+                size=2,
                 param_attr=fluid.ParamAttr(
                     name=scope_name+"cls_out_w",
                     initializer=self._param_initializer),
@@ -111,14 +128,14 @@ class TaskParadigm(task_paradigm):
                     name=scope_name+"cls_out_b",
                     initializer=fluid.initializer.Constant(0.)))
             neg_score = fluid.layers.fc(
-                input=cls_feats_neg,
+                input=logits_neg,
                 size=1,
                 act = "sigmoid",
                 param_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_w",
+                    name=scope_name+"cls_out_w_pr",
                     initializer=self._param_initializer),
                 bias_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_b",
+                    name=scope_name+"cls_out_b_pr",
                     initializer=fluid.initializer.Constant(0.)))        
            
             pos_score = fluid.layers.reshape(x=pos_score, shape=[-1, 1], inplace=True)
@@ -138,6 +155,8 @@ class TaskParadigm(task_paradigm):
             return {'loss': loss}
         
         else:
+<<<<<<< HEAD
+=======
             logits = fluid.layers.fc(
                 input=cls_feats,
                 size=2,
@@ -148,6 +167,7 @@ class TaskParadigm(task_paradigm):
                     name=scope_name+"cls_out_b",
                     initializer=fluid.initializer.Constant(0.)))
             probs = fluid.layers.softmax(logits) 
+>>>>>>> 9d440e8ab32c6b5a5cbf26fb60f2c1e954d9c928
             if self._is_training:
                 ce_loss = fluid.layers.cross_entropy(
                     input=logits, label=labels)
@@ -174,6 +194,10 @@ class TaskParadigm(task_paradigm):
                 for i in range(len(self._preds_probs)):
                     label = 0 if self._preds_probs[i][0] > self._preds_probs[i][1] else 1
                     writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds_probs[i])+'\t'+str(self._preds_logits[i])+'\n')
+<<<<<<< HEAD
+                    #writer.write(str(i)+'\t'+str(self._preds_probs[i][1])+'\n')
+=======
+>>>>>>> 9d440e8ab32c6b5a5cbf26fb60f2c1e954d9c928
             print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
 
                 
