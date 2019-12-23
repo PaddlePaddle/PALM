@@ -50,9 +50,7 @@ class TaskParadigm(task_paradigm):
             self._dropout_prob = backbone_config.get('hidden_dropout_prob', 0.0)
 
         self._pred_output_path = config.get('pred_output_path', None)
-        self._preds_logits = []
-        self._preds_probs = []
-        self._preds_labels = []
+        self._preds = []
 
     
     @property
@@ -73,41 +71,41 @@ class TaskParadigm(task_paradigm):
         if self._is_training:
             return {"loss": [[1], 'float32']}
         else:
-            return {"probs": [[-1, 2], 'float32'],
-                    "logits": [[-1, 2], 'float32']
-                    }
+            if self._learning_strategy=='paiwise':
+                return {"probs": [[-1, 1], 'float32']}
+            else:
+                return {"logits": [[-1, 2], 'float32']}
 
     def build(self, inputs, scope_name=""):
         if self._is_training and self._learning_strategy == 'pointwise':
             labels = inputs["reader"]["label_ids"] 
         cls_feats = inputs["backbone"]["sentence_pair_embedding"]
-    
-        if self._learning_strategy == 'pairwise' and self._is_training:
-            cls_feats_neg = inputs["backbone"]["sentence_pair_embedding_neg"]
-
+        
         if self._is_training:
             cls_feats = fluid.layers.dropout(
                 x=cls_feats,
                 dropout_prob=self._dropout_prob,
                 dropout_implementation="upscale_in_train")
             if self._learning_strategy == 'pairwise':
+                cls_feats_neg = inputs["backbone"]["sentence_pair_embedding_neg"]
                 cls_feats_neg = fluid.layers.dropout(
                 x=cls_feats_neg,
                 dropout_prob=self._dropout_prob,
                 dropout_implementation="upscale_in_train")
         
         # loss
-        logits = fluid.layers.fc(
-            input=cls_feats,
-            size=2,
-            param_attr=fluid.ParamAttr(
-                name=scope_name+"cls_out_w",
-                initializer=self._param_initializer),
-            bias_attr=fluid.ParamAttr(
-                name=scope_name+"cls_out_b",
-                initializer=fluid.initializer.Constant(0.)))
-        probs = fluid.layers.softmax(logits) 
-        if self._learning_strategy == 'pairwise' and self._is_training:
+        if self._learning_strategy == 'pointwise':
+            logits = fluid.layers.fc(
+                input=cls_feats,
+                size=2,
+                act="softmax",
+                param_attr=fluid.ParamAttr(
+                    name=scope_name+"cls_out_w",
+                    initializer=self._param_initializer),
+                bias_attr=fluid.ParamAttr(
+                    name=scope_name+"cls_out_b",
+                    initializer=fluid.initializer.Constant(0.)))
+        else:
             pos_score = fluid.layers.fc(
                 input=logits,
                 size=1,
@@ -118,71 +116,53 @@ class TaskParadigm(task_paradigm):
                 bias_attr=fluid.ParamAttr(
                     name=scope_name+"cls_out_b_pr",
                     initializer=fluid.initializer.Constant(0.)))
-            logits_neg = fluid.layers.fc(
-                input=cls_feats_neg,
-                size=2,
-                param_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_w",
-                    initializer=self._param_initializer),
-                bias_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_b",
-                    initializer=fluid.initializer.Constant(0.)))
-            neg_score = fluid.layers.fc(
-                input=logits_neg,
-                size=1,
-                act = "sigmoid",
-                param_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_w_pr",
-                    initializer=self._param_initializer),
-                bias_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_b_pr",
-                    initializer=fluid.initializer.Constant(0.)))        
-           
             pos_score = fluid.layers.reshape(x=pos_score, shape=[-1, 1], inplace=True)
-            neg_score = fluid.layers.reshape(x=neg_score, shape=[-1, 1], inplace=True)
-        
-            def computeHingeLoss(pos, neg):
-                loss_part1 = fluid.layers.elementwise_sub(
-                    fluid.layers.fill_constant_batch_size_like(
-                        input=pos, shape=[-1, 1], value=self._margin, dtype='float32'), pos)
-                loss_part2 = fluid.layers.elementwise_add(loss_part1, neg)
-                loss_part3 = fluid.layers.elementwise_max(
-                    fluid.layers.fill_constant_batch_size_like(
-                        input=loss_part2, shape=[-1, 1], value=0.0, dtype='float32'), loss_part2)
-                return loss_part3
 
-            loss = fluid.layers.mean(computeHingeLoss(pos_score, neg_score))
-            return {'loss': loss}
-        
-        else:
-<<<<<<< HEAD
-=======
-            logits = fluid.layers.fc(
-                input=cls_feats,
-                size=2,
-                param_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_w",
-                    initializer=self._param_initializer),
-                bias_attr=fluid.ParamAttr(
-                    name=scope_name+"cls_out_b",
-                    initializer=fluid.initializer.Constant(0.)))
-            probs = fluid.layers.softmax(logits) 
->>>>>>> 9d440e8ab32c6b5a5cbf26fb60f2c1e954d9c928
-            if self._is_training:
+        if self._is_training:
+            if self._learning_strategy == 'pointwise':
                 ce_loss = fluid.layers.cross_entropy(
                     input=logits, label=labels)
                 loss = fluid.layers.mean(x=ce_loss)
-                return {'loss': loss}
             else:
-                return {'probs': probs,
-                        'logits': logits}
+                neg_score = fluid.layers.fc(
+                    input=logits_neg,
+                    size=1,
+                    act = "sigmoid",
+                    param_attr=fluid.ParamAttr(
+                        name=scope_name+"cls_out_w_pr",
+                        initializer=self._param_initializer),
+                    bias_attr=fluid.ParamAttr(
+                        name=scope_name+"cls_out_b_pr",
+                        initializer=fluid.initializer.Constant(0.)))        
+                neg_score = fluid.layers.reshape(x=neg_score, shape=[-1, 1], inplace=True)
+        
+                def computeHingeLoss(pos, neg):
+                    loss_part1 = fluid.layers.elementwise_sub(
+                        fluid.layers.fill_constant_batch_size_like(
+                            input=pos, shape=[-1, 1], value=self._margin, dtype='float32'), pos)
+                    loss_part2 = fluid.layers.elementwise_add(loss_part1, neg)
+                    loss_part3 = fluid.layers.elementwise_max(
+                        fluid.layers.fill_constant_batch_size_like(
+                            input=loss_part2, shape=[-1, 1], value=0.0, dtype='float32'), loss_part2)
+                    return loss_part3
+
+                loss = fluid.layers.mean(computeHingeLoss(pos_score, neg_score))
+            return {'loss': loss}
+        
+        else:
+            if self._learning_strategy == 'pointwise':
+                return {'logits': logits}
+            else:
+                return {'probs': pos_score}
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
-            probs = rt_outputs['probs']
-            logits = rt_outputs['logits']
-            self._preds_probs.extend(probs.tolist())
-            self._preds_logits.extend(logits.tolist())
+            if self._learning_strategy == 'pointwise':
+                logits = rt_outputs['logits']
+                self._preds.extend(logits.tolist())
+            else:
+                probs = rt_outputs['probs']
+                self._preds.extend(probs.tolist())
         
     def epoch_postprocess(self, post_inputs):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
@@ -190,14 +170,18 @@ class TaskParadigm(task_paradigm):
             if self._pred_output_path is None:
                 raise ValueError('argument pred_output_path not found in config. Please add it into config dict/file.')
             with open(os.path.join(self._pred_output_path, 'predictions.json'), 'w') as writer:
-                writer.write('index\tlabel\tprobs\tlogits\n')
-                for i in range(len(self._preds_probs)):
-                    label = 0 if self._preds_probs[i][0] > self._preds_probs[i][1] else 1
-                    writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds_probs[i])+'\t'+str(self._preds_logits[i])+'\n')
-<<<<<<< HEAD
-                    #writer.write(str(i)+'\t'+str(self._preds_probs[i][1])+'\n')
-=======
->>>>>>> 9d440e8ab32c6b5a5cbf26fb60f2c1e954d9c928
+                if self._learning_strategy == 'pointwise':
+                    writer.write('index\tlabel\tlogits\n')
+                    for i in range(len(self._preds)):
+                        label = 0 if self._preds[i][0] > self._preds[i][1] else 1
+                        writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds[i])+'\n')
+                        #writer.write(str(i)+'\t'+str(self._preds_probs[i][1])+'\n')
+                else:
+                    writer.write('index\tlabel\tprobs\tlogits\n')
+                    for i in range(len(self._preds)):
+                        label = 0 if self._preds[i] < 0.5 else 1
+                        writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds[i])+'\n')
+                        #writer.write(str(i)+'\t'+str(self._preds_probs[i][1])+'\n')
             print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
 
                 
