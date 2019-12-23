@@ -177,7 +177,7 @@ class TaskParadigm(task_paradigm):
                         writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds[i])+'\n')
                         #writer.write(str(i)+'\t'+str(self._preds_probs[i][1])+'\n')
                 else:
-                    writer.write('index\tlabel\tprobs\tlogits\n')
+                    writer.write('index\tlabel\tprobs\n')
                     for i in range(len(self._preds)):
                         label = 0 if self._preds[i] < 0.5 else 1
                         writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds[i])+'\n')
