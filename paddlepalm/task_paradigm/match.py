@@ -107,7 +107,7 @@ class TaskParadigm(task_paradigm):
                     initializer=fluid.initializer.Constant(0.)))
         else:
             pos_score = fluid.layers.fc(
-                input=logits,
+                input=cls_feats,
                 size=1,
                 act = "sigmoid",
                 param_attr=fluid.ParamAttr(
@@ -125,7 +125,7 @@ class TaskParadigm(task_paradigm):
                 loss = fluid.layers.mean(x=ce_loss)
             else:
                 neg_score = fluid.layers.fc(
-                    input=logits_neg,
+                    input=cls_feats_neg,
                     size=1,
                     act = "sigmoid",
                     param_attr=fluid.ParamAttr(
