@@ -85,9 +85,8 @@ class Reader(reader):
 
         def list_to_dict(x):
             names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
-                'label_ids', 'unique_ids']
+                'label_ids']
             outputs = {n: i for n,i in zip(names, x)}
-            del outputs['unique_ids']
             if not self._is_training:
                 del outputs['label_ids']
             return outputs
