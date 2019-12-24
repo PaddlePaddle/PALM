@@ -93,6 +93,7 @@ class Model(backbone):
         self._emb_dtype = 'float32'
 
         input_buffer = {}
+        output_buffer = {}
         input_buffer['base'] = [src_ids, pos_ids, sent_ids, input_mask]
 
         if self._learning_strategy == 'pairwise' and self._phase =='train':

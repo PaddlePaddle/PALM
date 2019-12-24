@@ -105,6 +105,7 @@ class Model(backbone):
         task_ids = inputs['task_ids']
 
         input_buffer = {}
+        output_buffer = {}
         input_buffer['base'] = [src_ids, pos_ids, sent_ids, input_mask, task_ids]
 
         if self._learning_strategy == 'pairwise' and self._phase =='train':
