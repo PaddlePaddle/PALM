@@ -21,10 +21,10 @@ import os
 import json
 
 
-def computeHingeLoss(pos, neg):
+def computeHingeLoss(pos, neg, margin):
     loss_part1 = fluid.layers.elementwise_sub(
         fluid.layers.fill_constant_batch_size_like(
-            input=pos, shape=[-1, 1], value=self._margin, dtype='float32'), pos)
+            input=pos, shape=[-1, 1], value=margin, dtype='float32'), pos)
     loss_part2 = fluid.layers.elementwise_add(loss_part1, neg)
     loss_part3 = fluid.layers.elementwise_max(
         fluid.layers.fill_constant_batch_size_like(
@@ -158,7 +158,7 @@ class TaskParadigm(task_paradigm):
                         initializer=fluid.initializer.Constant(0.)))        
                 neg_score = fluid.layers.reshape(x=neg_score, shape=[-1, 1], inplace=True)
         
-                loss = fluid.layers.mean(computeHingeLoss(pos_score, neg_score))
+                loss = fluid.layers.mean(computeHingeLoss(pos_score, neg_score, self._margin))
                 return {'loss': loss}
             # for pred
             else:
