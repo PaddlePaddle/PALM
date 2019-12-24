@@ -57,32 +57,32 @@ class Model(backbone):
 
     @property
     def inputs_attr(self):
-        returns = {"token_ids": [[-1, -1], 'int64'],
-                    "position_ids": [[-1, -1], 'int64'],
-                    "segment_ids": [[-1, -1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32'],
-                    }
+        ret = {"token_ids": [[-1, -1], 'int64'],
+               "position_ids": [[-1, -1], 'int64'],
+               "segment_ids": [[-1, -1], 'int64'],
+               "input_mask": [[-1, -1, 1], 'float32'],
+               }
         if self._learning_strategy == 'pairwise' and self._phase=='train':
-            returns.update({"token_ids_neg": [[-1, -1], 'int64'],
-                            "position_ids_neg": [[-1, -1], 'int64'],
-                            "segment_ids_neg": [[-1, -1], 'int64'],
-                            "input_mask_neg": [[-1, -1, 1], 'float32'],
-                            })
-        return returns
+            ret.update({"token_ids_neg": [[-1, -1], 'int64'],
+                        "position_ids_neg": [[-1, -1], 'int64'],
+                        "segment_ids_neg": [[-1, -1], 'int64'],
+                        "input_mask_neg": [[-1, -1, 1], 'float32'],
+                        })
+        return ret
 
     @property
     def outputs_attr(self):
-        returns = {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
-                    "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
-                    "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
-                    "sentence_embedding": [[-1, self._emb_size], 'float32'],
-                    "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
+        ret = {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
+               "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
+               "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
+               "sentence_embedding": [[-1, self._emb_size], 'float32'],
+               "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
         if self._learning_strategy == 'pairwise' and self._phase == 'train':
-            returns.update({"word_embedding_neg": [[-1, -1, self._emb_size], 'float32'],
-                            "encoder_outputs_neg": [[-1, -1, self._emb_size], 'float32'],
-                            "sentence_embedding_neg": [[-1, self._emb_size], 'float32'],
-                            "sentence_pair_embedding_neg": [[-1, self._emb_size], 'float32']})
-        return returns 
+            ret.update({"word_embedding_neg": [[-1, -1, self._emb_size], 'float32'],
+                        "encoder_outputs_neg": [[-1, -1, self._emb_size], 'float32'],
+                        "sentence_embedding_neg": [[-1, self._emb_size], 'float32'],
+                        "sentence_pair_embedding_neg": [[-1, self._emb_size], 'float32']})
+        return ret 
 
     def build(self, inputs, scope_name=""):
         src_ids = inputs['token_ids']
