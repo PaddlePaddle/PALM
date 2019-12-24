@@ -57,7 +57,7 @@ class BaseReader(object):
                  do_lower_case=True,
                  in_tokens=False,
                  is_inference=False,
-                 learning_strategy,
+                 learning_strategy='pointwise',
                  random_seed=None,
                  tokenizer="FullTokenizer",
                  phase='train',
