@@ -23,12 +23,14 @@ from paddle import fluid
 
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
     if not isinstance(rt_val, np.ndarray):
+        
         rt_val = np.array(rt_val)
         assert rt_val.dtype != np.dtype('O'), "yielded data is not a valid tensor(number of elements on some dimension may differ)."
         if rt_val.dtype == np.dtype('float64'):
             rt_val = rt_val.astype('float32')
     
     shape, dtype = attr
+   
     assert rt_val.dtype == np.dtype(dtype), message+"yielded data type not consistent with attr settings. Expect: {}, receive: {}.".format(rt_val.dtype, np.dtype(dtype))
     assert len(shape) == rt_val.ndim, message+"yielded data rank(ndim) not consistent with attr settings. Expect: {}, receive: {}.".format(len(shape), rt_val.ndim)
     for rt, exp in zip(rt_val.shape, shape):

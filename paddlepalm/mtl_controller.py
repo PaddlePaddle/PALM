@@ -393,6 +393,7 @@ class Controller(object):
         iterators = []
         prefixes = []
         mrs = []
+
         for inst in instances:
             iterators.append(inst.reader['train'].iterator())
             prefixes.append(inst.name)
@@ -403,13 +404,14 @@ class Controller(object):
         input_attrs = [[i, j, k] for i, (j,k) in zip(joint_input_names, joint_shape_and_dtypes)]
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_joint_input_names, pred_joint_shape_and_dtypes)]
         net_inputs = create_net_inputs(input_attrs, async=True, iterator_fn=joint_iterator_fn, dev_count=dev_count, n_prefetch=3)
-
+  
         # build backbone and task layers
         train_prog = fluid.default_main_program()
         train_init_prog = fluid.default_startup_program()
         bb_output_vars = train_backbone.build(net_inputs, scope_name='__paddlepalm_')
+
         assert sorted(bb_output_vars.keys()) == sorted(train_backbone.outputs_attr.keys())
-        
+
         pred_prog = fluid.Program()
         pred_init_prog = fluid.Program()
 
@@ -425,18 +427,17 @@ class Controller(object):
             task_inputs = {'backbone': bb_output_vars}
             task_inputs_from_reader = _decode_inputs(net_inputs, inst.name)
             task_inputs['reader'] = task_inputs_from_reader
-
+       
             scope = inst.task_reuse_scope + '/'
             with fluid.unique_name.guard(scope):
+               
                 output_vars = inst.build_task_layer(task_inputs, phase='train', scope=scope)
                 output_vars = {inst.name+'/'+key: val for key, val in output_vars.items()}
                 old = len(task_output_vars) # for debug
                 task_output_vars.update(output_vars)
                 assert len(task_output_vars) - old == len(output_vars) # for debug
-
             # prepare predict vars for saving inference model
             if inst.is_target:
-
                 with fluid.program_guard(pred_prog, pred_init_prog):
                     cur_inputs = _decode_inputs(pred_net_inputs, inst.name)
                     inst.pred_input = cur_inputs
@@ -652,7 +653,6 @@ class Controller(object):
         for feed in inst.reader['pred'].iterator():
             feed = _encode_inputs(feed, inst.name, cand_set=mapper)
             feed = {mapper[k]: v for k,v in feed.items()}
-
             rt_outputs = self.exe.run(pred_prog, feed, fetch_vars)
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             inst.postprocess(rt_outputs, phase='pred')

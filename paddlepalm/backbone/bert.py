@@ -44,6 +44,11 @@ class Model(backbone):
         self._word_emb_name = "word_embedding"
         self._pos_emb_name = "pos_embedding"
         self._sent_emb_name = "sent_embedding"
+        self._phase = phase
+        if 'learning_strategy' in config:
+            self._learning_strategy = config['learning_strategy']
+        else:
+            self._learning_strategy = 'pointwise'
 
         # Initialize all weigths by truncated normal initializer, and all biases 
         # will be initialized by constant zero by default.
@@ -52,18 +57,32 @@ class Model(backbone):
 
     @property
     def inputs_attr(self):
-        return {"token_ids": [[-1, -1], 'int64'],
-                "position_ids": [[-1, -1], 'int64'],
-                "segment_ids": [[-1, -1], 'int64'],
-                "input_mask": [[-1, -1, 1], 'float32']}
+        returns = {"token_ids": [[-1, -1], 'int64'],
+                    "position_ids": [[-1, -1], 'int64'],
+                    "segment_ids": [[-1, -1], 'int64'],
+                    "input_mask": [[-1, -1, 1], 'float32'],
+                    }
+        if self._learning_strategy == 'pairwise' and self._phase=='train':
+            returns.update({"token_ids_neg": [[-1, -1], 'int64'],
+                            "position_ids_neg": [[-1, -1], 'int64'],
+                            "segment_ids_neg": [[-1, -1], 'int64'],
+                            "input_mask_neg": [[-1, -1, 1], 'float32'],
+                            })
+        return returns
 
     @property
     def outputs_attr(self):
-        return {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
-                "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
-                "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
-                "sentence_embedding": [[-1, self._emb_size], 'float32'],
-                "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
+        returns = {"word_embedding": [[-1, -1, self._emb_size], 'float32'],
+                    "embedding_table": [[-1, self._voc_size, self._emb_size], 'float32'],
+                    "encoder_outputs": [[-1, -1, self._emb_size], 'float32'],
+                    "sentence_embedding": [[-1, self._emb_size], 'float32'],
+                    "sentence_pair_embedding": [[-1, self._emb_size], 'float32']}
+        if self._learning_strategy == 'pairwise' and self._phase == 'train':
+            returns.update({"word_embedding_neg": [[-1, -1, self._emb_size], 'float32'],
+                            "encoder_outputs_neg": [[-1, -1, self._emb_size], 'float32'],
+                            "sentence_embedding_neg": [[-1, self._emb_size], 'float32'],
+                            "sentence_pair_embedding_neg": [[-1, self._emb_size], 'float32']})
+        return returns 
 
     def build(self, inputs, scope_name=""):
         src_ids = inputs['token_ids']
@@ -72,83 +91,111 @@ class Model(backbone):
         input_mask = inputs['input_mask']
 
         self._emb_dtype = 'float32'
-        # padding id in vocabulary must be set to 0
-        emb_out = fluid.embedding(
-            input=src_ids,
-            size=[self._voc_size, self._emb_size],
-            dtype=self._emb_dtype,
-            param_attr=fluid.ParamAttr(
-                name=scope_name+self._word_emb_name, initializer=self._param_initializer),
-            is_sparse=False)
 
-        # fluid.global_scope().find_var('backbone-word_embedding').get_tensor()
-        embedding_table = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
+        input_buffer = {}
+        output_buffer = {}
+        input_buffer['base'] = [src_ids, pos_ids, sent_ids, input_mask]
+        output_buffer['base'] = {}
+
+        if self._learning_strategy == 'pairwise' and self._phase =='train':
+            src_ids = inputs['token_ids_neg']
+            pos_ids = inputs['position_ids_neg']
+            sent_ids = inputs['segment_ids_neg']
+            input_mask = inputs['input_mask_neg']
+            input_buffer['neg'] = [src_ids, pos_ids, sent_ids, input_mask]
+            output_buffer['neg'] = {}
         
-        position_emb_out = fluid.embedding(
-            input=pos_ids,
-            size=[self._max_position_seq_len, self._emb_size],
-            dtype=self._emb_dtype,
-            param_attr=fluid.ParamAttr(
-                name=scope_name+self._pos_emb_name, initializer=self._param_initializer))
+        for key, (src_ids, pos_ids, sent_ids, input_mask) in input_buffer.items():
+            # padding id in vocabulary must be set to 0
+            emb_out = fluid.embedding(
+                input=src_ids,
+                size=[self._voc_size, self._emb_size],
+                dtype=self._emb_dtype,
+                param_attr=fluid.ParamAttr(
+                    name=scope_name+self._word_emb_name, initializer=self._param_initializer),
+                is_sparse=False)
 
-        sent_emb_out = fluid.embedding(
-            sent_ids,
-            size=[self._sent_types, self._emb_size],
-            dtype=self._emb_dtype,
-            param_attr=fluid.ParamAttr(
-                name=scope_name+self._sent_emb_name, initializer=self._param_initializer))
+            # fluid.global_scope().find_var('backbone-word_embedding').get_tensor()
+            embedding_table = fluid.default_main_program().global_block().var(scope_name+self._word_emb_name)
+            
+            position_emb_out = fluid.embedding(
+                input=pos_ids,
+                size=[self._max_position_seq_len, self._emb_size],
+                dtype=self._emb_dtype,
+                param_attr=fluid.ParamAttr(
+                    name=scope_name+self._pos_emb_name, initializer=self._param_initializer))
 
-        emb_out = emb_out + position_emb_out
-        emb_out = emb_out + sent_emb_out
+            sent_emb_out = fluid.embedding(
+                sent_ids,
+                size=[self._sent_types, self._emb_size],
+                dtype=self._emb_dtype,
+                param_attr=fluid.ParamAttr(
+                    name=scope_name+self._sent_emb_name, initializer=self._param_initializer))
 
-        emb_out = pre_process_layer(
-            emb_out, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')
+            emb_out = emb_out + position_emb_out
+            emb_out = emb_out + sent_emb_out
 
-        self_attn_mask = fluid.layers.matmul(
-            x=input_mask, y=input_mask, transpose_y=True)
+            emb_out = pre_process_layer(
+                emb_out, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')
 
-        self_attn_mask = fluid.layers.scale(
-            x=self_attn_mask, scale=10000.0, bias=-1.0, bias_after_scale=False)
-        n_head_self_attn_mask = fluid.layers.stack(
-            x=[self_attn_mask] * self._n_head, axis=1)
-        n_head_self_attn_mask.stop_gradient = True
+            self_attn_mask = fluid.layers.matmul(
+                x=input_mask, y=input_mask, transpose_y=True)
 
-        enc_out = encoder(
-            enc_input=emb_out,
-            attn_bias=n_head_self_attn_mask,
-            n_layer=self._n_layer,
-            n_head=self._n_head,
-            d_key=self._emb_size // self._n_head,
-            d_value=self._emb_size // self._n_head,
-            d_model=self._emb_size,
-            d_inner_hid=self._emb_size * 4,
-            prepostprocess_dropout=self._prepostprocess_dropout,
-            attention_dropout=self._attention_dropout,
-            relu_dropout=0,
-            hidden_act=self._hidden_act,
-            preprocess_cmd="",
-            postprocess_cmd="dan",
-            param_initializer=self._param_initializer,
-            name=scope_name+'encoder')
+            self_attn_mask = fluid.layers.scale(
+                x=self_attn_mask, scale=10000.0, bias=-1.0, bias_after_scale=False)
+            n_head_self_attn_mask = fluid.layers.stack(
+                x=[self_attn_mask] * self._n_head, axis=1)
+            n_head_self_attn_mask.stop_gradient = True
 
+            enc_out = encoder(
+                enc_input=emb_out,
+                attn_bias=n_head_self_attn_mask,
+                n_layer=self._n_layer,
+                n_head=self._n_head,
+                d_key=self._emb_size // self._n_head,
+                d_value=self._emb_size // self._n_head,
+                d_model=self._emb_size,
+                d_inner_hid=self._emb_size * 4,
+                prepostprocess_dropout=self._prepostprocess_dropout,
+                attention_dropout=self._attention_dropout,
+                relu_dropout=0,
+                hidden_act=self._hidden_act,
+                preprocess_cmd="",
+                postprocess_cmd="dan",
+                param_initializer=self._param_initializer,
+                name=scope_name+'encoder')
+
+            
+            next_sent_feat = fluid.layers.slice(
+                input=enc_out, axes=[1], starts=[0], ends=[1])
+            next_sent_feat = fluid.layers.reshape(next_sent_feat, [-1, next_sent_feat.shape[-1]])
+            next_sent_feat = fluid.layers.fc(
+                input=next_sent_feat,
+                size=self._emb_size,
+                act="tanh",
+                param_attr=fluid.ParamAttr(
+                    name=scope_name+"pooled_fc.w_0", initializer=self._param_initializer),
+                bias_attr=scope_name+"pooled_fc.b_0")
+            output_buffer[key]['word_embedding'] = emb_out
+            output_buffer[key]['encoder_outputs'] = enc_out
+            output_buffer[key]['sentence_embedding'] = next_sent_feat
+            output_buffer[key]['sentence_pair_embedding'] = next_sent_feat
         
-        next_sent_feat = fluid.layers.slice(
-            input=enc_out, axes=[1], starts=[0], ends=[1])
-        next_sent_feat = fluid.layers.reshape(next_sent_feat, [-1, next_sent_feat.shape[-1]])
-        next_sent_feat = fluid.layers.fc(
-            input=next_sent_feat,
-            size=self._emb_size,
-            act="tanh",
-            param_attr=fluid.ParamAttr(
-                name=scope_name+"pooled_fc.w_0", initializer=self._param_initializer),
-            bias_attr=scope_name+"pooled_fc.b_0")
+        ret = {}
+        ret['embedding_table'] = embedding_table
+        ret['word_embedding'] = output_buffer['base']['word_embedding']
+        ret['encoder_outputs'] = output_buffer['base']['encoder_outputs']
+        ret['sentence_embedding'] = output_buffer['base']['sentence_embedding']
+        ret['sentence_pair_embedding'] = output_buffer['base']['sentence_pair_embedding']
 
-        return {'embedding_table': embedding_table,
-                'word_embedding': emb_out,
-                'encoder_outputs': enc_out,
-                'sentence_embedding': next_sent_feat,
-                'sentence_pair_embedding': next_sent_feat}
-
+        if self._learning_strategy == 'pairwise' and self._phase == 'train':
+            ret['word_embedding_neg'] = output_buffer['neg']['word_embedding']
+            ret['encoder_outputs_neg'] = output_buffer['neg']['encoder_outputs']
+            ret['sentence_embedding_neg'] = output_buffer['neg']['sentence_embedding']
+            ret['sentence_pair_embedding_neg'] = output_buffer['neg']['sentence_pair_embedding']
+        
+        return ret
+                    
     def postprocess(self, rt_outputs):
         pass
 

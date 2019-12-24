@@ -57,8 +57,10 @@ class BaseReader(object):
                  do_lower_case=True,
                  in_tokens=False,
                  is_inference=False,
+                 learning_strategy='pointwise',
                  random_seed=None,
                  tokenizer="FullTokenizer",
+                 phase='train',
                  is_classify=True,
                  is_regression=False,
                  for_cn=True,
@@ -72,7 +74,9 @@ class BaseReader(object):
         self.sep_id = self.vocab["[SEP]"]
         self.mask_id = self.vocab["[MASK]"]
         self.in_tokens = in_tokens
+        self.phase = phase
         self.is_inference = is_inference
+        self.learning_strategy = learning_strategy
         self.for_cn = for_cn
         self.task_id = task_id
 
@@ -124,6 +128,7 @@ class BaseReader(object):
                 tokens_a.pop()
             else:
                 tokens_b.pop()
+    
 
     def _convert_example_to_record(self, example, max_seq_length, tokenizer):
         """Converts a single `Example` into a single `Record`."""
@@ -131,26 +136,33 @@ class BaseReader(object):
         text_a = tokenization.convert_to_unicode(example.text_a)
         tokens_a = tokenizer.tokenize(text_a)
         tokens_b = None
-
         has_text_b = False
+        has_text_b_neg = False
         if isinstance(example, dict):
             has_text_b = "text_b" in example.keys()
+            has_text_b_neg = "text_b_neg" in example.keys()
         else:
             has_text_b = "text_b" in example._fields
+            has_text_b_neg = "text_b_neg" in example._fields
 
         if has_text_b:
             text_b = tokenization.convert_to_unicode(example.text_b)
             tokens_b = tokenizer.tokenize(text_b)
-
-        if tokens_b:
             # Modifies `tokens_a` and `tokens_b` in place so that the total
             # length is less than the specified length.
             # Account for [CLS], [SEP], [SEP] with "- 3"
             self._truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
+           
+            if has_text_b_neg and self.phase == 'train':
+                tokens_a_neg = tokenizer.tokenize(text_a)
+                text_b_neg = tokenization.convert_to_unicode(example.text_b_neg)
+                tokens_b_neg = tokenizer.tokenize(text_b_neg)
+                self._truncate_seq_pair(tokens_a_neg, tokens_b_neg, max_seq_length - 3)
         else:
             # Account for [CLS] and [SEP] with "- 2"
             if len(tokens_a) > max_seq_length - 2:
                 tokens_a = tokens_a[0:(max_seq_length - 2)]
+        
 
         # The convention in BERT/ERNIE is:
         # (a) For sequence pairs:
@@ -173,6 +185,7 @@ class BaseReader(object):
         tokens = []
         text_type_ids = []
         tokens.append("[CLS]")
+        
         text_type_ids.append(0)
         for token in tokens_a:
             tokens.append(token)
@@ -190,6 +203,29 @@ class BaseReader(object):
         token_ids = tokenizer.convert_tokens_to_ids(tokens)
         position_ids = list(range(len(token_ids)))
 
+
+        if has_text_b_neg and self.phase == 'train':
+            tokens_neg = []
+            text_type_ids_neg = []
+            tokens_neg.append("[CLS]")
+            text_type_ids_neg.append(0)
+            for token in tokens_a_neg:
+                tokens_neg.append(token)
+                text_type_ids_neg.append(0)
+            tokens_neg.append("[SEP]")
+            text_type_ids_neg.append(0)
+
+            if tokens_b_neg:
+                for token in tokens_b_neg:
+                    tokens_neg.append(token)
+                    text_type_ids_neg.append(1)
+                tokens_neg.append("[SEP]")
+                text_type_ids_neg.append(1)
+
+            token_ids_neg = tokenizer.convert_tokens_to_ids(tokens_neg)
+            position_ids_neg = list(range(len(token_ids_neg)))
+
+
         if self.is_inference:
             Record = namedtuple('Record',
                                 ['token_ids', 'text_type_ids', 'position_ids'])
@@ -198,25 +234,38 @@ class BaseReader(object):
                 text_type_ids=text_type_ids,
                 position_ids=position_ids)
         else:
-            if self.label_map:
-                label_id = self.label_map[example.label]
-            else:
-                label_id = example.label
-
-            Record = namedtuple('Record', [
-                'token_ids', 'text_type_ids', 'position_ids', 'label_id', 'qid'
-            ])
-
             qid = None
             if "qid" in example._fields:
                 qid = example.qid
+            if self.learning_strategy == 'pairwise' and self.phase == 'train':
+                Record = namedtuple('Record',
+                                    ['token_ids', 'text_type_ids', 'position_ids', 'token_ids_neg', 'text_type_ids_neg', 'position_ids_neg', 'qid'])
+                
+                record = Record(
+                    token_ids=token_ids,
+                    text_type_ids=text_type_ids,
+                    position_ids=position_ids,
+                    token_ids_neg=token_ids_neg,
+                    text_type_ids_neg=text_type_ids_neg,
+                    position_ids_neg=position_ids_neg,
+                    qid=qid)
+ 
+            else:
+                if self.label_map:
+                    label_id = self.label_map[example.label]
+                else:
+                    label_id = example.label
 
-            record = Record(
-                token_ids=token_ids,
-                text_type_ids=text_type_ids,
-                position_ids=position_ids,
-                label_id=label_id,
-                qid=qid)
+                Record = namedtuple('Record', [
+                    'token_ids', 'text_type_ids', 'position_ids', 'label_id', 'qid'
+                ])
+
+                record = Record(
+                    token_ids=token_ids,
+                    text_type_ids=text_type_ids,
+                    position_ids=position_ids,
+                    label_id=label_id,
+                    qid=qid)
         return record
 
     def _prepare_batch_data(self, examples, batch_size, phase=None):
@@ -228,7 +277,7 @@ class BaseReader(object):
             if phase == "train":
                 self.current_example = index
             record = self._convert_example_to_record(example, self.max_seq_len,
-                                                     self.tokenizer)
+                                                     self.tokenizer)                                       
             max_len = max(max_len, len(record.token_ids))
             if self.in_tokens:
                 to_append = (len(batch_records) + 1) * max_len <= batch_size
@@ -285,6 +334,7 @@ class BaseReader(object):
                     if len(all_dev_batches) == dev_count:
                         for batch in all_dev_batches:
                             yield batch
+                        
                         all_dev_batches = []
         def f():
             for i in wrapper():
@@ -368,13 +418,6 @@ class MaskLMReader(BaseReader):
         token_ids = tokenizer.convert_tokens_to_ids(tokens)
         position_ids = list(range(len(token_ids)))
 
-        # Record = namedtuple('Record',
-        #                     ['token_ids', 'text_type_ids', 'position_ids'])
-        # record = Record(
-        #     token_ids=token_ids,
-        #     text_type_ids=text_type_ids,
-        #     position_ids=position_ids)
-
         return [token_ids, text_type_ids, position_ids]
 
     def batch_reader(self, examples, batch_size, in_tokens, phase):
@@ -457,7 +500,6 @@ class ClassifyReader(BaseReader):
                 index for index, h in enumerate(headers) if h != "label"
             ]
             Example = namedtuple('Example', headers)
-
             examples = []
             for line in reader:
                 for index, text in enumerate(line):
@@ -474,15 +516,20 @@ class ClassifyReader(BaseReader):
         batch_token_ids = [record.token_ids for record in batch_records]
         batch_text_type_ids = [record.text_type_ids for record in batch_records]
         batch_position_ids = [record.position_ids for record in batch_records]
+        if self.phase=='train' and self.learning_strategy == 'pairwise':
+            batch_token_ids_neg = [record.token_ids_neg for record in batch_records]
+            batch_text_type_ids_neg = [record.text_type_ids_neg for record in batch_records]
+            batch_position_ids_neg = [record.position_ids_neg for record in batch_records]
 
         if not self.is_inference:
-            batch_labels = [record.label_id for record in batch_records]
-            if self.is_classify:
-                batch_labels = np.array(batch_labels).astype("int64").reshape(
-                    [-1])
-            elif self.is_regression:
-                batch_labels = np.array(batch_labels).astype("float32").reshape(
-                    [-1])
+            if not self.learning_strategy == 'pairwise':
+                batch_labels = [record.label_id for record in batch_records]
+                if self.is_classify:
+                    batch_labels = np.array(batch_labels).astype("int64").reshape(
+                        [-1])
+                elif self.is_regression:
+                    batch_labels = np.array(batch_labels).astype("float32").reshape(
+                        [-1])
 
             if batch_records[0].qid:
                 batch_qids = [record.qid for record in batch_records]
@@ -505,8 +552,23 @@ class ClassifyReader(BaseReader):
             padded_token_ids, padded_text_type_ids, padded_position_ids,
             padded_task_ids, input_mask
         ]
-        if not self.is_inference:
-            return_list += [batch_labels, batch_qids]
+
+        if self.phase=='train':
+            if self.learning_strategy == 'pairwise':
+                padded_token_ids_neg, input_mask_neg = pad_batch_data(
+                    batch_token_ids_neg, pad_idx=self.pad_id, return_input_mask=True)
+                padded_text_type_ids_neg = pad_batch_data(
+                    batch_text_type_ids_neg, pad_idx=self.pad_id)
+                padded_position_ids_neg = pad_batch_data(
+                    batch_position_ids_neg, pad_idx=self.pad_id)
+                padded_task_ids_neg = np.ones_like(
+                    padded_token_ids_neg, dtype="int64") * self.task_id
+
+                return_list += [padded_token_ids_neg, padded_text_type_ids_neg, \
+                                padded_position_ids_neg, padded_task_ids_neg, input_mask_neg]
+
+            elif self.learning_strategy == 'pointwise':
+                return_list += [batch_labels]
 
         return return_list
 
