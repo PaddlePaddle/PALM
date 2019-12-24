@@ -35,6 +35,9 @@ from paddlepalm.utils.reader_helper import create_net_inputs, create_iterator_fn
 from paddlepalm.default_settings import *
 from task_instance import TaskInstance, check_instances
 
+import Queue
+from threading import Thread
+
 DEBUG=False
 VERBOSE=0
 
@@ -338,6 +341,7 @@ class Controller(object):
         main_conf = main_inst.config
         if not os.path.exists(main_conf['save_path']):
             os.makedirs(main_conf['save_path'])
+            os.makedirs(os.path.join(main_conf['save_path'], 'ckpt'))
         
         # prepare backbone
         train_backbone = Backbone(bb_conf, phase='train')
@@ -399,12 +403,15 @@ class Controller(object):
             prefixes.append(inst.name)
             mrs.append(inst.mix_ratio)
 
-        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE)
+        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE, return_type='dict')
+        self._joint_iterator_fn = joint_iterator_fn
 
         input_attrs = [[i, j, k] for i, (j,k) in zip(joint_input_names, joint_shape_and_dtypes)]
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_joint_input_names, pred_joint_shape_and_dtypes)]
-        net_inputs = create_net_inputs(input_attrs, async=True, iterator_fn=joint_iterator_fn, dev_count=dev_count, n_prefetch=3)
-  
+        # net_inputs = create_net_inputs(input_attrs, async=True, iterator_fn=joint_iterator_fn, dev_count=dev_count, n_prefetch=3)
+        net_inputs = create_net_inputs(input_attrs, async=False)
+        self._net_inputs = net_inputs
+
         # build backbone and task layers
         train_prog = fluid.default_main_program()
         train_init_prog = fluid.default_startup_program()
@@ -568,6 +575,18 @@ class Controller(object):
                         return False
             return True
 
+        def pack_multicard_feed(iterator, net_inputs, dev_count):
+            ret = []
+            mask = []
+            for i in range(dev_count):
+                temp = {}
+                content, flag = next(iterator)
+                for q, var in net_inputs.items():
+                    temp[var.name] = content[q]
+                ret.append(temp)
+                mask.append(1 if flag else 0)
+            return ret, mask
+
         # do training
         fetch_names, fetch_list = zip(*fetches.items())
 
@@ -576,8 +595,50 @@ class Controller(object):
         epoch = 0
         time_begin = time.time()
         backbone_buffer = []
+
+        def multi_dev_reader(reader, dev_count):
+            def worker(reader, dev_count, queue):
+                dev_batches = []
+                for index, data in enumerate(reader()):
+                    if len(dev_batches) < dev_count:
+                        dev_batches.append(data)
+                    if len(dev_batches) == dev_count:
+                        queue.put((dev_batches, 0))
+                        dev_batches = []
+                # For the prediction of the remained batches, pad more batches to 
+                # the number of devices and the padded samples would be removed in
+                # prediction outputs. 
+                if len(dev_batches) > 0:
+                    num_pad = dev_count - len(dev_batches)
+                    for i in range(len(dev_batches), dev_count):
+                        dev_batches.append(dev_batches[-1])
+                    queue.put((dev_batches, num_pad))
+                queue.put(None)
+
+            queue = Queue.Queue(dev_count*2)
+            p = Thread(
+                target=worker, args=(reader, dev_count, queue))
+            p.daemon = True
+            p.start()
+            while True:
+                ret = queue.get()
+                if ret is not None:
+                    batches, num_pad = ret
+                    queue.task_done()
+                    for batch in batches:
+                        flag = num_pad == 0
+                        if num_pad > 0:
+                            num_pad -= 1
+                        yield batch, flag
+                else:
+                    break
+            queue.join()
+        
+        joint_iterator = multi_dev_reader(self._joint_iterator_fn, self.dev_count)
+        
         while not train_finish():
-            rt_outputs = self.exe.run(train_program, fetch_list=fetch_list)
+            feed, mask = pack_multicard_feed(joint_iterator, self._net_inputs, self.dev_count)
+            rt_outputs = self.exe.run(train_program, feed=feed, fetch_list=fetch_list)
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             rt_task_id = np.squeeze(rt_outputs['__task_id']).tolist()
             rt_task_id = rt_task_id[0] if isinstance(rt_task_id, list) else rt_task_id
@@ -592,8 +653,9 @@ class Controller(object):
             global_step += 1
             cur_task.cur_train_step += 1
 
-            if cur_task.save_infermodel_every_n_steps > 0 and cur_task.cur_train_step % cur_task.save_infermodel_every_n_steps == 0:
-                cur_task.save(suffix='.step'+str(cur_task.cur_train_step))
+            cur_task_global_step = cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch
+            if cur_task.is_target and cur_task.save_infermodel_every_n_steps > 0 and cur_task_global_step % cur_task.save_infermodel_every_n_steps == 0:
+                cur_task.save(suffix='.step'+str(cur_task_global_step))
 
             if global_step % main_conf.get('print_every_n_steps', 5) == 0:
                 loss = rt_outputs[cur_task.name+'/loss']
@@ -611,10 +673,16 @@ class Controller(object):
                 print(cur_task.name+': train finished!')
                 cur_task.save()
 
-            if 'save_every_n_steps' in main_conf and global_step % main_conf['save_every_n_steps'] == 0:
-                save_path = os.path.join(main_conf['save_path'],
+            if 'save_ckpt_every_n_steps' in main_conf and global_step % main_conf['save_ckpt_every_n_steps'] == 0:
+                save_path = os.path.join(main_conf['save_path'], 'ckpt', 
                                          "step_" + str(global_step))
                 fluid.io.save_persistables(self.exe, save_path, saver_program)
+                print('checkpoint has been saved at '+save_path)
+
+        save_path = os.path.join(main_conf['save_path'], 'ckpt',
+                                 "step_" + str(global_step))
+        fluid.io.save_persistables(self.exe, save_path, saver_program)
+        print('checkpoint has been saved at '+save_path)
 
         print("ALL tasks train finished, exiting...")
             

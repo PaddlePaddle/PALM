@@ -18,7 +18,7 @@
 """
 Setup script.
 Authors: zhouxiangyang(zhouxiangyang@baidu.com)
-Date:    2019/09/29 21:00:01
+Date:    2019/12/05 13:24:01
 """
 import setuptools
 from io import open
@@ -27,10 +27,10 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name="paddlepalm",
-    version="0.2.1",
+    version="0.2.2",
     author="PaddlePaddle",
     author_email="zhangyiming04@baidu.com",
-    description="A Multi-task Learning Lib for PaddlePaddle Users.",
+    description="A Lib for PaddlePaddle Users.",
     # long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://github.com/PaddlePaddle/PALM",

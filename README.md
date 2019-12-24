@@ -1,6 +1,6 @@
 # PaddlePALM
 
-PaddlePALM (Paddle for Multi-task) 是一个强大快速、灵活易用的 ***任务级（task level）*** 大规模多任务学习框架。框架实现了简洁易懂的任务实例创建与管理机制，强大易用的参数管理与复用接口，以及高效稳定的多任务调度算法。通过PaddlePALM，用户可以轻松完成复杂的多任务学习与参数复用，无缝集成「**单任务训练**」、「**多任务辅助训练**」和「**多目标任务联合训练**」这 *3* 种训练方式和灵活的保存与预测机制，且仅需书写极少量代码即可”一键启动”高性能单机单卡和分布式训练与推理。
+PaddlePALM (PAddle for Learning with Multi-tasks) 是一个强大通用、预置丰富、灵活易用的 ***大规模任务级（task level）*** NLP模型训练与推理框架。框架实现了简洁易懂的任务实例创建与管理机制，强大易用的参数管理与复用接口，以及高效稳定的多任务调度算法。通过PaddlePALM，用户仅需数行代码即可轻松完成各类NLP任务（分类、匹配、序列标注、机器阅读理解等）的 **有监督学习**、**自监督学习（预训练）**、**迁移学习**和**多任务学习**。在多任务学习模式中，又无缝集成了「主辅多任务学习」和「多任务联合学习」。此外，框架实现了自动多卡模式，用户无需书写代码即可完成大规模GPU多卡训练或推理。
 
 框架中内置了丰富的[主干网络](#附录b内置主干网络backbone)及其[预训练模型](#预训练模型)（BERT、ERNIE等）、常见的[任务范式](#附录c内置任务范式paradigm)（分类、匹配、机器阅读理解等）和相应的[数据集读取与处理工具](#附录a内置数据集载入与处理工具reader)。同时框架提供了用户自定义接口，若内置工具、主干网络和任务无法满足需求，开发者可以轻松完成相关组件的自定义。各个组件均为零耦合设计，用户仅需完成组件本身的特性开发即可完成与框架的融合。
 
@@ -116,6 +116,23 @@ paddlepalm框架的运行原理图如图所示
 ```shell
 python download_models.py -l
 ```
+
+运行以上命令可以看到类似如下输出信息
+
+```
+Available pretrain items:
+  => roberta-cn-base
+  => roberta-cn-large
+  => bert-cn-base
+  => bert-cn-large
+  => bert-en-uncased-base
+  => bert-en-uncased-large
+  => bert-en-cased-base
+  => bert-en-cased-large
+  => ernie-en-uncased-base
+  => ernie-en-uncased-large
+  ...
+  ```
 
 用户可通过运行`python download_models.py -d <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型（uncased large）的命令如下：
 
@@ -741,7 +758,7 @@ BERT包含了如下输入对象
 ```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
 position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
-segment_ids: 一个shape为[batch_size, seq_len]的0/1矩阵，用于支持BERT、ERNIE等模型的输入，当元素为0时，代表当前token属于分类任务或匹配任务的text1，为1时代表当前token属于匹配任务的text2.
+segment_ids: 一个shape为[batch_size, seq_len]的0/1矩阵，用于支持BERT、ERNIE等模型的输入，当元素为0时，代表当前token属于分类任务或匹配任务的text1，为1时代表当前token属于匹配任务的text2。
 input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
 ```
 
@@ -781,6 +798,7 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 
 ## 附录C：内置任务范式（paradigm）
 
+
 #### 分类范式：cls
 
 分类范式额外包含以下配置字段：
@@ -788,6 +806,7 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 ```yaml
 n_classes（REQUIRED）: int类型。分类任务的类别数。
 pred_output_path (OPTIONAL) : str类型。预测输出结果的保存路径，当该参数未空时，保存至全局配置文件中的`save_path`字段指定路径下的任务目录。
+save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模型的间隔，未设置或设为-1时仅在该任务训练结束时保存预测模型。默认为-1。
 ```
 
 分类范式包含如下的输入对象：
@@ -812,6 +831,7 @@ sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类
 
 ```yaml
 pred_output_path (OPTIONAL) : str类型。预测输出结果的保存路径，当该参数未空时，保存至全局配置文件中的`save_path`字段指定路径下的任务目录。
+save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模型的间隔，未设置或设为-1时仅在该任务训练结束时保存预测模型。默认为-1。
 ```
 
 匹配范式包含如下的输入对象：
@@ -838,6 +858,7 @@ sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float
 max_answer_len（REQUIRED）: int类型。预测的最大答案长度
 n_best_size (OPTIONAL) : int类型，默认为20。预测时保存的nbest回答文件中每条样本的n_best数量
 pred_output_path (OPTIONAL) : str类型。预测输出结果的保存路径，当该参数未空时，保存至全局配置文件中的`save_path`字段指定路径下的任务目录
+save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模型的间隔，未设置或设为-1时仅在该任务训练结束时保存预测模型。默认为-1。
 ```
 
 机器阅读理解范式包含如下的输入对象：
@@ -885,7 +906,8 @@ do_lower_case (OPTIONAL): bool类型。大小写标志位。默认为False，即
 for_cn: bool类型。中文模式标志位。默认为False，即默认输入为英文，设置为True后，分词器、后处理等按照中文语言进行处理。
 
 print_every_n_steps (OPTIONAL): int类型。默认为5。训练阶段打印日志的频率（step为单位）。
-save_every_n_steps (OPTIONAL): int类型。默认为-1。训练过程中保存checkpoint模型的频率，默认不保存。
+save_ckpt_every_n_steps (OPTIONAL): int类型。默认为-1。训练过程中保存完整计算图的检查点（checkpoint）的频率，默认-1，仅在最后一个step自动保存检查点。
+save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模型的间隔，未设置或设为-1时仅在该任务训练结束时保存预测模型。默认为-1。
 
 optimizer（REQUIRED）: str类型。优化器名称，目前框架只支持adam，未来会支持更多优化器。
 learning_rate（REQUIRED）: str类型。训练阶段的学习率。

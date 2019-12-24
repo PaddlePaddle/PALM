@@ -34,6 +34,8 @@ _items = {
     'pretrain': {'ernie-en-uncased-large': 'https://ernie.bj.bcebos.com/ERNIE_Large_en_stable-2.0.0.tar.gz',
                  'bert-en-uncased-large': 'https://bert-models.bj.bcebos.com/uncased_L-24_H-1024_A-16.tar.gz',
                  'bert-en-uncased-base': 'https://bert-models.bj.bcebos.com/uncased_L-12_H-768_A-12.tar.gz',
+                 'roberta-cn-base': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_ext_L-12_H-768_A-12.tar.gz',
+                 'roberta-cn-large': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.tar.gz',
                  'utils': None},
     'reader': {'utils': None},
     'backbone': {'utils': None},
@@ -91,13 +93,22 @@ def _download(item, scope, path, silent=False):
             tar.extractall(path = data_dir)
             tar.close()
             os.remove(filename)
-        if scope.startswith('bert'):
-            source_path = data_dir + '/' + data_name.split('.')[0]
-            fileList = os.listdir(source_path)
-            for file in fileList:
-                filePath = os.path.join(source_path, file)
+        
+        if len(os.listdir(data_dir)) == 1 and os.path.isdir(os.path.join(data_dir, os.listdir(data_dir)[0])):
+            temp = os.path.join(data_dir, os.listdir(data_dir)[0])
+            for file in os.listdir(temp):
+                filePath = os.path.join(temp, file)
                 shutil.move(filePath, data_dir)
-            os.removedirs(source_path)
+            os.removedirs(temp)
+
+        # if scope.startswith('bert'):
+        #     source_path = os.path.join(data_dir + '/' + data_name.split('.')[0]
+        #     fileList = os.listdir(source_path)
+        #     for file in fileList:
+        #         filePath = os.path.join(source_path, file)
+        #         shutil.move(filePath, data_dir)
+        #     os.removedirs(source_path)
+
         if not silent:
             print ('done!')
         if not silent:
