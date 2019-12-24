@@ -105,7 +105,7 @@ class Model(backbone):
             input_buffer['neg'] = [src_ids, pos_ids, sent_ids, input_mask]
             output_buffer['neg'] = {}
         
-        for key, (src_ids, pos_ids, sent_ids, input_mask, task_ids) in input_buffer.items():
+        for key, (src_ids, pos_ids, sent_ids, input_mask) in input_buffer.items():
             # padding id in vocabulary must be set to 0
             emb_out = fluid.embedding(
                 input=src_ids,
