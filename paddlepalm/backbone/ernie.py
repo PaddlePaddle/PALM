@@ -107,7 +107,7 @@ class Model(backbone):
         input_buffer = {}
         output_buffer = {}
         input_buffer['base'] = [src_ids, pos_ids, sent_ids, input_mask, task_ids]
-        output_buffer['base'] = []
+        output_buffer['base'] = {}
 
         if self._learning_strategy == 'pairwise' and self._phase =='train':
             src_ids = inputs['token_ids_neg']
@@ -116,7 +116,7 @@ class Model(backbone):
             input_mask = inputs['input_mask_neg']
             task_ids = inputs['task_ids_neg']
             input_buffer['neg'] = [src_ids, pos_ids, sent_ids, input_mask, task_ids]
-            output_buffer['neg'] = []
+            output_buffer['neg'] = {}
 
         for key, (src_ids, pos_ids, sent_ids, input_mask, task_ids) in input_buffer.items():
             # padding id in vocabulary must be set to 0
