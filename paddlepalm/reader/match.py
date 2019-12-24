@@ -18,34 +18,26 @@ from paddlepalm.reader.utils.reader4ernie import ClassifyReader
 
 class Reader(reader):
     
-    def __init__(self, config, phase='train', siamese=False, dev_count=1, print_prefix=''):
+    def __init__(self, config, phase='train', dev_count=1, print_prefix=''):
         """
         Args:
             phase: train, eval, pred
         """
 
         self._is_training = phase == 'train'
-        self._is_siamese = siamese
         if 'learning_strategy' in config:
             self._learning_strategy = config['learning_strategy']
         else:
             self._learning_strategy = 'pointwise'
-        self._is_pairwise = False
-        if self._learning_strategy == 'pairwise':
-            self._is_pairwise = True
 
-        if self._is_siamese:
-            pass
-            # reader = SiameseClassifyReader()
-        else:
-            reader = ClassifyReader(config['vocab_path'],
-                max_seq_len=config['max_seq_len'],
-                do_lower_case=config.get('do_lower_case', True),
-                for_cn=config.get('for_cn', False),
-                random_seed=config.get('seed', None),
-                is_pairwise=self._is_pairwise,
-                phase=phase
-                )
+        reader = ClassifyReader(config['vocab_path'],
+            max_seq_len=config['max_seq_len'],
+            do_lower_case=config.get('do_lower_case', True),
+            for_cn=config.get('for_cn', False),
+            random_seed=config.get('seed', None),
+            learning_strategy=self._learning_strategy,
+            phase=phase
+            )
             
         self._reader = reader
         self._dev_count = dev_count
@@ -75,34 +67,23 @@ class Reader(reader):
 
     @property
     def outputs_attr(self):
-        if self._is_training:
-            if self._learning_strategy == 'pointwise':
-                return {"token_ids": [[-1, -1], 'int64'],
+        returns = {"token_ids": [[-1, -1], 'int64'],
                         "position_ids": [[-1, -1], 'int64'],
                         "segment_ids": [[-1, -1], 'int64'],
                         "input_mask": [[-1, -1, 1], 'float32'],
-                        "label_ids": [[-1], 'int64'],
                         "task_ids": [[-1, -1], 'int64']
                         }
-            else:
-                return {"token_ids": [[-1, -1], 'int64'],
-                        "position_ids": [[-1, -1], 'int64'],
-                        "segment_ids": [[-1, -1], 'int64'],
-                        "input_mask": [[-1, -1, 1], 'float32'],
-                        "task_ids": [[-1, -1], 'int64'],
-                        "token_ids_neg": [[-1, -1], 'int64'],
+        if self._is_training:
+            if self._learning_strategy == 'pointwise':
+                returns.update({"label_ids": [[-1], 'int64']})
+            elif self._learning_strategy == 'pairwise':
+                returns.update({"token_ids_neg": [[-1, -1], 'int64'],
                         "position_ids_neg": [[-1, -1], 'int64'],
                         "segment_ids_neg": [[-1, -1], 'int64'],
                         "input_mask_neg": [[-1, -1, 1], 'float32'],
                         "task_ids_neg": [[-1, -1], 'int64']
-                        }
-        else:
-            return {"token_ids": [[-1, -1], 'int64'],
-                    "position_ids": [[-1, -1], 'int64'],
-                    "segment_ids": [[-1, -1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32'],
-                    "task_ids": [[-1, -1], 'int64']
-                    }
+                        })
+        return returns
     
 
     def load_data(self):
@@ -111,17 +92,13 @@ class Reader(reader):
     def iterator(self): 
 
         def list_to_dict(x):
-            
-            if not self._is_training:
-                names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
-                'label_ids', 'unique_ids']
-            if self._learning_strategy == 'pointwise':
-                names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
-                'label_ids', 'unique_ids']
-            else:
-                names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
-                'token_ids_neg', 'segment_ids_neg', 'position_ids_neg', 'task_ids_neg', 'input_mask_neg', 'unique_ids'
-                ]
+            names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask']
+            if self._is_training:
+                if self._learning_strategy == 'pairwise': 
+                    names += ['token_ids_neg', 'segment_ids_neg', 'position_ids_neg', 'task_ids_neg', 'input_mask_neg']
+                elif self._learning_strategy == 'pointwise':
+                    names += ['label_ids'] 
+
             outputs = {n: i for n,i in zip(names, x)}
             return outputs
 

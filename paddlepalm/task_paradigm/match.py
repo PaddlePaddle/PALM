@@ -18,17 +18,16 @@ from paddle.fluid import layers
 from paddlepalm.interface import task_paradigm
 import numpy as np
 import os
+import json
 
 class TaskParadigm(task_paradigm):
     '''
     matching
     '''
-    def __init__(self, config, phase='train', siamese=False, backbone_config=None):
+    def __init__(self, config, phase, backbone_config=None):
         self._is_training = phase == 'train'
         self._hidden_size = backbone_config['hidden_size']
         self._batch_size = config['batch_size']
-        self._is_siamese = siamese
-        # self._label_pairwise = fluid.layers.fill_constant(shape=[self._batch_size, 1], value=1, dtype='float32')
         if 'learning_strategy' in config:
             self._learning_strategy = config['learning_strategy']
         else:
@@ -44,6 +43,7 @@ class TaskParadigm(task_paradigm):
         else:
             self._param_initializer = fluid.initializer.TruncatedNormal(
                 scale=backbone_config.get('initializer_range', 0.02))
+
         if 'dropout_prob' in config:
             self._dropout_prob = config['dropout_prob']
         else:
@@ -55,15 +55,14 @@ class TaskParadigm(task_paradigm):
     
     @property
     def inputs_attrs(self):
-        if self._is_training and self._learning_strategy == 'pointwise':
-            reader = {"label_ids": [[-1], 'int64']}
-        else:
-            reader = {}
-        if self._learning_strategy == 'pairwise' and self._is_training:
-            bb = {"sentence_pair_embedding": [[-1, self._hidden_size], 'float32'], "sentence_pair_embedding_neg": [[-1, self._hidden_size], 'float32']}
-        else:
-            bb = {"sentence_pair_embedding": [[-1, self._hidden_size], 'float32']}
-            
+        reader = {}
+        bb = {"sentence_pair_embedding": [[-1, self._hidden_size], 'float32']}
+        if self._is_training:
+            if self._learning_strategy == 'pointwise':
+                reader["label_ids"] = [[-1], 'int64']
+            elif self._learning_strategy == 'pairwise':
+                bb["sentence_pair_embedding_neg"] = [[-1, self._hidden_size], 'float32']
+
         return {'reader': reader, 'backbone': bb}
 
     @property
@@ -77,10 +76,9 @@ class TaskParadigm(task_paradigm):
                 return {"logits": [[-1, 2], 'float32']}
 
     def build(self, inputs, scope_name=""):
-        if self._is_training and self._learning_strategy == 'pointwise':
-            labels = inputs["reader"]["label_ids"] 
-        cls_feats = inputs["backbone"]["sentence_pair_embedding"]
-        
+
+        # inputs          
+        cls_feats = inputs["backbone"]["sentence_pair_embedding"] 
         if self._is_training:
             cls_feats = fluid.layers.dropout(
                 x=cls_feats,
@@ -92,8 +90,11 @@ class TaskParadigm(task_paradigm):
                 x=cls_feats_neg,
                 dropout_prob=self._dropout_prob,
                 dropout_implementation="upscale_in_train")
+            elif self._learning_strategy == 'pointwise':
+                labels = inputs["reader"]["label_ids"] 
         
         # loss
+        # for pointwise
         if self._learning_strategy == 'pointwise':
             logits = fluid.layers.fc(
                 input=cls_feats,
@@ -105,7 +106,16 @@ class TaskParadigm(task_paradigm):
                 bias_attr=fluid.ParamAttr(
                     name=scope_name+"cls_out_b",
                     initializer=fluid.initializer.Constant(0.)))
-        else:
+            if self._is_training:
+                ce_loss = fluid.layers.cross_entropy(
+                    input=logits, label=labels)
+                loss = fluid.layers.mean(x=ce_loss)
+            # for pred
+            else:
+                return {'logits': logits}
+
+        # for pairwise
+        elif self._learning_strategy == 'pairwise':
             pos_score = fluid.layers.fc(
                 input=cls_feats,
                 size=1,
@@ -118,12 +128,7 @@ class TaskParadigm(task_paradigm):
                     initializer=fluid.initializer.Constant(0.)))
             pos_score = fluid.layers.reshape(x=pos_score, shape=[-1, 1], inplace=True)
 
-        if self._is_training:
-            if self._learning_strategy == 'pointwise':
-                ce_loss = fluid.layers.cross_entropy(
-                    input=logits, label=labels)
-                loss = fluid.layers.mean(x=ce_loss)
-            else:
+            if self._is_training:
                 neg_score = fluid.layers.fc(
                     input=cls_feats_neg,
                     size=1,
@@ -147,22 +152,19 @@ class TaskParadigm(task_paradigm):
                     return loss_part3
 
                 loss = fluid.layers.mean(computeHingeLoss(pos_score, neg_score))
-            return {'loss': loss}
-        
-        else:
-            if self._learning_strategy == 'pointwise':
-                return {'logits': logits}
+                return {'loss': loss}
+            # for pred
             else:
                 return {'probs': pos_score}
 
     def postprocess(self, rt_outputs):
         if not self._is_training:
+            outputs = []
             if self._learning_strategy == 'pointwise':
-                logits = rt_outputs['logits']
-                self._preds.extend(logits.tolist())
-            else:
-                probs = rt_outputs['probs']
-                self._preds.extend(probs.tolist())
+                outputs = rt_outputs['logits']
+            elif self._learning_strategy == 'pairwise':
+                outputs = rt_outputs['probs']
+            self._preds.extend(outputs.tolist())
         
     def epoch_postprocess(self, post_inputs):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
@@ -170,18 +172,13 @@ class TaskParadigm(task_paradigm):
             if self._pred_output_path is None:
                 raise ValueError('argument pred_output_path not found in config. Please add it into config dict/file.')
             with open(os.path.join(self._pred_output_path, 'predictions.json'), 'w') as writer:
-                if self._learning_strategy == 'pointwise':
-                    writer.write('index\tlabel\tlogits\n')
-                    for i in range(len(self._preds)):
+                for i in range(len(self._preds)):
+                    if self._learning_strategy == 'pointwise':
                         label = 0 if self._preds[i][0] > self._preds[i][1] else 1
-                        writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds[i])+'\n')
-                        #writer.write(str(i)+'\t'+str(self._preds_probs[i][1])+'\n')
-                else:
-                    writer.write('index\tlabel\tprobs\n')
-                    for i in range(len(self._preds)):
-                        label = 0 if self._preds[i] < 0.5 else 1
-                        writer.write(str(i)+'\t'+str(label)+'\t'+str(self._preds[i])+'\n')
-                        #writer.write(str(i)+'\t'+str(self._preds_probs[i][1])+'\n')
+                        result = {'index': i, 'label': label, 'logits': self._preds[i]}
+                    elif self._learning_strategy == 'pairwise':
+                        label = 0 if self._preds[i][0] < 0.5 else 1
+                        result = {'index': i, 'label': label, 'probs': self._preds[i][0]}
+                    result = json.dumps(result)
+                    writer.write(result+'\n')
             print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
-
-                
