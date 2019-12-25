@@ -1,7 +1,9 @@
+import downloader
+from mtl_controller import Controller 
 
-import sys
-from paddlepalm.mtl_controller import Controller
-from paddlepalm.task_instance import Task
 
-sys.path.append('paddlepalm')
-
+del interface
+del task_instance
+del default_settings
+del utils
+del mtl_controller
