@@ -20,102 +20,36 @@ from __future__ import print_function
 
 import numpy as np
 import paddle.fluid as fluid
+from paddlepalm.optimizer.base_optimizer import BaseOptimizer
 
-class schedualer(object):
-    
-    def __init__(self):
-        pass
+class Adam(BaseOptimizer):
 
-    def lr(self):
-        pass
+    def __init__(self, loss_var, lr, lr_schedualer=None):
 
+        BaseOptimizer.__init__(self, loss_var, lr, lr_schedualer=None)
 
-def ConstantLearning():
-    def __init__(self, lr):
+        self._loss = loss_var
         self._lr = lr
+        self._lr_schedualer = lr_schedualer
+    
+    def build(self, grad_clip=None):
 
-    def lr(self):
+        if self._lr_schedualer is not None:
+            self._lr = self._lr_schedualer.build(self._lr)
+
+        optimizer = fluid.optimizer.Adam(learning_rate=self._lr)
+
+        if grad_clip is not None:
+            clip_norm_thres = grad_clip
+            # When using mixed precision training, scale the gradient clip threshold
+            # by loss_scaling
+            fluid.clip.set_gradient_clip(
+                clip=fluid.clip.GradientClipByGlobalNorm(clip_norm=clip_norm_thres))
+
+        _, param_grads = optimizer.minimize(self._loss)
+        return param_grads
+
+    def get_cur_learning_rate(self):
         return self._lr
 
-
-def LinearWarmupLearning():
-def linear_warmup_decay(learning_rate, warmup_steps, num_train_steps):
-    """ Applies linear warmup of learning rate from 0 and decay to 0."""
-    with fluid.default_main_program()._lr_schedule_guard():
-        lr = fluid.layers.tensor.create_global_var(
-            shape=[1],
-            value=0.0,
-            dtype='float32',
-            persistable=True,
-            name="scheduled_learning_rate")
-
-        global_step = fluid.layers.learning_rate_scheduler._decay_step_counter()
-
-        with fluid.layers.control_flow.Switch() as switch:
-            with switch.case(global_step < warmup_steps):
-                warmup_lr = learning_rate * (global_step / warmup_steps)
-                fluid.layers.tensor.assign(warmup_lr, lr)
-            with switch.default():
-                decayed_lr = fluid.layers.learning_rate_scheduler.polynomial_decay(
-                    learning_rate=learning_rate,
-                    decay_steps=num_train_steps,
-                    end_learning_rate=0.0,
-                    power=1.0,
-                    cycle=False)
-                fluid.layers.tensor.assign(decayed_lr, lr)
-
-        return lr
-
-
-def optimize(loss, config, max_train_steps=None, warmup_steps=0, train_program=None):
-    if warmup_steps > 0:
-        decay_strategy = config.get('lr_scheduler', 'linear_warmup_decay')
-        if decay_strategy == 'noam_decay':
-            scheduled_lr = fluid.layers.learning_rate_scheduler\
-             .noam_decay(1/(warmup_steps *(config['learning_rate'] ** 2)),
-                         warmup_steps)
-        elif decay_strategy == 'linear_warmup_decay':
-            scheduled_lr = linear_warmup_decay(config['learning_rate'], warmup_steps,
-                                               max_train_steps)
-        else:
-            raise ValueError("Unkown lr_scheduler, should be "
-                             "'noam_decay' or 'linear_warmup_decay'")
-        optimizer = fluid.optimizer.Adam(learning_rate=scheduled_lr)
-    else:
-        optimizer = fluid.optimizer.Adam(learning_rate=config['learning_rate'])
-        scheduled_lr = config['learning_rate']
-
-    clip_norm_thres = 1.0
-    # When using mixed precision training, scale the gradient clip threshold
-    # by loss_scaling
-    fluid.clip.set_gradient_clip(
-        clip=fluid.clip.GradientClipByGlobalNorm(clip_norm=clip_norm_thres))
-
-    def exclude_from_weight_decay(name):
-        if name.find("layer_norm") > -1:
-            return True
-        bias_suffix = ["_bias", "_b", ".b_0"]
-        for suffix in bias_suffix:
-            if name.endswith(suffix):
-                return True
-        return False
-
-    param_list = dict()
-
-    for param in train_program.global_block().all_parameters():
-        param_list[param.name] = param * 1.0
-        param_list[param.name].stop_gradient = True
-
-    _, param_grads = optimizer.minimize(loss)
-
-
-    if config.get('weight_decay', 0) > 0:
-        for param, grad in param_grads:
-            if exclude_from_weight_decay(param.name):
-                continue
-            with param.block.program._optimized_guard(
-                [param, grad]), fluid.framework.name_scope("weight_decay"):
-                updated_param = param - param_list[
-                    param.name] * config['weight_decay'] * scheduled_lr
-                fluid.layers.assign(output=param, input=updated_param)
 

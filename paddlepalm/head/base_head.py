@@ -14,13 +14,15 @@
 # limitations under the License.
 
 
-class task(object):
+class BaseHead(object):
 
     def __init__(self, config, phase, backbone_config):
         """
             config: dict类型。描述了 任务实例(task instance)+多任务配置文件 中定义超参数
             phase: str类型。运行阶段，目前支持train和predict
             """
+        self._stop_gradient = {}
+        self._prog = None
 
     @property
     def inputs_attrs(self):
@@ -43,6 +45,17 @@ class task(object):
     def epoch_inputs_attrs(self):
         return {}
 
+    # def stop_gradient(source, inputs):
+    #     # if self._inputs is None:
+    #     #     raise Exception('You need to build this head first before stop gradient.')
+    #     self._inputs = inputs
+    #     for name, var in self._inputs[source].items():
+    #         # cur_block = self._prog.current_block()
+    #         var = fluid.layers.assign(var)
+    #         var.stop_gradient = True
+    #         self._inputs[name] = var
+    #     return self._inputs
+
     def build(self, inputs, scope_name=""):
         """建立task_layer的计算图。将符合inputs_attrs描述的来自各个对象集的静态图Variables映射成符合outputs_attr描述的静态图Variable输出。
         Args:
@@ -52,6 +65,7 @@ class task(object):
 
         """
         raise NotImplementedError()
+        
 
     def postprocess(self, rt_outputs):
         """每个训练或推理step后针对当前batch的task_layer的runtime计算结果进行相关后处理。注意，rt_outputs除了包含build方法，还自动包含了loss的计算结果。"""

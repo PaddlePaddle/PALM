@@ -15,51 +15,47 @@
 
 import paddle.fluid as fluid
 from paddle.fluid import layers
-from paddlepalm.base_task import base_task
+from paddlepalm.head.base_head import BaseHead
 import numpy as np
 import os
 
-def classify(num_classes, input_dim, dropout_prob, pred_output_dir=None, param_initializer_range=0.02, phase='train'):
+# def classify(num_classes, input_dim, dropout_prob, pred_output_dir=None, param_initializer_range=0.02, phase='train'):
+# 
+#     config = {
+#         'num_classes': num_classes,
+#         'hidden_size': input_dim,
+#         'dropout_prob': dropout_prob,
+#         'pred_output_dir': pred_output_dir,
+#         'initializer_range': param_initializer_range
+#     }
+# 
+#     return Task(config, phase, config)
 
-    config = {
-        'num_classes': num_classes,
-        'hidden_size': input_dim,
-        'dropout_prob': dropout_prob,
-        'pred_output_dir': pred_output_dir,
-        'initializer_range': param_initializer_range
-    }
 
-    return Task(config, phase, config)
-
-
-class Task(base_task):
+class Classify(BaseHead):
     '''
     classification
     '''
-    def __init__(self, config, phase, backbone_config=None):
+    # def __init__(self, config, phase, backbone_config=None):
+    def __init__(self, num_classes, input_dim, dropout_prob=0.0, \
+                 param_initializer_range=0.02, phase='train'):
+
         self._is_training = phase == 'train'
-        self._hidden_size = backbone_config['hidden_size']
-        self.num_classes = config['num_classes']
+        self._hidden_size = input_dim
+
+        self.num_classes = num_classes
     
-        if 'initializer_range' in config:
-            self._param_initializer = config['initializer_range']
-        else:
-            self._param_initializer = fluid.initializer.TruncatedNormal(
-                scale=backbone_config.get('initializer_range', 0.02))
-        if 'dropout_prob' in config:
-            self._dropout_prob = config['dropout_prob']
-        else:
-            self._dropout_prob = backbone_config.get('hidden_dropout_prob', 0.0)
-        self._pred_output_path = config.get('pred_output_dir', None)
+        self._dropout_prob = dropout_prob if phase == 'train' else 0.0
+        self._param_initializer = fluid.initializer.TruncatedNormal(
+            scale=param_initializer_range)
         self._preds = []
 
     @property
     def inputs_attrs(self):
-        if self._is_training:
-            reader = {"label_ids": [[-1], 'int64']}
-        else:
-            reader = {}
+        reader = {}
         bb = {"sentence_embedding": [[-1, self._hidden_size], 'float32']}
+        if self._is_training:
+            reader["label_ids"] = [[-1], 'int64']
         return {'reader': reader, 'backbone': bb}
 
     @property
@@ -96,11 +92,12 @@ class Task(base_task):
         else:
             return {"logits":logits}
 
-    def postprocess(self, rt_outputs):
+    def batch_postprocess(self, rt_outputs):
         if not self._is_training:
             logits = rt_outputs['logits']
             preds = np.argmax(logits, -1)
             self._preds.extend(preds.tolist())
+            return preds
 
     def epoch_postprocess(self, post_inputs):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs

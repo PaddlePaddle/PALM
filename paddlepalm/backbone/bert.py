@@ -23,12 +23,44 @@ from paddle import fluid
 from paddle.fluid import layers
 
 from paddlepalm.backbone.utils.transformer import pre_process_layer, encoder
-from paddlepalm.interface import backbone
+from paddlepalm.backbone.base_backbone import BaseBackbone
 
-    
-class Model(backbone):
-    
-    def __init__(self, config, phase):
+
+class BERT(BaseBackbone):
+
+
+    def __init__(hidden_size, num_hidden_layers, num_attention_heads, vocab_size, \
+          max_position_embeddings, type_vocab_size, hidden_act, hidden_dropout_prob, \
+          attention_probs_dropout_prob, initializer_range, phase='train'):
+        config = {}
+        config['hidden_size'] = hidden_size
+        config['num_hidden_layers'] = num_hidden_layers
+        config['num_attention_heads'] = num_attention_heads
+        config['vocab_size'] = vocab_size
+        config['max_position_embeddings'] = max_position_embeddings
+        config['type_vocab_size'] = sent_type_vocab_size
+        config['hidden_act'] = hidden_act
+        config['hidden_dropout_prob'] = hidden_dropout_prob
+        config['attention_probs_dropout_prob'] = attention_probs_dropout_prob
+        config['initializer_range'] = initializer_range
+
+        self.from_config(config, phase=phase)
+
+    @classmethod
+    def from_config(self, config, phase='train'):
+        
+        assert 'hidden_size' in config, "{} is required to initialize ERNIE".format('')
+        assert 'num_hidden_layers' in config, "{} is required to initialize ERNIE".format('num_hidden_layers')
+        assert 'num_attention_heads' in config, "{} is required to initialize ERNIE".format('num_attention_heads')
+        assert 'vocab_size' in config, "{} is required to initialize ERNIE".format('vocab_size')
+        assert 'max_position_embeddings' in config, "{} is required to initialize ERNIE".format('max_position_embeddings')
+        assert 'sent_type_vocab_size' in config or 'type_vocab_size' in config, \
+            "{} is required to initialize ERNIE".format('type_vocab_size')
+        assert 'hidden_act' in config, "{} is required to initialize ERNIE".format('hidden_act')
+        assert 'hidden_dropout_prob' in config, "{} is required to initialize ERNIE".format('hidden_dropout_prob')
+        assert 'attention_probs_dropout_prob' in config, \
+            "{} is required to initialize ERNIE".format('attention_probs_dropout_prob')
+        assert 'initializer_range' in config, "{} is required to initialize ERNIE".format('initializer_range')
 
         # self._is_training = phase == 'train' # backbone一般不用关心运行阶段，因为outputs在任何阶段基本不会变
         self._emb_size = config["hidden_size"]
@@ -151,5 +183,11 @@ class Model(backbone):
 
     def postprocess(self, rt_outputs):
         pass
+
+
+class Model(BERT):
+    """BERT wrapper for ConfigController"""
+    def __init__(self, config, phase):
+        BERT.from_config(config, phase=phase)
 
 

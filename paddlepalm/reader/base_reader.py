@@ -14,23 +14,47 @@
 # limitations under the License.
 """v1.1"""
 from copy import copy
-class reader(object):
+class BaseReader(object):
     """interface of data manager."""
 
-    def __init__(self, config, phase='train'):
-        assert isinstance(config, dict)
-        self._config = config
+    def __init__(self, phase='train'):
+        # assert isinstance(config, dict)
+        # self._config = config
         self._phase = phase
+        self._register = set()
+        self._registered_backbone = None
 
-    def copy(self, phase=self._phase):
+    @classmethod
+    def create_register(self):
+        return set()
+        
+    def clone(self, phase='train'):
         if phase == self._phase:
             return copy(self)
         else:
             ret = copy(self)
             ret._phase = phase
             return ret
-            
 
+    def require_attr(self, attr_name):
+        self._register.add(attr_name)
+            
+    def register_with(self, backbone):
+        print(backbone)
+        for attr in backbone.inputs_attr:
+            self.require_attr(attr)
+        self._registered_backbone = backbone
+
+    def get_registered_backbone(self):
+        return self._registered_backbone
+
+    def _get_registed_attrs(self, attrs):
+        ret = {}
+        for i in self._register:
+            if i not in attrs:
+                raise NotImplementedError('output attr {} is not found in this reader.'.format(i))
+            ret[i] = attrs[i]
+        return ret
 
     # @property
     # def inputs_attr(self):

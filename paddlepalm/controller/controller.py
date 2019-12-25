@@ -415,9 +415,6 @@ class Controller(object):
         return loss, max_train_steps
 
 
-
-
-
     def build_backward(self, optimizer, use_ema=False, ema_decay=0.9999):
         # build optimizer
         optimizer.optimize(fluid.default_main_program())

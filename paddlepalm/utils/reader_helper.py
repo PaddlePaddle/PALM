@@ -88,7 +88,7 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
             outputs = next(iterator) # dict type
             prefix = iterator_prefixe
             for outname, val in outputs.items():
-                task_outname = prefix + '/' + outname
+                task_outname = prefix + '.' + outname
 
                 if outname in outname_to_pos:
                     idx = outname_to_pos[outname]
