@@ -18,7 +18,8 @@ import os
 import json
 from paddle import fluid
 import paddlepalm.utils.basic_helper as helper
-from paddlepalm.utils import reader_helper
+from paddlepalm.utils import reader_helper, saver
+from paddlepalm.distribute import gpu_dev_count
 # from paddlepalm.default_settings import *
 
 DEBUG=False
@@ -79,7 +80,7 @@ class Trainer(object):
         self._pred_fetch_name_list = []
         self._pred_fetch_var_list = []
 
-        self._exe = fluid.Executor(fluid.CPUPlace())
+        self._exe = None
 
         self._save_protocol = {
             'input_names': 'self._pred_input_name_list',
@@ -256,8 +257,17 @@ class Trainer(object):
         return iterator_fn
 
     def random_init_params(self):
-        
-        helper.build_executor()
+        on_gpu = gpu_dev_count > 0
+        self._exe = helper.build_executor(on_gpu)
+
+    def load_pretrain(self, model_path):
+        # load pretrain model (or ckpt)
+        assert self._exe is not None, "You need to random_init_params before load pretrain models."
+
+        saver.init_pretraining_params(
+            self._exe,
+            model_path,
+            main_program=self._train_init_prog)
 
     def _build_head(self, net_inputs, phase, scope=""):
         if phase == 'train':

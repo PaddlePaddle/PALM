@@ -3,6 +3,7 @@ import os
 import json
 import yaml
 from config_helper import PDConfig
+from paddle import fluid
 
 def get_basename(f):
     return os.path.splitext(f)[0]

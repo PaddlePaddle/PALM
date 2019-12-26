@@ -62,7 +62,7 @@ if __name__ == '__main__':
                            use_ema=True, ema_decay=0.999)
 
     trainer.random_init_params()
-    trainer.load_pretrain('../../pretrain_model/ernie/params')
+    trainer.load_pretrain('pretrain/ernie/params')
 
     # trainer.train_one_step()
     # trainer.train_one_epoch()
