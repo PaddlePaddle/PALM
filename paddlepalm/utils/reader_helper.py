@@ -22,6 +22,19 @@ from paddle import fluid
 from paddle.fluid import layers
 
 
+def create_feed_batch_process_fn(net_inputs):
+
+    def feed_batch_process_fn(data):
+        temp = {}
+        for q, var in net_inputs.items():
+            if isinstance(var, str) or isinstance(var, unicode):
+                temp[var] = data[q]
+            else:
+                temp[var.name] = data[q]
+        return temp
+
+    return feed_batch_process_fn
+
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
     if not isinstance(rt_val, np.ndarray):
         rt_val = np.array(rt_val)
