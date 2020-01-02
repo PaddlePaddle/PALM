@@ -85,6 +85,7 @@ class TaskParadigm(task_paradigm):
         else:
             unique_id = inputs['reader']['unique_ids']
 
+
         enc_out = inputs['backbone']['encoder_outputs']
         logits = fluid.layers.fc(
             input=enc_out,
