@@ -34,12 +34,13 @@ class TaskInstance(object):
         self._name = name
         self._config = config
         self._verbose = verbose
+        self._id = id
 
         check_req_args(config, name)
 
         # parse Reader and Paradigm
-        reader_name = config['reader']
-        reader_mod = importlib.import_module(READER_DIR + '.' + reader_name)
+        self.reader_name = config['reader']
+        reader_mod = importlib.import_module(READER_DIR + '.' + self.reader_name)
         Reader = getattr(reader_mod, 'Reader')
 
         parad_name = config['paradigm']
@@ -104,13 +105,18 @@ class TaskInstance(object):
     def epoch_postprocess(self, epoch_inputs, phase):
         return self._task_layer[phase].epoch_postprocess(epoch_inputs)
     
-    def save(self, suffix=''):
+    def save(self, suffix='', prog=None):
         dirpath = self._save_infermodel_path + suffix
         self._pred_input_varname_list = [str(i) for i in self._pred_input_varname_list]
 
         # fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, export_for_deployment = True)
-        prog = fluid.default_main_program().clone()
-        fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, prog)
+        # prog = fluid.default_main_program().clone()
+        if prog is not None:
+            save_prog = prog
+        else:
+            save_prog = fluid.default_main_program().clone()
+
+        fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, save_prog)
 
         conf = {}
         for k, strv in self._save_protocol.items(): 
@@ -136,6 +142,10 @@ class TaskInstance(object):
     @property
     def name(self):
         return self._name
+
+    @property
+    def tid(self):
+        return self._id
 
     @property
     def Reader(self):
@@ -169,7 +179,7 @@ class TaskInstance(object):
 
     @property
     def pred_input(self):
-        return zip(*[self._pred_input_name_list, self._pred_input_varname_list])
+        return dict(zip(*[self._pred_input_name_list, self._pred_input_varname_list]))
 
     @pred_input.setter
     def pred_input(self, val):

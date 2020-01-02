@@ -31,12 +31,11 @@ from paddlepalm.utils.saver import init_pretraining_params, init_checkpoint
 from paddlepalm.utils.config_helper import PDConfig
 from paddlepalm.utils.print_helper import print_dict
 from paddlepalm.utils.reader_helper import create_net_inputs, create_iterator_fn, create_joint_iterator_fn, merge_input_attrs 
+from paddlepalm.distribute import data_feeder
 
-from paddlepalm.default_settings import *
+from default_settings import *
 from task_instance import TaskInstance, check_instances
 
-import Queue
-from threading import Thread
 
 DEBUG=False
 VERBOSE=0
@@ -185,6 +184,27 @@ def _fit_attr(conf, fit_attr, strict=False):
     return conf
 
 
+def create_feed_batch_process_fn(net_inputs):
+
+
+    def feed_batch_process_fn(data, id=-1):
+        # temps = {}
+        # for i in range(len(net_inputs)):
+        temp = {}
+        inputs = net_inputs[id] if id != -1 else net_inputs
+        
+        for q, var in inputs.items():
+            if isinstance(var, str) or isinstance(var, unicode):
+                temp[var] = data[q]
+            else:
+                temp[var.name] = data[q]
+            # temps[i] = temp
+            
+        return temp
+
+    return feed_batch_process_fn
+
+
 class Controller(object):
 
     def __init__(self, config, task_dir='.', for_train=True):
@@ -330,6 +350,7 @@ class Controller(object):
         dev_count = self.dev_count
         num_instances = len(instances)
         mrs = self.mrs
+        branch = fluid.data(name="branch",shape=[1],dtype='int32')
 
         # set first_target/main task instance
         main_inst = None
@@ -349,35 +370,51 @@ class Controller(object):
 
         # create reader, task
         # then check i/o across reader, backbone and task_layer
-        task_attrs = []
+        
+        # check_fns = {}
+        task_attrs = {}
         pred_task_attrs = []
-        for inst in instances:
-            train_reader = inst.Reader(inst.config, phase='train')
-            inst.reader['train'] = train_reader
-            train_parad = inst.Paradigm(inst.config, phase='train', backbone_config=bb_conf)
-            inst.task_layer['train'] = train_parad
-            task_attr_from_reader = _encode_inputs(train_parad.inputs_attrs['reader'], inst.name)
-            task_attrs.append(task_attr_from_reader)
+        joint_input_names = {}
+        joint_shape_and_dtypes = {}
+        name_to_position = {}
+        for i in range(num_instances):
+            # def check_tasks():
+            #     i = s 
+            #     def checkeach():
+                    
+            train_reader = instances[i].Reader(instances[i].config, phase='train')
+            instances[i].reader['train'] = train_reader
+            train_parad = instances[i].Paradigm(instances[i].config, phase='train', backbone_config=bb_conf)
+            instances[i].task_layer['train'] = train_parad
+            task_attr_from_reader = _encode_inputs(train_parad.inputs_attrs['reader'], instances[i].name)
+            task_attrs[i] = task_attr_from_reader
 
             _check_io(train_backbone.inputs_attr, train_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.train')
             _check_io(train_parad.inputs_attrs['reader'], train_reader.outputs_attr, in_name='task_paradigm.train.reader', out_name='reader.train')
             _check_io(train_parad.inputs_attrs['backbone'], train_backbone.outputs_attr, in_name='task_paradigm.train.backbone', out_name=bb_name+'_backbone')
-
-            if inst.is_target:
-                if 'pred_file' not in inst.config:
-                    inst.config['pred_file'] = ''
-                pred_reader = inst.Reader(inst.config, phase='pred')
-                pred_parad = inst.Paradigm(inst.config, phase='pred', backbone_config=bb_conf)
-                inst.task_layer['pred'] = pred_parad
-                task_attr_from_reader = _encode_inputs(pred_parad.inputs_attrs['reader'], inst.name)
+            # merge reader input attrs from backbone and task_instances
+            # pred_joint_input_names = []
+            # pred_joint_shape_and_dtypes = []
+            if instances[i].is_target:
+                if 'pred_file' not in instances[i].config:
+                    instances[i].config['pred_file'] = ''
+                pred_reader = instances[i].Reader(instances[i].config, phase='pred')
+                pred_parad = instances[i].Paradigm(instances[i].config, phase='pred', backbone_config=bb_conf)
+                instances[i].task_layer['pred'] = pred_parad
+                task_attr_from_reader = _encode_inputs(pred_parad.inputs_attrs['reader'], instances[i].name)
                 pred_task_attrs.append(task_attr_from_reader)
                 _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
                 _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
                 _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
-
-        # merge reader input attrs from backbone and task_instances
-        joint_input_names, joint_shape_and_dtypes, name_to_position = merge_input_attrs(train_backbone.inputs_attr, task_attrs)
+                # pred_joint_input_names, pred_joint_shape_and_dtypes, _ = merge_input_attrs(pred_backbone.inputs_attr, pred_task_attrs, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
+                #     return joint_input_names[i], joint_shape_and_dtypes[i], name_to_position[i], pred_joint_input_names, pred_joint_shape_and_dtypes
+                #   return checkeach
+                # check_fns[i] = check_tasks()
+            joint_input_names[i], joint_shape_and_dtypes[i], name_to_position[i] = merge_input_attrs(train_backbone.inputs_attr, task_attrs[i])
+           
         pred_joint_input_names, pred_joint_shape_and_dtypes, _ = merge_input_attrs(pred_backbone.inputs_attr, pred_task_attrs, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
+      
+            
         # shapes: [task_id, shapes_of_backbone, shapes_of_inst1, ..., shapes_of_instN]
 
         if DEBUG:
@@ -387,10 +424,11 @@ class Controller(object):
             print('joint input shape and dtypes:')
             print(joint_shape_and_dtypes)
 
-        # load data
-        for inst in instances:
-            print(inst.name+": preparing data...", end='')
-            inst.reader['train'].load_data()
+        # load data 
+        data_fns={}
+        for i in range(num_instances):
+            print(instances[i].name+": preparing data...", end='')
+            instances[i].reader['train'].load_data()
             print('ok!')
 
         # merge dataset iterators and create net input vars
@@ -406,65 +444,65 @@ class Controller(object):
         joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE, return_type='dict')
         self._joint_iterator_fn = joint_iterator_fn
 
-        input_attrs = [[i, j, k] for i, (j,k) in zip(joint_input_names, joint_shape_and_dtypes)]
+        input_attrs = {}
+        net_inputs = {}
+        bb_output_vars = {}
+        bb_output_fns = {}
+
+        # prepare predict vars for saving inference model
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_joint_input_names, pred_joint_shape_and_dtypes)]
-        # net_inputs = create_net_inputs(input_attrs, async=True, iterator_fn=joint_iterator_fn, dev_count=dev_count, n_prefetch=3)
-        net_inputs = create_net_inputs(input_attrs, async=False)
-        self._net_inputs = net_inputs
-
-        # build backbone and task layers
-        train_prog = fluid.default_main_program()
-        train_init_prog = fluid.default_startup_program()
-        bb_output_vars = train_backbone.build(net_inputs, scope_name='__paddlepalm_')
-
-        assert sorted(bb_output_vars.keys()) == sorted(train_backbone.outputs_attr.keys())
-
         pred_prog = fluid.Program()
         pred_init_prog = fluid.Program()
+        self._pred_prog = pred_prog
 
         with fluid.program_guard(main_program = pred_prog, startup_program = pred_init_prog):
-            pred_net_inputs = create_net_inputs(pred_input_attrs)
-            pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
+           pred_net_inputs = create_net_inputs(pred_input_attrs)
+           pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
 
-        fluid.framework.switch_main_program(train_prog)
-        fluid.framework.switch_startup_program(train_init_prog)
-
+        task_inputs = {}
         task_output_vars = {}
-        for inst in instances:
-            task_inputs = {'backbone': bb_output_vars}
-            task_inputs_from_reader = _decode_inputs(net_inputs, inst.name)
-            task_inputs['reader'] = task_inputs_from_reader
-       
-            scope = inst.task_reuse_scope + '/'
+        task_fns = {}
+
+        def get_loss(i):
+            input_attrs[i] = [[m, j, k] for m, (j,k) in zip(joint_input_names[i], joint_shape_and_dtypes[i])]
+            net_inputs[i] = create_net_inputs(input_attrs[i], async=False)
+            # net_inputs = create_net_inputs(input_attrs, async=True, iterator_fn=joint_iterator_fn, dev_count=dev_count, n_prefetch=3)
+            bb_output_vars[i] = train_backbone.build(net_inputs[i], scope_name='__paddlepalm_')
+            assert sorted(bb_output_vars[i].keys()) == sorted(train_backbone.outputs_attr.keys())
+
+            # build backbone and task layers
+            task_inputs[i] = {'backbone': bb_output_vars[i]}
+            task_inputs_from_reader = _decode_inputs(net_inputs[i], instances[i].name)
+            task_inputs[i]['reader'] = task_inputs_from_reader
+        
+            scope = instances[i].task_reuse_scope + '/'
             with fluid.unique_name.guard(scope):
-               
-                output_vars = inst.build_task_layer(task_inputs, phase='train', scope=scope)
-                output_vars = {inst.name+'/'+key: val for key, val in output_vars.items()}
-                old = len(task_output_vars) # for debug
-                task_output_vars.update(output_vars)
-                assert len(task_output_vars) - old == len(output_vars) # for debug
-            # prepare predict vars for saving inference model
-            if inst.is_target:
+                output_vars = instances[i].build_task_layer(task_inputs[i], phase='train', scope=scope)
+                output_vars = {instances[i].name+'/'+key: val for key, val in output_vars.items()}
+                loss_var = output_vars[instances[i].name+'/loss']
+                task_output_vars[i] = output_vars
+
+            if instances[i].is_target:
                 with fluid.program_guard(pred_prog, pred_init_prog):
-                    cur_inputs = _decode_inputs(pred_net_inputs, inst.name)
-                    inst.pred_input = cur_inputs
+                    cur_inputs = _decode_inputs(pred_net_inputs, instances[i].name)
+                    instances[i].pred_input = cur_inputs
                     pred_task_inputs = {'backbone': pred_bb_output_vars, 'reader': cur_inputs}
-                    scope = inst.task_reuse_scope + '/'
+                    scope = instances[i].task_reuse_scope + '/'
                     with fluid.unique_name.guard(scope):
-                        inst.build_task_layer(pred_task_inputs, phase='pred', scope=scope)
+                        instances[i].build_task_layer(pred_task_inputs, phase='pred', scope=scope)
+            return loss_var
 
+        for i in range(num_instances):
+            def task_loss():
+                task_id = i
+                return lambda: get_loss(task_id)
+            task_fns[i] = task_loss()
 
-        bb_fetches = {k: v.name for k,v in bb_output_vars.items()}
-        task_fetches = {k: v.name for k,v in task_output_vars.items()}
-        fetches = task_fetches
-        fetches['__task_id'] = net_inputs['__task_id'].name
-
-        # compute loss
-        task_id_var = net_inputs['__task_id']
-        task_id_vec = fluid.one_hot(task_id_var, num_instances)
-        losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
-        loss = layers.reduce_sum(task_id_vec * losses)
-
+        loss = layers.switch_case(
+            branch_index=branch,
+            branch_fns=task_fns
+        )
+        self._switched_loss = loss.name
         main_reader = main_inst.reader['train']
 
         num_examples = main_reader.num_examples
@@ -498,13 +536,14 @@ class Controller(object):
 
         # prepare for train
         self.train_backbone = train_backbone
-        self.train_program = fluid.CompiledProgram(fluid.default_main_program()).with_data_parallel(loss_name=loss.name)
+        #self.train_program = fluid.CompiledProgram(fluid.default_main_program()).with_data_parallel(loss_name=loss.name)
         self.saver_program = fluid.default_main_program()
+        self.train_program = self.saver_program
 
         self.main_inst = main_inst
-        self.fetches = fetches
         self.has_init_train = True
         self.has_init_pred = True
+        self._net_inputs = net_inputs
 
         self.exe.run(fluid.default_startup_program())
         print("\nRandomly initialize parameters...\n")
@@ -525,6 +564,7 @@ class Controller(object):
             insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
 
         pred_prog = inst.load(infer_model_path)
+        # pred_prog = fluid.CompiledProgram(pred_prog).with_data_parallel()
         if inst.reader['pred'] is None:
             pred_reader = inst.Reader(inst.config, phase='pred')
             inst.reader['pred'] = pred_reader
@@ -556,8 +596,6 @@ class Controller(object):
         backbone = self.train_backbone
         train_program = self.train_program
         saver_program = self.saver_program
-        fetches = self.fetches
-
         finish = []
         for inst in instances:
             if inst.is_target:
@@ -575,90 +613,45 @@ class Controller(object):
                         return False
             return True
 
-        def pack_multicard_feed(iterator, net_inputs, dev_count):
-            ret = []
-            mask = []
-            for i in range(dev_count):
-                temp = {}
-                content, flag = next(iterator)
-                for q, var in net_inputs.items():
-                    temp[var.name] = content[q]
-                ret.append(temp)
-                mask.append(1 if flag else 0)
-            return ret, mask
 
         # do training
-        fetch_names, fetch_list = zip(*fetches.items())
-
+        fetch_names = {}
+        fetch_list = []
         main_step = 0 # only count for main task
         global_step = 0 # count for all tasks
         epoch = 0
         time_begin = time.time()
         backbone_buffer = []
 
-        def multi_dev_reader(reader, dev_count):
-            def worker(reader, dev_count, queue):
-                dev_batches = []
-                for index, data in enumerate(reader()):
-                    if len(dev_batches) < dev_count:
-                        dev_batches.append(data)
-                    if len(dev_batches) == dev_count:
-                        queue.put((dev_batches, 0))
-                        dev_batches = []
-                # For the prediction of the remained batches, pad more batches to 
-                # the number of devices and the padded samples would be removed in
-                # prediction outputs. 
-                if len(dev_batches) > 0:
-                    num_pad = dev_count - len(dev_batches)
-                    for i in range(len(dev_batches), dev_count):
-                        dev_batches.append(dev_batches[-1])
-                    queue.put((dev_batches, num_pad))
-                queue.put(None)
-
-            queue = Queue.Queue(dev_count*2)
-            p = Thread(
-                target=worker, args=(reader, dev_count, queue))
-            p.daemon = True
-            p.start()
-            while True:
-                ret = queue.get()
-                if ret is not None:
-                    batches, num_pad = ret
-                    queue.task_done()
-                    for batch in batches:
-                        flag = num_pad == 0
-                        if num_pad > 0:
-                            num_pad -= 1
-                        yield batch, flag
-                else:
-                    break
-            queue.join()
-        
-        joint_iterator = multi_dev_reader(self._joint_iterator_fn, self.dev_count)
+        feed_batch_process_fn = create_feed_batch_process_fn(self._net_inputs)
+        distribute_feeder = data_feeder(self._joint_iterator_fn, feed_batch_process_fn)
         
         while not train_finish():
-            feed, mask = pack_multicard_feed(joint_iterator, self._net_inputs, self.dev_count)
-            rt_outputs = self.exe.run(train_program, feed=feed, fetch_list=fetch_list)
-            rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
-            rt_task_id = np.squeeze(rt_outputs['__task_id']).tolist()
-            rt_task_id = rt_task_id[0] if isinstance(rt_task_id, list) else rt_task_id
-            cur_task = instances[rt_task_id]
+            feed, mask, id = next(distribute_feeder)
 
-            backbone_rt_outputs = {k:v for k,v in rt_outputs.items() if '/' not in k}
-            backbone_buffer.append(backbone.postprocess(backbone_rt_outputs))
+            feed[0].update({'branch':np.array([id],dtype='int32')})
+            fetch_list.append(self._switched_loss)
+            rt_outputs = self.exe.run(train_program, feed=feed, fetch_list=fetch_list)
+            rt_loss = rt_outputs.pop()
+
+            rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
+            cur_task = instances[id]
+
+            # backbone_rt_outputs = {k:v for k,v in rt_outputs.items() if '/' not in k}
+            # backbone_buffer.append(backbone.postprocess(backbone_rt_outputs))
             
-            task_rt_outputs = {k[len(cur_task.name+'/'):]: v for k,v in rt_outputs.items() if k.startswith(cur_task.name+'/')}
-            instances[rt_task_id].task_layer['train'].postprocess(task_rt_outputs)
+            # task_rt_outputs = {k[len(cur_task.name+'/'):]: v for k,v in rt_outputs.items() if k.startswith(cur_task.name+'/')}
+            # instances[rt_task_id].task_layer['train'].postprocess(task_rt_outputs)
 
             global_step += 1
             cur_task.cur_train_step += 1
 
             cur_task_global_step = cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch
             if cur_task.is_target and cur_task.save_infermodel_every_n_steps > 0 and cur_task_global_step % cur_task.save_infermodel_every_n_steps == 0:
-                cur_task.save(suffix='.step'+str(cur_task_global_step))
+                cur_task.save(suffix='.step'+str(cur_task_global_step), prog=self._pred_prog)
 
             if global_step % main_conf.get('print_every_n_steps', 5) == 0:
-                loss = rt_outputs[cur_task.name+'/loss']
+                loss = rt_loss
                 loss = np.mean(np.squeeze(loss)).tolist()
 
                 time_end = time.time()
@@ -671,7 +664,7 @@ class Controller(object):
 
             if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
                 print(cur_task.name+': train finished!')
-                cur_task.save()
+                cur_task.save(prog=self._pred_prog)
 
             if 'save_ckpt_every_n_steps' in main_conf and global_step % main_conf['save_ckpt_every_n_steps'] == 0:
                 save_path = os.path.join(main_conf['save_path'], 'ckpt', 
@@ -716,18 +709,38 @@ class Controller(object):
         fetch_names, fetch_vars = inst.pred_fetch_list
 
         print('predicting...')
-        mapper = {k:v for k,v in inst.pred_input}
+        feed_batch_process_fn = create_feed_batch_process_fn(inst.pred_input)
+        distribute_feeder = data_feeder(inst.reader['pred'].iterator, feed_batch_process_fn, prefetch_steps=1, phase='pred')
+
         buf = []
-        for feed in inst.reader['pred'].iterator():
-            feed = _encode_inputs(feed, inst.name, cand_set=mapper)
-            feed = {mapper[k]: v for k,v in feed.items()}
+        for feed, mask, id in distribute_feeder:
+            # print('before run')
             rt_outputs = self.exe.run(pred_prog, feed, fetch_vars)
+            # print('after run')
+            splited_rt_outputs = []
+            for item in rt_outputs:
+                splited_rt_outputs.append(np.split(item, len(mask)))
+
+            # assert len(rt_outputs) == len(mask), [len(rt_outputs), len(mask)]
+            # print(mask)
+            
+            while mask.pop() == False:
+                print(mask)
+                for item in splited_rt_outputs:
+                    item.pop()
+            rt_outputs = []
+            # print('cancat')
+            for item in splited_rt_outputs:
+                rt_outputs.append(np.concatenate(item))
+                
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             inst.postprocess(rt_outputs, phase='pred')
+        # print('leave feeder')
         if inst.task_layer['pred'].epoch_inputs_attrs:
             reader_outputs = inst.reader['pred'].get_epoch_outputs()
         else:
             reader_outputs = None
+        # print('epoch postprocess')
         inst.epoch_postprocess({'reader':reader_outputs}, phase='pred')
 
 
@@ -742,6 +755,3 @@ if __name__ == '__main__':
 
 
 __all__ = ["Controller"]
-
-            
-

@@ -632,7 +632,9 @@ task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 
 #### 文本匹配数据集reader工具：match
 
-该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`。数据集范例可参考`data/match4mrqa`中的数据集文件，格式形如
+该reader完成文本匹配数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含三列，对于`pointwise`的学习策略，其中，一列为样本标签`label`，其余两列分别为待匹配的文本`text_a`和文本`text_b`；对于`pairwise`的学习策略，其中，一列为待匹配的样本`text_a`，其余为其对应的正例`text_b`和负例`text_b_neg`。格式形如
+
+1. 学习策略为`pointwise`：
 
 ```yaml
 label   text_a  text_b                                                                           
@@ -642,9 +644,21 @@ label   text_a  text_b
 1   What has Pakistan told phone companies? **[TAB]** Islamabad, Pakistan (CNN) -- Under heavy criticism for a telling cell phone carriers to ban certain words in text messages, the Pakistan Telecommunication Authority went into damage control mode Wednesday.
 ```
 
+2. 学习策略为`pairwise`：
+
+```yaml
+text_a  text_b  text_b_neg                                                                           
+arrg ... ubuntunoob and ubuntu_user ... your nicks are confusing ^^ i d say it was **[TAB]** how that ... dynamic size of the c    ontainer another idea would be an installation on an ( external ) flash-stick/card **[TAB]** will try now thanks if you have ati     and md0 - i m no further help btw
+got an error message while installing __number__ need help ( initrmfs ) mount failure error do you see this grub no a little     more info would help ;-) did you boot a cd or pen drive to install or install from windows was this a install from windows whi    ch is called a wubi how much memory does the computer have memory=ram so you got installed no errors and get this on reboot so     when did you get this error did you burn it as a image **[TAB]** were you able to check the md5sum of the iso here is alink on     md5sum i suspect it may not be this but never hurts to check __url__ **[TAB]** you would have to capture the pcl convert with hp    2xx then print that so do i set up another printer in cups with that driver but pointed to output to my cups pdf printer or do     i need to pipe it through the driver on a lower level somehow
+okay i come from a windows background .. currently running v __number__ __number__ and having a video card ( ati ) issue ...     if i have an issue like this ( in windows ) i would go to the vendor site locate a current driver and install in ubuntu it aut    omatically downloaded a driver - this driver i assume does not come from the vendor site but rather a ubuntu repository of tes    ted/approved drivers is that a correct assumption yes that is correct **[TAB]** so given the downloaded driver is not performing     properly i went to ati and found they have a newer version driver what is the correct process to load the new version do i ne    ed to uninstall ( how ) the old version the new version is a run file - i am not familiar with what is the issue you re having     with the ubuntu-supplied driver **[TAB]** ls -ld __path__ __path__ __path__ __path__ wrxr-xr-x
+hey he wanted excitement __url__ __url__ dapper multivers thank you so much now i can do apt-get build-dep mythtv and compile     it myself np i cannot install those packages i am also needing them why ca n't you install them i just verified they re insta    llable i am on a default dapper install with all extra repositories in sources list uncommented and cant then you do n't have     the correct repo enabled **[TAB]** lame installed ( none ) apt-cache policy lame **[TAB]** i am using mercury ... i think it is be    tter than amsn i lost the curiosity for this __number__ years ago but i ve back are you using a router
+```
+
 ***注意：数据集的第一列必须为header，即标注每一列的列名***
 
 reader的输出（生成器每次yield出的数据）包含以下字段：
+
+1. 学习策略为`pointwise`：
 
 ```yaml
 token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本（文本对），其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
@@ -656,6 +670,22 @@ task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE�
 ```
 
 当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
+
+2. 学习策略为`pairwise`：
+
+```yaml
+token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条正样本（文本对text_a text_b），其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的矩阵，在文本1(text_a)的token位置，元素取值为0；在文本2(text_b)的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配。
+task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+token_ids_neg: 一个shape为[batch_size, seq_len]的矩阵，每行是一条负样本（文本对text_a text_b_neg），其中的每个元素为文本对中的每个token对应的单词id，文本对使用`[SEP]`所对应的id隔开。
+position_ids_neg: 一个shape为[batch_size, seq_len]的矩阵，每行是一条负样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids_neg: 一个shape为[batch_size, seq_len]的矩阵，在文本1(text_a)的token位置，元素取值为0；在文本2(text_b_neg)的token位置，元素取值为1。用于支持BERT、ERNIE等模型的输入。
+input_mask_neg: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+task_ids_neg: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+```
 
 
 #### 机器阅读理解数据集reader工具：mrc

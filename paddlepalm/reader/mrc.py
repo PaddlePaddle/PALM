@@ -15,6 +15,7 @@
 
 from paddlepalm.interface import reader
 from paddlepalm.reader.utils.reader4ernie import MRCReader
+import numpy as np
 
 class Reader(reader):
     

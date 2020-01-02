@@ -29,9 +29,12 @@ import six
 from io import open
 from collections import namedtuple
 
+from . import gpu_dev_count
+import paddlepalm as palm
 import paddlepalm.tokenizer.ernie_tokenizer as tokenization
 from paddlepalm.reader.utils.batching4ernie import pad_batch_data
 from paddlepalm.reader.utils.mlm_batching import prepare_batch_data
+
 
 
 log = logging.getLogger(__name__)
@@ -478,14 +481,12 @@ class MaskLMReader(BaseReader):
                         # max_len=self.max_seq_len, # 注意，如果padding到最大长度，会导致mask_pos与实际位置不对应。因为mask pos是基于batch内最大长度来计算的。
                         return_input_mask=True,
                         return_max_len=False,
-                        return_num_token=False)
+                        return_num_token=False,
+                        dev_count=gpu_dev_count)
 
-                    if len(all_dev_batches) < dev_count:
-                        all_dev_batches.append(batch_data)
-                    if len(all_dev_batches) == dev_count:
-                        for batch in all_dev_batches:
-                            yield batch
-                        all_dev_batches = []
+                    # yield batch
+                    for piece in palm.distribute.yield_pieces(batch_data, ['s', 's', 's', 's', 's', 'u', 'u'], batch_size):
+                        yield piece
 
         return wrapper
 
@@ -952,11 +953,20 @@ class MRCReader(BaseReader):
             if to_append:
                 batch_records.append(record)
             else:
-                yield self._pad_batch_records(batch_records, phase == "train")
+                # yield self._pad_batch_records(batch_records, phase == "train")
+                ds = ['s'] * 8
+                for piece in palm.distribute.yield_pieces(\
+                        self._pad_batch_records(batch_records, phase == 'train'),
+                        ds, batch_size):
+                    yield piece
                 batch_records, max_len = [record], len(record.token_ids)
 
         if phase == 'pred' and batch_records:
-            yield self._pad_batch_records(batch_records, phase == "train")
+            for piece in palm.distribute.yield_pieces(\
+                        self._pad_batch_records(batch_records, phase == 'train'),
+                        ds, batch_size):
+                yield piece
+
 
     def _pad_batch_records(self, batch_records, is_training):
         batch_token_ids = [record.token_ids for record in batch_records]
@@ -1043,12 +1053,8 @@ class MRCReader(BaseReader):
 
                 for batch_data in self._prepare_batch_data(
                         features, batch_size, phase=phase):
-                    if len(all_dev_batches) < dev_count:
-                        all_dev_batches.append(batch_data)
-                    if len(all_dev_batches) == dev_count:
-                        for batch in all_dev_batches:
-                            yield batch
-                        all_dev_batches = []
+
+                    yield batch_data
 
         return wrapper
 
