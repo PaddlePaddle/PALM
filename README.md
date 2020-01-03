@@ -11,10 +11,11 @@ PALM (PArallel Learning from Multi-tasks) 是一个强大通用、预置丰富�
     - [理论准备](#理论准备)
     - [框架原理](#框架原理)
     - [预训练模型](#预训练模型)
-- [三个DEMO入门PALM](#三个demo入门paddlepalm)
+- [四个DEMO入门PALM](#三个demo入门paddlepalm)
     - [DEMO1：单任务训练](#demo1单任务训练)
     - [DEMO2：多任务辅助训练与目标任务预测](#demo2多任务辅助训练与目标任务预测)
     - [DEMO3：多目标任务联合训练与任务层参数复用](#demo3多目标任务联合训练与任务层参数复用)
+    - [DEMO4：序列标注](#demo4序列标注)
 - [进阶篇](#进阶篇)
     - [配置广播机制](#配置广播机制)
     - [reader、backbone与paradigm的选择](#readerbackbone与paradigm的选择)
@@ -78,12 +79,14 @@ cd PALM && python setup.py install
 │   ├── cls.py                            # 文本分类数据集工具
 │   ├── match.py                          # 文本匹配数据集工具
 │   ├── mrc.py                            # 机器阅读理解数据集工具
-│   └── mlm.py                            # 掩码语言模型（mask language model）数据集生成与处理工具
+│   ├── mlm.py                            # 掩码语言模型（mask language model）数据集生成与处理工具
+│   └── ner.py                            # 序列标注数据集工具
 └── paradigm                          # 任务范式
     ├── cls.py                            # 文本分类
     ├── match.py                          # 文本匹配
     ├── mrc.py                            # 机器阅读理解
-    └── mlm.py                            # 掩码语言模型（mask language model）
+    ├── mlm.py                            # 掩码语言模型（mask language model）
+    └── ner.py                            # 序列标注
 ```
 
 
@@ -146,7 +149,7 @@ python download_models.py -d bert-en-uncased-large
 
 
 
-## 三个DEMO入门PaddlePALM
+## 四个DEMO入门PaddlePALM
 
 ### DEMO1：单任务训练
 
@@ -470,6 +473,117 @@ cls3: inference model saved at output_model/thirdrun/infer_model
 
 对本DEMO更深入的理解可以参考[多目标任务下的训练终止条件与预期训练步数](#多目标任务下的训练终止条件与预期训练步数)。
 
+### DEMO4：序列标注
+
+> 本demo路径位于`demo/demo4`
+
+除以上三个demo涉及到的任务，框架新增支持序列标注任务。本demo实例为基于微软提供的公开数据集(Airline Travel Information System)，实现槽位识别任务的训练及预测。
+
+用户进入本demo目录后，可通过运行如下脚本一键开始本节任务的训练：
+
+```shell
+bash run.sh
+```
+
+下面以该任务为例，讲解如何基于paddlepalm框架轻松实现序列标注任务。
+
+**1. 配置任务实例**
+
+首先，我们编写`tasks`文件夹下的该任务实例的配置文件`atis_alot.yaml`，若该任务实例参与训练或预测，则框架将自动解析该配置文件并创建相应的任务实例。配置文件需符合yaml格式的要求。一个任务实例的配置在配置文件中，设置用于训练的文件路径`train_file`，保存label->index的map文件地址`label_map_config`，数据集载入与处理工具`reader`和任务范式`paradigm`，类别总数`n_classes`：
+
+```yaml
+train_file: "data/atis_slot/train.tsv"
+label_map_config: "data/atis_slot/label_map.json"
+reader: ner
+paradigm: ner
+n_classes: 130
+use_crf: true
+
+```
+这里，如需在序列标注任务中使用线性链条件随机场，需设置`use_crf`参数（默认为`false`）。在本demo中，设置为`true`。
+
+
+配置reader的预处理规则：
+
+```yaml
+max_seq_len: 128
+do_lower_case: False
+vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"
+```
+
+**2.配置backbone和训练规则**
+
+编写全局配置文件`config.yaml`，配置需要学习的任务`task_instance`、模型的保存路径`save_path`、基于的主干网络`backbone`、优化器`optimizer`等：
+
+```yaml
+task_instance: "atis_slot"
+save_path: "output_model/run"
+
+backbone: "ernie"
+backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
+
+batch_size: 32
+pred_batch_size: 32
+num_epochs: 2
+optimizer: "adam"
+learning_rate: 2e-5
+warmup_proportion: 0.1
+weight_decay: 0.01
+print_every_n_steps: 10
+lr_scheduler: "linear_warmup_decay"
+
+```
+
+
+**3.开始训练**
+
+如同前三个demo，创建Controller，实例化任务、载入预训练模型并启动atis_slot任务训练：
+
+```python
+# Demo 4: single task training of ATIS_SLOT
+import paddlepalm as palm
+
+if __name__ == '__main__':
+    controller = palm.Controller('config.yaml')
+    controller.load_pretrain('../../pretrain/bert-en-uncased-large/params')
+    controller.train()
+```
+
+训练日志如下，可以看到loss值随着训练收敛。在训练结束后，`Controller`自动为atis_slot任务保存预测模型。
+
+```
+Global step: 10. Task: atis_slot, step 10/154 (epoch 0), loss: 59.974, speed: 0.64 steps/s
+Global step: 20. Task: atis_slot, step 20/154 (epoch 0), loss: 33.286, speed: 0.77 steps/s
+Global step: 30. Task: atis_slot, step 30/154 (epoch 0), loss: 19.285, speed: 0.68 steps/s
+...
+Global step: 280. Task: atis_slot, step 126/154 (epoch 1), loss: 2.350, speed: 0.56 steps/s
+Global step: 290. Task: atis_slot, step 136/154 (epoch 1), loss: 1.436, speed: 0.58 steps/s
+Global step: 300. Task: atis_slot, step 146/154 (epoch 1), loss: 2.353, speed: 0.58 steps/s
+atis_slot: train finished!
+atis_slot: inference model saved at output_model/run/atis_slot/infer_model
+```
+
+
+**4.预测**
+
+在得到目标任务的预测模型（inference_model）后，完成对该目标任务的预测，`run.py`的预测部分代码如下：
+
+```python
+    controller = palm.Controller(config='config.yaml', task_dir='tasks', for_train=False)
+    controller.pred('atis_slot', inference_model_dir='output_model/fourthrun/atis_slot/infer_model')
+```
+
+我们可以在`output_models/fourthrun/atis_slot/`文件夹下的`predictions.json`文件中看到类似如下的预测结果：
+
+```                                                                                          
+    [129, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 5, 19, 1, 1, 1, 1, 1, 21, 21, 68, 129]
+    [129, 1, 39, 37, 1, 1, 1, 1, 1, 2, 1, 5, 19, 1, 23, 3, 4, 129, 129, 129, 129, 129]
+    [129, 1, 39, 37, 1, 1, 1, 1, 1, 1, 2, 1, 5, 19, 129, 129, 129, 129, 129, 129, 129, 129]
+    ...
+```
+
+如上所示，每一行是测试集中的每一条text对应的标注结果，其中`129`为padding。
+
 ## 进阶篇
 本章节更深入的对paddlepalm的使用方法展开介绍，并提供一些提高使用效率的小技巧。
 
@@ -777,6 +891,40 @@ mask_pos: 一个shape为[None]的向量，长度与`mask_pos`一致且元素一�
 task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
 ```
 
+#### 序列标注数据集reader工具：ner
+
+该reader完成文本分类数据集的载入与处理，reader接受[tsv格式](https://en.wikipedia.org/wiki/Tab-separated_values)的数据集输入，数据集应该包含两列，一列为原始文本`text_a`，一列为样本标签`label`，文本中词与词之间及标签中的tag之间均用`^B`分隔。数据集范例可参考`data/atis_slot`中的数据集文件，格式形如
+
+```
+text_a	label
+i[^B]want[^B]to[^B]fly[^B]from[^B]boston[^B]at[^B]838[^B]am[^B]and[^B]arrive[^B]in[^B]denver[^B]at[^B]1110[^B]in[^B]the[^B]morning	O[^B]O[^B]O[^B]O[^B]O[^B]B-fromloc.city_name[^B]O[^B]B-depart_time.time[^B]I-depart_time.time[^B]O[^B]O[^B]O[^B]B-toloc.city_name[^B]O[^B]B-arrive_time.time[^B]O[^B]O[^B]B-arrive_time.period_of_day
+what[^B]flights[^B]are[^B]available[^B]from[^B]pittsburgh[^B]to[^B]baltimore[^B]on[^B]thursday[^B]morning	O[^B]O[^B]O[^B]O[^B]O[^B]B-fromloc.city_name[^B]O[^B]B-toloc.city_name[^B]O[^B]B-depart_date.day_name[^B]B-depart_time.period_of_day
+what[^B]is[^B]the[^B]arrival[^B]time[^B]in[^B]san[^B]francisco[^B]for[^B]the[^B]755[^B]am[^B]flight[^B]leaving[^B]washington	O[^B]O[^B]O[^B]B-flight_time[^B]I-flight_time[^B]O[^B]B-fromloc.city_name[^B]I-fromloc.city_name[^B]O[^B]O[^B]B-depart_time.time[^B]I-depart_time.time[^B]O[^B]O[^B]B-fromloc.city_name
+```
+***注意：数据集的第一列必须为header，即标注每一列的列名***
+
+该reader额外包含以下配置字段
+
+```yaml
+label_map_config : str类型。保存label->index的map文件地址。
+n_classes（REQUIRED）: int类型。分类任务的类别数。
+```
+
+reader的输出（生成器每次yield出的数据）包含以下字段
+
+```yaml
+token_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的单词id。
+position_ids: 一个shape为[batch_size, seq_len]的矩阵，每行是一条样本，其中的每个元素为文本中的每个token对应的位置id。
+segment_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持BERT、ERNIE等模型的输入。
+input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素为0或1，表示该位置是否是padding词（为1时代表是真实词，为0时代表是填充词）。
+label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
+task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE模型的输入。
+seq_lens: 一个shape为[batch_size]的矩阵，对应每一行样本的序列长度。
+```
+
+当处于预测阶段时，reader所yield出的数据不会包含`label_ids`字段。
+
+
 ## 附录B：内置主干网络（backbone）
 
 框架中内置了BERT和ERNIE作为主干网络，未来框架会引入更多的骨干网络如XLNet等。
@@ -797,9 +945,9 @@ input_mask: 一个shape为[batch_size, seq_len]的矩阵，其中的每个元素
 ```yaml
 word_embedding: 一个shape为[batch_size, seq_len, emb_size]的张量（Tensor），float32类型。表示当前batch中各个样本的（上下文无关）词向量序列。
 embedding_table: 一个shape为[vocab_size, emb_size]的矩阵，float32类型。表示BERT当前维护的词向量查找表矩阵。
-encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
-sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
-sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示backbone模型的encoder对当前batch中各个样本的encoding结果。
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
 ```
 
 #### ERNIE
@@ -820,9 +968,9 @@ task_ids: 一个shape为[batch_size, seq_len]的全0矩阵，用于支持ERNIE f
 ```yaml
 word_embedding: 一个shape为[batch_size, seq_len, emb_size]的张量（Tensor），float32类型。表示当前batch中各个样本的（上下文无关）词向量序列。
 embedding_table: 一个shape为[vocab_size, emb_size]的矩阵，float32类型。表示BERT当前维护的词向量查找表矩阵。
-encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
-sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
-sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示backbone模型的encoder对当前batch中各个样本的encoding结果。
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
 ```
 
 
@@ -843,13 +991,13 @@ save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模�
 
 训练阶段：
 ```yaml
-sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
 label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签。
 ```
 
 预测阶段：
 ```yaml
-sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
 ```
 
 在训练阶段，输出loss；预测阶段输出各个类别的预测概率。
@@ -868,13 +1016,13 @@ save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模�
 
 训练阶段：
 ```yaml
-sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
 label_ids: 一个shape为[batch_size]的矩阵，其中的每个元素为该样本的类别标签，为0时表示两段文本不匹配，为1时代表构成匹配
 ```
 
 预测阶段：
 ```yaml
-sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表BERT encoder对当前batch中相应样本的句子向量（sentence embedding）
+sentence_pair_embedding: 一个shape为[batch_size, hidden_size]的matrix, float32类型。每一行代表backbone模型的encoder对当前batch中相应样本的句子向量（sentence embedding）
 ```
 
 在训练阶段，输出loss；预测阶段输出匹配与否的概率分布。
@@ -895,14 +1043,14 @@ save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模�
 
 训练阶段：
 ```yaml
-encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示backbone模型的encoder对当前batch中各个样本的encoding结果。
 start_positions: 一个shape为[batch_size]的向量，每个元素代表当前样本的答案片段的起始位置。
 end_positions: 一个shape为[batch_size]的向量，每个元素代表当前样本的答案片段的结束位置。
 ```
 
 预测阶段：
 ```yaml
-encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示backbone模型的encoder对当前batch中各个样本的encoding结果。
 unique_ids: 一个shape为[batch_size, seq_len]的矩阵，代表每个样本的全局唯一的id，用于预测后对滑动窗口的结果进行合并。
 ```
 
@@ -915,8 +1063,35 @@ unique_ids: 一个shape为[batch_size, seq_len]的矩阵，代表每个样本的
 mask_label: 一个shape为[None]的向量，其中的每个元素为被mask掉的单词的真实单词id。
 mask_pos": 一个shape为[None]的向量，长度与`mask_pos`一致且元素一一对应。每个元素表示被mask掉的单词的位置。
 embedding_table: 一个shape为[vocab_size, emb_size]的矩阵，float32类型。表示BERT当前维护的词向量查找表矩阵。
-encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示BERT encoder对当前batch中各个样本的encoding结果。
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示backbone模型的encoder对当前batch中各个样本的encoding结果。
 ```
+
+
+#### 序列标注范式：ner
+
+序列标注范式额外包含以下配置字段：
+
+```yaml
+n_classes（REQUIRED）: int类型。序列标注任务的类别数。
+pred_output_path (OPTIONAL) : str类型。预测输出结果的保存路径，当该参数未空时，保存至全局配置文件中的`save_path`字段指定路径下的任务目录。
+save_infermodel_every_n_steps (OPTIONAL) : int类型。周期性保存预测模型的间隔，未设置或设为-1时仅在该任务训练结束时保存预测模型。默认为-1。
+```
+
+序列标注范式包含如下的输入对象：
+
+训练阶段：
+```yaml
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示backbone模型的encoder对当前batch中各个样本的encoding结果。
+label_ids: 一个shape为[batch_size, seq_lens]的矩阵，其中的每个元素为该样本的类别标签。
+```
+
+预测阶段：
+```yaml
+encoder_outputs: 一个shape为[batch_size, seq_len, hidden_size]的Tensor, float32类型。表示backbone模型的encoder对当前batch中各个样本的encoding结果。
+```
+
+在训练阶段，输出loss；预测阶段输出每一行文本对应的标注。
+
 
 ## 附录D：可配置的全局参数列表
 

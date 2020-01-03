@@ -1,0 +1,20 @@
+task_instance: "atis_slot"
+
+save_path: "output_model/fourthrun"
+
+backbone: "ernie"
+backbone_config_path: "../../pretrain/ernie-en-uncased-large/ernie_config.json"
+
+vocab_path: "../../pretrain/ernie-en-uncased-large/vocab.txt"
+do_lower_case: False
+max_seq_len: 128
+
+batch_size: 32
+pred_batch_size: 32
+num_epochs: 2
+optimizer: "adam"
+learning_rate: 2e-5
+warmup_proportion: 0.1
+weight_decay: 0.01
+print_every_n_steps: 10
+lr_scheduler: "linear_warmup_decay"
