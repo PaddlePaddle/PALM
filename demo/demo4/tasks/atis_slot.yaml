@@ -1,0 +1,7 @@
+train_file: "data/atis_slot/train.tsv"
+pred_file: "data/atis_slot/test.tsv"
+label_map_config: "data/atis_slot/label_map.json"
+reader: ner
+paradigm: ner
+n_classes: 130
+use_crf: true
