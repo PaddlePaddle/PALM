@@ -58,7 +58,6 @@ def yield_pieces(data, distribute_strategy, batch_size):
             yield temp
 
 def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train'):
-
     if postprocess_fn is None:
         def postprocess_fn(batch):
             return batch
@@ -107,4 +106,16 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train'):
             break
     queue.join()
 
+
+def decode_fake(nums, mask, bs):
+    n_t = 0
+    for flag in mask: 
+        if not flag:
+            break
+        n_t = n_t + 1
+    
+    n_f = len(mask) - n_t
+    p1 = nums - (n_t-1) * bs
+    each_f = p1 / (n_f+1)
+    return each_f * n_f
 
