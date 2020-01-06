@@ -32,6 +32,7 @@ class Reader(reader):
             tokenizer='FullTokenizer',
             for_cn=config.get('for_cn', False),
             doc_stride=config['doc_stride'],
+            remove_noanswer=config.get('remove_noanswer', True),
             max_query_length=config['max_query_len'],
             random_seed=config.get('seed', None))
         self._reader = reader
@@ -67,21 +68,21 @@ class Reader(reader):
     @property
     def outputs_attr(self):
         if self._is_training:
-            return {"token_ids": [[-1, -1, 1], 'int64'],
-                    "position_ids": [[-1, -1, 1], 'int64'],
-                    "segment_ids": [[-1, -1, 1], 'int64'],
+            return {"token_ids": [[-1, -1], 'int64'],
+                    "position_ids": [[-1, -1], 'int64'],
+                    "segment_ids": [[-1, -1], 'int64'],
                     "input_mask": [[-1, -1, 1], 'float32'],
-                    "start_positions": [[-1, 1], 'int64'],
-                    "end_positions": [[-1, 1], 'int64'],
-                    "task_ids": [[-1, -1, 1], 'int64']
+                    "start_positions": [[-1], 'int64'],
+                    "end_positions": [[-1], 'int64'],
+                    "task_ids": [[-1, -1], 'int64']
                     }
         else:
-            return {"token_ids": [[-1, -1, 1], 'int64'],
-                    "position_ids": [[-1, -1, 1], 'int64'],
-                    "segment_ids": [[-1, -1, 1], 'int64'],
-                    "task_ids": [[-1, -1, 1], 'int64'],
+            return {"token_ids": [[-1, -1], 'int64'],
+                    "position_ids": [[-1, -1], 'int64'],
+                    "segment_ids": [[-1, -1], 'int64'],
+                    "task_ids": [[-1, -1], 'int64'],
                     "input_mask": [[-1, -1, 1], 'float32'],
-                    "unique_ids": [[-1, 1], 'int64']
+                    "unique_ids": [[-1], 'int64']
                     }
 
     @property

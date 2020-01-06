@@ -22,6 +22,19 @@ from paddle import fluid
 from paddle.fluid import layers
 
 
+def create_feed_batch_process_fn(net_inputs):
+
+    def feed_batch_process_fn(data):
+        temp = {}
+        for q, var in net_inputs.items():
+            if isinstance(var, str) or isinstance(var, unicode):
+                temp[var] = data[q]
+            else:
+                temp[var.name] = data[q]
+        return temp
+
+    return feed_batch_process_fn
+
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
     if not isinstance(rt_val, np.ndarray):
         rt_val = np.array(rt_val)
@@ -78,31 +91,40 @@ def create_net_inputs(input_attrs, async=False, iterator_fn=None, dev_count=1, n
     return ret
 
 
-def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_pos, verbose=0):
+def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_pos, verbose=0, return_type='list'):
 
-    def iterator():
+    pos_to_outname = {j:i for i,j in outname_to_pos.items()}
+    
+    def iterator_fn():
         v = verbose
         while True:
-            results = _zero_batch(shape_and_dtypes)
+            # results = _zero_batch(shape_and_dtypes)
+            results = [None] * len(outname_to_pos)
 
             outputs = next(iterator) # dict type
-            prefix = iterator_prefixe
+            prefix = iterator_prefix
             for outname, val in outputs.items():
-                task_outname = prefix + '/' + outname
+                task_outname = prefix + '.' + outname
 
                 if outname in outname_to_pos:
                     idx = outname_to_pos[outname]
-                    val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx])
+                    val = _check_and_adapt_shape_dtype(val, shape_and_dtypes[idx])
                     results[idx] = val
 
                 if task_outname in outname_to_pos:
                     idx = outname_to_pos[task_outname]
-                    val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[idx])
+                    val = _check_and_adapt_shape_dtype(val, shape_and_dtypes[idx])
                     results[idx] = val
+            if return_type == 'list':
+                yield results
+            elif return_type == 'dict':
+                temp = {}
+                for pos, i in enumerate(results):
+                    temp[pos_to_outname[pos]] = i
 
-            yield results
+                yield temp
 
-    return iterator
+    return iterator_fn
 
 
 def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0):
@@ -122,7 +144,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
         outbuf[id] = outputs
         prefix = iterator_prefixes[id]
         for outname, val in outputs.items():
-            task_outname = prefix + '/' + outname
+            task_outname = prefix + '.' + outname
 
             if outname in outname_to_pos:
                 idx = outname_to_pos[outname]
@@ -179,7 +201,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
                 for outname, val in outputs.items():
                     if v > 0:
                         print('reader generate: '+outname)
-                    task_outname = prefix + '/' + outname
+                    task_outname = prefix + '.' + outname
 
                     if outname in outname_to_pos:
                         idx = outname_to_pos[outname]

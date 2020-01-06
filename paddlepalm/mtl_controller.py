@@ -31,9 +31,11 @@ from paddlepalm.utils.saver import init_pretraining_params, init_checkpoint
 from paddlepalm.utils.config_helper import PDConfig
 from paddlepalm.utils.print_helper import print_dict
 from paddlepalm.utils.reader_helper import create_net_inputs, create_iterator_fn, create_joint_iterator_fn, merge_input_attrs 
+from paddlepalm.distribute import data_feeder
 
-from paddlepalm.default_settings import *
-from paddlepalm.task_instance import TaskInstance, check_instances
+from default_settings import *
+from task_instance import TaskInstance, check_instances
+
 
 DEBUG=False
 VERBOSE=0
@@ -182,6 +184,20 @@ def _fit_attr(conf, fit_attr, strict=False):
     return conf
 
 
+def create_feed_batch_process_fn(net_inputs):
+
+    def feed_batch_process_fn(data):
+        temp = {}
+        for q, var in net_inputs.items():
+            if isinstance(var, str) or isinstance(var, unicode):
+                temp[var] = data[q]
+            else:
+                temp[var.name] = data[q]
+        return temp
+
+    return feed_batch_process_fn
+
+
 class Controller(object):
 
     def __init__(self, config, task_dir='.', for_train=True):
@@ -234,7 +250,7 @@ class Controller(object):
             bb_conf = _merge_conf(mtl_conf, bb_conf)
         else:
             bb_conf = mtl_conf
-        print_dict(bb_conf, title='backbone configuration'.format(instname))
+        print_dict(bb_conf, title = 'backbone configuration'.format(instname))
 
         bb_name = mtl_conf['backbone']
         bb_mod = importlib.import_module(BACKBONE_DIR + '.' + bb_name)
@@ -338,6 +354,7 @@ class Controller(object):
         main_conf = main_inst.config
         if not os.path.exists(main_conf['save_path']):
             os.makedirs(main_conf['save_path'])
+            os.makedirs(os.path.join(main_conf['save_path'], 'ckpt'))
         
         # prepare backbone
         train_backbone = Backbone(bb_conf, phase='train')
@@ -398,11 +415,14 @@ class Controller(object):
             prefixes.append(inst.name)
             mrs.append(inst.mix_ratio)
 
-        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE)
+        joint_iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE, return_type='dict')
+        self._joint_iterator_fn = joint_iterator_fn
 
         input_attrs = [[i, j, k] for i, (j,k) in zip(joint_input_names, joint_shape_and_dtypes)]
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_joint_input_names, pred_joint_shape_and_dtypes)]
-        net_inputs = create_net_inputs(input_attrs, async=True, iterator_fn=joint_iterator_fn, dev_count=dev_count, n_prefetch=3)
+        # net_inputs = create_net_inputs(input_attrs, async=True, iterator_fn=joint_iterator_fn, dev_count=dev_count, n_prefetch=3)
+        net_inputs = create_net_inputs(input_attrs, async=False)
+        self._net_inputs = net_inputs
 
         # build backbone and task layers
         train_prog = fluid.default_main_program()
@@ -453,7 +473,7 @@ class Controller(object):
 
         # compute loss
         task_id_var = net_inputs['__task_id']
-        task_id_vec = layers.one_hot(task_id_var, num_instances)
+        task_id_vec = fluid.one_hot(task_id_var, num_instances)
         losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
         loss = layers.reduce_sum(task_id_vec * losses)
 
@@ -517,20 +537,21 @@ class Controller(object):
             insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
 
         pred_prog = inst.load(infer_model_path)
+        pred_prog = fluid.CompiledProgram(pred_prog).with_data_parallel()
         if inst.reader['pred'] is None:
             pred_reader = inst.Reader(inst.config, phase='pred')
             inst.reader['pred'] = pred_reader
         return pred_prog
 
-    def load_pretrain(self, pretrain_model_path=None):
+    def load_pretrain(self, pretrain_path=None):
         # load pretrain model (or ckpt)
-        if pretrain_model_path is None:
-            assert 'pretrain_model_path' in self.main_conf, "pretrain_model_path NOT set."
-            pretrain_model_path = self.main_conf['pretrain_model_path']
+        if pretrain_path is None:
+            assert 'pretrain_path' in self.main_conf, "pretrain_path NOT set."
+            pretrain_path = self.main_conf['pretrain_path']
 
         init_pretraining_params(
             self.exe,
-            pretrain_model_path,
+            pretrain_path,
             main_program=fluid.default_startup_program())
 
 
@@ -575,8 +596,18 @@ class Controller(object):
         epoch = 0
         time_begin = time.time()
         backbone_buffer = []
+        
+        feed_batch_process_fn = create_feed_batch_process_fn(self._net_inputs)
+        distribute_feeder = data_feeder(self._joint_iterator_fn, feed_batch_process_fn)
+
+        # palm.distribute.reader(self._joint_iterator_fn, self._net_inputs, prefetch_steps=2)
+        
         while not train_finish():
-            rt_outputs = self.exe.run(train_program, fetch_list=fetch_list)
+            feed, mask = next(distribute_feeder)
+            rt_outputs = self.exe.run(train_program, feed=feed, fetch_list=fetch_list)
+            while mask.pop() == False:
+                rt_outputs.pop()
+
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             rt_task_id = np.squeeze(rt_outputs['__task_id']).tolist()
             rt_task_id = rt_task_id[0] if isinstance(rt_task_id, list) else rt_task_id
@@ -591,8 +622,9 @@ class Controller(object):
             global_step += 1
             cur_task.cur_train_step += 1
 
-            if cur_task.save_infermodel_every_n_steps > 0 and cur_task.cur_train_step % cur_task.save_infermodel_every_n_steps == 0:
-                cur_task.save(suffix='.step'+str(cur_task.cur_train_step))
+            cur_task_global_step = cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch
+            if cur_task.is_target and cur_task.save_infermodel_every_n_steps > 0 and cur_task_global_step % cur_task.save_infermodel_every_n_steps == 0:
+                cur_task.save(suffix='.step'+str(cur_task_global_step))
 
             if global_step % main_conf.get('print_every_n_steps', 5) == 0:
                 loss = rt_outputs[cur_task.name+'/loss']
@@ -610,10 +642,16 @@ class Controller(object):
                 print(cur_task.name+': train finished!')
                 cur_task.save()
 
-            if 'save_every_n_steps' in main_conf and global_step % main_conf['save_every_n_steps'] == 0:
-                save_path = os.path.join(main_conf['save_path'],
+            if 'save_ckpt_every_n_steps' in main_conf and global_step % main_conf['save_ckpt_every_n_steps'] == 0:
+                save_path = os.path.join(main_conf['save_path'], 'ckpt', 
                                          "step_" + str(global_step))
                 fluid.io.save_persistables(self.exe, save_path, saver_program)
+                print('checkpoint has been saved at '+save_path)
+
+        save_path = os.path.join(main_conf['save_path'], 'ckpt',
+                                 "step_" + str(global_step))
+        fluid.io.save_persistables(self.exe, save_path, saver_program)
+        print('checkpoint has been saved at '+save_path)
 
         print("ALL tasks train finished, exiting...")
             
@@ -647,19 +685,38 @@ class Controller(object):
         fetch_names, fetch_vars = inst.pred_fetch_list
 
         print('predicting...')
-        mapper = {k:v for k,v in inst.pred_input}
-        buf = []
-        for feed in inst.reader['pred'].iterator():
-            feed = _encode_inputs(feed, inst.name, cand_set=mapper)
-            feed = {mapper[k]: v for k,v in feed.items()}
+        feed_batch_process_fn = create_feed_batch_process_fn(inst.pred_input)
+        distribute_feeder = data_feeder(inst.reader['pred'].iterator, feed_batch_process_fn, prefetch_steps=1)
 
+        buf = []
+        for feed, mask in distribute_feeder:
+            print('before run')
             rt_outputs = self.exe.run(pred_prog, feed, fetch_vars)
+            print('after run')
+            splited_rt_outputs = []
+            for item in rt_outputs:
+                splited_rt_outputs.append(np.split(item, len(mask)))
+
+            # assert len(rt_outputs) == len(mask), [len(rt_outputs), len(mask)]
+            print(mask)
+            
+            while mask.pop() == False:
+                print(mask)
+                for item in splited_rt_outputs:
+                    item.pop()
+            rt_outputs = []
+            print('cancat')
+            for item in splited_rt_outputs:
+                rt_outputs.append(np.concatenate(item))
+                
             rt_outputs = {k:v for k,v in zip(fetch_names, rt_outputs)}
             inst.postprocess(rt_outputs, phase='pred')
+        print('leave feeder')
         if inst.task_layer['pred'].epoch_inputs_attrs:
             reader_outputs = inst.reader['pred'].get_epoch_outputs()
         else:
             reader_outputs = None
+        print('epoch postprocess')
         inst.epoch_postprocess({'reader':reader_outputs}, phase='pred')
 
 
@@ -673,6 +730,7 @@ if __name__ == '__main__':
 
 
 
+__all__ = ["Controller"]
 
             
 

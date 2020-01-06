@@ -1,4 +1,4 @@
-task_instance: "mrqa, mlm4mrqa, match4mrqa"
+ask_instance: "mrqa, mlm4mrqa, match4mrqa"
 target_tag: 1, 0, 0
 mix_ratio: 1.0, 0.5, 0.5
 

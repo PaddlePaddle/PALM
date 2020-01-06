@@ -13,87 +13,76 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from paddlepalm.interface import reader
-from paddlepalm.reader.utils.reader4ernie import ClassifyReader
+from paddlepalm.reader.base_reader import BaseReader
+from paddlepalm.reader.utils.reader4ernie import ClassifyReader as CLSReader
 
-class Reader(reader):
+
+class ClassifyReader(BaseReader):
     
-    def __init__(self, config, phase='train', dev_count=1, print_prefix=''):
+    def __init__(self, vocab_path, max_len, tokenizer='wordpiece', \
+             lang='en', seed=None, do_lower_case=False, phase='train'):
+        """xxxxxx.
+
+        Argument:
+          - vocab_path: xxxx
+          -
+
         """
-        Args:
-            phase: train, eval, pred
-            """
+
+        BaseReader.__init__(self, phase)
+
+        assert lang.lower() in ['en', 'cn', 'english', 'chinese'], "supported language: en (English), cn (Chinese)."
+        assert phase in ['train', 'pred'], "supported phase: train, pred."
+
+        for_cn = lang.lower() == 'cn' or lang.lower() == 'chinese'
+
+        self._register.add('token_ids')
+        if phase == 'train':
+            self._register.add('label_ids')
 
         self._is_training = phase == 'train'
 
-        reader = ClassifyReader(config['vocab_path'],
-            max_seq_len=config['max_seq_len'],
-            do_lower_case=config.get('do_lower_case', False),
-            for_cn=config.get('for_cn', False),
-            random_seed=config.get('seed', None))
-        self._reader = reader
-        self._dev_count = dev_count
-
-        self._batch_size = config['batch_size']
-        self._max_seq_len = config['max_seq_len']
-        self._num_classes = config['n_classes']
-
-        if phase == 'train':
-            self._input_file = config['train_file']
-            self._num_epochs = None # 防止iteartor终止
-            self._shuffle = config.get('shuffle', True)
-            # self._shuffle_buffer = config.get('shuffle_buffer', 5000)
-        elif phase == 'eval':
-            self._input_file = config['dev_file']
-            self._num_epochs = 1
-            self._shuffle = False
-            self._batch_size = config.get('pred_batch_size', self._batch_size)
-        elif phase == 'pred':
-            self._input_file = config['pred_file']
-            self._num_epochs = 1
-            self._shuffle = False
-            self._batch_size = config.get('pred_batch_size', self._batch_size)
+        cls_reader = CLSReader(vocab_path,
+                                max_seq_len=max_len,
+                                do_lower_case=do_lower_case,
+                                for_cn=for_cn,
+                                random_seed=seed)
+        self._reader = cls_reader
 
         self._phase = phase
         # self._batch_size = 
-        self._print_first_n = config.get('print_first_n', 0)
+        # self._print_first_n = config.get('print_first_n', 0)
 
 
     @property
     def outputs_attr(self):
-        if self._is_training:
-            return {"token_ids": [[-1, -1, 1], 'int64'],
-                    "position_ids": [[-1, -1, 1], 'int64'],
-                    "segment_ids": [[-1, -1, 1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32'],
-                    "label_ids": [[-1,1], 'int64'],
-                    "task_ids": [[-1, -1, 1], 'int64']
-                    }
-        else:
-            return {"token_ids": [[-1, -1, 1], 'int64'],
-                    "position_ids": [[-1, -1, 1], 'int64'],
-                    "segment_ids": [[-1, -1, 1], 'int64'],
-                    "task_ids": [[-1, -1, 1], 'int64'],
-                    "input_mask": [[-1, -1, 1], 'float32']
-                    }
+        attrs = {"token_ids": [[-1, -1], 'int64'],
+                "position_ids": [[-1, -1], 'int64'],
+                "segment_ids": [[-1, -1], 'int64'],
+                "input_mask": [[-1, -1, 1], 'float32'],
+                "label_ids": [[-1], 'int64'],
+                "task_ids": [[-1, -1], 'int64']
+                }
+        return self._get_registed_attrs(attrs)
 
 
-    def load_data(self):
-        self._data_generator = self._reader.data_generator(self._input_file, self._batch_size, self._num_epochs, dev_count=self._dev_count, shuffle=self._shuffle, phase=self._phase)
+    def _load_data(self, input_file, batch_size, num_epochs=None, \
+                  file_format='csv', shuffle_train=True):
+        self._data_generator = self._reader.data_generator(input_file, batch_size, \
+            num_epochs, shuffle=shuffle_train if self._phase == 'train' else False, \
+            phase=self._phase)
 
-    def iterator(self): 
+    def _iterator(self): 
 
-        def list_to_dict(x):
-            names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
-                'label_ids', 'unique_ids']
-            outputs = {n: i for n,i in zip(names, x)}
-            del outputs['unique_ids']
-            if not self._is_training:
-                del outputs['label_ids']
-            return outputs
-
+        names = ['token_ids', 'segment_ids', 'position_ids', 'task_ids', 'input_mask', 
+            'label_ids', 'unique_ids']
         for batch in self._data_generator():
-            yield list_to_dict(batch)
+            outputs = {n: i for n,i in zip(names, batch)}
+            ret = {}
+            # TODO: move runtime shape check here
+            for attr in self.outputs_attr.keys():
+                ret[attr] = outputs[attr]
+            yield ret
 
     def get_epoch_outputs(self):
         return {'examples': self._reader.get_examples(self._phase),
@@ -102,4 +91,5 @@ class Reader(reader):
     @property
     def num_examples(self):
         return self._reader.get_num_examples(phase=self._phase)
+
 

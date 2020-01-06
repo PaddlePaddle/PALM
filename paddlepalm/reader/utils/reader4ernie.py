@@ -54,14 +54,14 @@ class BaseReader(object):
                  vocab_path,
                  label_map_config=None,
                  max_seq_len=512,
-                 do_lower_case=True,
+                 do_lower_case=False,
                  in_tokens=False,
                  is_inference=False,
                  random_seed=None,
                  tokenizer="FullTokenizer",
                  is_classify=True,
                  is_regression=False,
-                 for_cn=True,
+                 for_cn=False,
                  task_id=0):
         self.max_seq_len = max_seq_len
         self.tokenizer = tokenization.FullTokenizer(
@@ -301,6 +301,70 @@ class BaseReader(object):
         return f
 
 
+class ClassifyReader(BaseReader):
+    def _read_tsv(self, input_file, quotechar=None):
+        """Reads a tab separated value file."""
+        with open(input_file, 'r', encoding='utf8') as f:
+            reader = csv_reader(f)
+            headers = next(reader)
+            text_indices = [
+                index for index, h in enumerate(headers) if h != "label"
+            ]
+            Example = namedtuple('Example', headers)
+
+            examples = []
+            for line in reader:
+                for index, text in enumerate(line):
+                    if index in text_indices:
+                        if self.for_cn:
+                            line[index] = text.replace(' ', '')
+                        else:
+                            line[index] = text
+                example = Example(*line)
+                examples.append(example)
+            return examples
+
+    def _pad_batch_records(self, batch_records):
+        batch_token_ids = [record.token_ids for record in batch_records]
+        batch_text_type_ids = [record.text_type_ids for record in batch_records]
+        batch_position_ids = [record.position_ids for record in batch_records]
+
+        if not self.is_inference:
+            batch_labels = [record.label_id for record in batch_records]
+            if self.is_classify:
+                batch_labels = np.array(batch_labels).astype("int64").reshape(
+                    [-1])
+            elif self.is_regression:
+                batch_labels = np.array(batch_labels).astype("float32").reshape(
+                    [-1])
+
+            if batch_records[0].qid:
+                batch_qids = [record.qid for record in batch_records]
+                batch_qids = np.array(batch_qids).astype("int64").reshape(
+                    [-1])
+            else:
+                batch_qids = np.array([]).astype("int64").reshape([-1])
+
+        # padding
+        padded_token_ids, input_mask = pad_batch_data(
+            batch_token_ids, pad_idx=self.pad_id, return_input_mask=True)
+        padded_text_type_ids = pad_batch_data(
+            batch_text_type_ids, pad_idx=self.pad_id)
+        padded_position_ids = pad_batch_data(
+            batch_position_ids, pad_idx=self.pad_id)
+        padded_task_ids = np.ones_like(
+            padded_token_ids, dtype="int64") * self.task_id
+
+        return_list = [
+            padded_token_ids, padded_text_type_ids, padded_position_ids,
+            padded_task_ids, input_mask
+        ]
+        if not self.is_inference:
+            return_list += [batch_labels, batch_qids]
+
+        return return_list
+
+
 class MaskLMReader(BaseReader):
 
     def _convert_example_to_record(self, example, max_seq_length, tokenizer):
@@ -445,70 +509,6 @@ class MaskLMReader(BaseReader):
                         all_dev_batches = []
 
         return wrapper
-
-
-class ClassifyReader(BaseReader):
-    def _read_tsv(self, input_file, quotechar=None):
-        """Reads a tab separated value file."""
-        with open(input_file, 'r', encoding='utf8') as f:
-            reader = csv_reader(f)
-            headers = next(reader)
-            text_indices = [
-                index for index, h in enumerate(headers) if h != "label"
-            ]
-            Example = namedtuple('Example', headers)
-
-            examples = []
-            for line in reader:
-                for index, text in enumerate(line):
-                    if index in text_indices:
-                        if self.for_cn:
-                            line[index] = text.replace(' ', '')
-                        else:
-                            line[index] = text
-                example = Example(*line)
-                examples.append(example)
-            return examples
-
-    def _pad_batch_records(self, batch_records):
-        batch_token_ids = [record.token_ids for record in batch_records]
-        batch_text_type_ids = [record.text_type_ids for record in batch_records]
-        batch_position_ids = [record.position_ids for record in batch_records]
-
-        if not self.is_inference:
-            batch_labels = [record.label_id for record in batch_records]
-            if self.is_classify:
-                batch_labels = np.array(batch_labels).astype("int64").reshape(
-                    [-1, 1])
-            elif self.is_regression:
-                batch_labels = np.array(batch_labels).astype("float32").reshape(
-                    [-1, 1])
-
-            if batch_records[0].qid:
-                batch_qids = [record.qid for record in batch_records]
-                batch_qids = np.array(batch_qids).astype("int64").reshape(
-                    [-1, 1])
-            else:
-                batch_qids = np.array([]).astype("int64").reshape([-1, 1])
-
-        # padding
-        padded_token_ids, input_mask = pad_batch_data(
-            batch_token_ids, pad_idx=self.pad_id, return_input_mask=True)
-        padded_text_type_ids = pad_batch_data(
-            batch_text_type_ids, pad_idx=self.pad_id)
-        padded_position_ids = pad_batch_data(
-            batch_position_ids, pad_idx=self.pad_id)
-        padded_task_ids = np.ones_like(
-            padded_token_ids, dtype="int64") * self.task_id
-
-        return_list = [
-            padded_token_ids, padded_text_type_ids, padded_position_ids,
-            padded_task_ids, input_mask
-        ]
-        if not self.is_inference:
-            return_list += [batch_labels, batch_qids]
-
-        return return_list
 
 
 class SequenceLabelReader(BaseReader):
@@ -908,19 +908,19 @@ class MRCReader(BaseReader):
                 record.end_position for record in batch_records
             ]
             batch_start_position = np.array(batch_start_position).astype(
-                "int64").reshape([-1, 1])
+                "int64").reshape([-1])
             batch_end_position = np.array(batch_end_position).astype(
-                "int64").reshape([-1, 1])
+                "int64").reshape([-1])
 
         else:
             batch_size = len(batch_token_ids)
             batch_start_position = np.zeros(
-                shape=[batch_size, 1], dtype="int64")
-            batch_end_position = np.zeros(shape=[batch_size, 1], dtype="int64")
+                shape=[batch_size], dtype="int64")
+            batch_end_position = np.zeros(shape=[batch_size], dtype="int64")
 
         batch_unique_ids = [record.unique_id for record in batch_records]
         batch_unique_ids = np.array(batch_unique_ids).astype("int64").reshape(
-            [-1, 1])
+            [-1])
 
         # padding
         padded_token_ids, input_mask = pad_batch_data(
