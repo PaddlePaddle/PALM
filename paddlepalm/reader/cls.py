@@ -21,6 +21,13 @@ class ClassifyReader(BaseReader):
     
     def __init__(self, vocab_path, max_len, tokenizer='wordpiece', \
              lang='en', seed=None, do_lower_case=False, phase='train'):
+        """xxxxxx.
+
+        Argument:
+          - vocab_path: xxxx
+          -
+
+        """
 
         BaseReader.__init__(self, phase)
 
@@ -71,7 +78,7 @@ class ClassifyReader(BaseReader):
             'label_ids', 'unique_ids']
         for batch in self._data_generator():
             outputs = {n: i for n,i in zip(names, batch)}
-            ret = []
+            ret = {}
             # TODO: move runtime shape check here
             for attr in self.outputs_attr.keys():
                 ret[attr] = outputs[attr]

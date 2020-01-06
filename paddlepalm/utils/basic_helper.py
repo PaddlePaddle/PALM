@@ -70,7 +70,7 @@ def check_io(in_attr, out_attr, strict=False, in_name="left", out_name="right"):
                 logging.warning('{}: shape or dtype not consistent!\n{}:\n{}\n{}:\n{}'.format(name, in_name, attr, out_name, out_attr[name]))
 
 
-def encode_inputs(inputs, scope_name, sep='/', cand_set=None):
+def encode_inputs(inputs, scope_name, sep='.', cand_set=None):
     outputs = {}
     for k, v in inputs.items():
         if cand_set is not None:
@@ -83,15 +83,15 @@ def encode_inputs(inputs, scope_name, sep='/', cand_set=None):
     return outputs
 
 
-def decode_inputs(inputs, scope_name, sep='/', keep_unk_keys=True):
+def decode_inputs(inputs, scope_name, sep='.', keep_unk_keys=True):
     outputs = {}
     for name, value in inputs.items():
         # var for backbone are also available to tasks
         if keep_unk_keys and sep not in name:
             outputs[name] = value
         # var for this inst
-        if name.startswith(scope_name+'/'):
-            outputs[name[len(scope_name+'/'):]] = value
+        if name.startswith(scope_name+'.'):
+            outputs[name[len(scope_name+'.'):]] = value
     return outputs
 
 

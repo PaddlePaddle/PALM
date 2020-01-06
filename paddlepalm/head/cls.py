@@ -19,23 +19,11 @@ from paddlepalm.head.base_head import BaseHead
 import numpy as np
 import os
 
-# def classify(num_classes, input_dim, dropout_prob, pred_output_dir=None, param_initializer_range=0.02, phase='train'):
-# 
-#     config = {
-#         'num_classes': num_classes,
-#         'hidden_size': input_dim,
-#         'dropout_prob': dropout_prob,
-#         'pred_output_dir': pred_output_dir,
-#         'initializer_range': param_initializer_range
-#     }
-# 
-#     return Task(config, phase, config)
-
 
 class Classify(BaseHead):
-    '''
+    """
     classification
-    '''
+    """
     # def __init__(self, config, phase, backbone_config=None):
     def __init__(self, num_classes, input_dim, dropout_prob=0.0, \
                  param_initializer_range=0.02, phase='train'):

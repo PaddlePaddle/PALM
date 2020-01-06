@@ -27,7 +27,6 @@ from paddlepalm.backbone.utils.transformer import pre_process_layer, encoder
 from paddlepalm.backbone.base_backbone import BaseBackbone
 
 
-
 class ERNIE(BaseBackbone):
     
     def __init__(self, hidden_size, num_hidden_layers, num_attention_heads, vocab_size, \
