@@ -15,7 +15,6 @@ if __name__ == '__main__':
     config = json.load(open('./pretrain/ernie/ernie_config.json'))
     # ernie = palm.backbone.ERNIE(...)
     ernie = palm.backbone.ERNIE.from_config(config)
-    # pred_ernie = palm.backbone.ERNIE.from_config(config, phase='pred')
 
     # cls_reader2 = palm.reader.cls(train_file_topic, vocab_path, batch_size, max_seqlen)
     # cls_reader3 = palm.reader.cls(train_file_subj, vocab_path, batch_size, max_seqlen)
@@ -30,7 +29,6 @@ if __name__ == '__main__':
     print(cls_reader.outputs_attr)
     # 创建任务头（task head），如分类、匹配、机器阅读理解等。每个任务头有跟该任务相关的必选/可选参数。注意，任务头与reader是解耦合的，只要任务头依赖的数据集侧的字段能被reader提供，那么就是合法的
     cls_head = palm.head.Classify(4, 1024, 0.1)
-    # cls_pred_head = palm.head.Classify(4, 1024, 0.1, phase='pred')
 
     # 根据reader和任务头来创建一个训练器trainer，trainer代表了一个训练任务，内部维护着训练进程、和任务的关键信息，并完成合法性校验，该任务的模型保存、载入等相关规则控制
     trainer = palm.Trainer('senti_cls', cls_reader, cls_head)
@@ -64,7 +62,12 @@ if __name__ == '__main__':
 
     # print(trainer.train_one_step(next(iterator_fn())))
     # trainer.train_one_epoch()
-    trainer.train(iterator_fn, print_steps=1, save_steps=5, save_path='outputs/ckpt')
+    # for save predict model.
+    pred_ernie = palm.backbone.ERNIE.from_config(config, phase='pred')
+    cls_pred_head = palm.head.Classify(4, 1024, phase='pred')
+    trainer.build_predict_head(cls_pred_head, pred_ernie)
+
+    trainer.train(iterator_fn, print_steps=1, save_steps=5, save_path='outputs', save_type='ckpt,predict')
     # trainer.save()
 
 

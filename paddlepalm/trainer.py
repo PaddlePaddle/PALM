@@ -38,7 +38,7 @@ class Trainer(object):
         self._reader = reader
         self._pred_reader = None
         self._task_head = task_head
-        self._pred_head = pred_head
+        self._pred_head = None
 
         # if save_predict_model:
         #     self._save_predict_model = True
@@ -89,20 +89,24 @@ class Trainer(object):
         self._lock = False
         self._build_forward = False
 
-    def build_predict_head(self, pred_backbone, pred_prog=None, pred_init_prog=None):
+    def build_predict_head(self, pred_head, pred_backbone, pred_prog=None, pred_init_prog=None):
+        self._pred_head = pred_head
+        # self._pred_reader = self._reader.clone(phase='pred')
         pred_task_attr_from_reader = helper.encode_inputs(self._pred_head.inputs_attrs['reader'], self.name)
         # pred_task_attr_from_reader = self._pred_head.inputs_attrs['reader']
 
         # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
         # _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
         # _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
-        pred_input_names, pred_shape_and_dtypes, _ = reader_helper.merge_input_attrs(backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
+        pred_input_names, pred_shape_and_dtypes, _ = reader_helper.merge_input_attrs(pred_backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_input_names, pred_shape_and_dtypes)]
         
         if pred_prog is None:
             pred_prog = fluid.Program()
+        self._pred_prog = pred_prog
         if pred_init_prog is None:
             pred_init_prog = fluid.Program()
+        self._pred_init_prog = pred_init_prog
         with fluid.program_guard(pred_prog, pred_init_prog):
             pred_net_inputs = reader_helper.create_net_inputs(pred_input_attrs)
             # pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
@@ -119,8 +123,6 @@ class Trainer(object):
             scope = self.name + '.'
             with fluid.unique_name.guard(scope):
                 self._build_head(pred_task_inputs, phase='pred', scope=scope)
-
-
 
 
     def build_forward(self, backbone, pred_backbone=None, train_prog=None, train_init_prog=None, pred_prog=None, pred_init_prog=None):
@@ -154,7 +156,6 @@ class Trainer(object):
             print('joint input shape and dtypes:')
             print(joint_shape_and_dtypes)
 
-
         input_attrs = [[i, j, k] for i, (j,k) in zip(input_names, shape_and_dtypes)]
 
         if train_prog is None:
@@ -172,6 +173,7 @@ class Trainer(object):
             # bb_output_vars = self._backbone.build(net_inputs, scope_name='__paddlepalm_')
             bb_output_vars = backbone.build(net_inputs)
             assert sorted(bb_output_vars.keys()) == sorted(backbone.outputs_attr.keys())
+        # self._bb_output_vars.keys
         
 
         # fluid.framework.switch_main_program(train_prog)
@@ -293,10 +295,14 @@ class Trainer(object):
         pass
 
     def train(self, iterator, save_path=None, save_steps=None, save_type='ckpt', print_steps=5):
+        """
+        Argument:
+            save_type: ckpt, predict, pretrain
+        """
 
         save_type = save_type.split(',')
         if 'predict' in save_type:
-            assert self._pred_head is not None, "Predict head not found! You should call set_predict_head first if you want to save predict model."
+            assert self._pred_head is not None, "Predict head not found! You should build_predict_head first if you want to save predict model."
             assert save_path is not None and save_steps is not None, 'save_path and save_steps is required to save model.'
             save_predict = True
             if not os.path.exists(save_path):
@@ -369,11 +375,11 @@ class Trainer(object):
             #     cur_task.save()
 
             if (save_predict or save_ckpt) and self._cur_train_step % save_steps == 0:
-                if save_predict_model:
-                    self.save(save_path, suffix='pred.step'+str(global_step))
+                if save_predict:
+                    self.save(save_path, suffix='pred.step'+str(self._cur_train_step))
                 if save_ckpt:
-                    fluid.io.save_persistables(self.exe, os.path.join(save_path, 'ckpt.step'+str(global_step)), self._train_prog)
-                    print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(global_step)))
+                    fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
+                    print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
 
         # save_path = os.path.join(main_conf['save_path'], 'ckpt',
         #                          "step_" + str(global_step))
@@ -422,7 +428,7 @@ class Trainer(object):
             dirpath = save_path
         self._pred_input_varname_list = [str(i) for i in self._pred_input_varname_list]
 
-        prog = fluid.default_main_program().clone()
+        prog = self._pred_prog.clone()
         fluid.io.save_inference_model(dirpath, self._pred_input_varname_list, self._pred_fetch_var_list, self._exe, prog)
 
         conf = {}
