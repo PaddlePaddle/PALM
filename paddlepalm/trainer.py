@@ -282,13 +282,14 @@ class Trainer(object):
         print('random init params...')
         self._exe.run(self._train_init_prog)
 
-    def load_pretrain(self, model_path):
+    def load_pretrain(self, model_path, convert=False):
         # load pretrain model (or ckpt)
         assert self._exe is not None, "You need to random_init_params before load pretrain models."
 
         saver.init_pretraining_params(
             self._exe,
             model_path,
+            convert=convert,
             main_program=self._train_init_prog)
 
     def set_predict_head(self):
