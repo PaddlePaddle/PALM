@@ -37,6 +37,8 @@ class Adam(BaseOptimizer):
         if self._lr_schedualer is not None:
             self._lr = self._lr_schedualer.build(self._lr)
 
+        fluid.layers.Print(self._lr)
+        
         optimizer = fluid.optimizer.Adam(learning_rate=self._lr)
 
         if grad_clip is not None:
@@ -46,6 +48,7 @@ class Adam(BaseOptimizer):
             fluid.clip.set_gradient_clip(
                 clip=fluid.clip.GradientClipByGlobalNorm(clip_norm=clip_norm_thres))
 
+        print(self._loss)
         _, param_grads = optimizer.minimize(self._loss)
         return param_grads
 

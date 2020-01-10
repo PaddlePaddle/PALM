@@ -11,8 +11,8 @@ def yield_pieces(data, distribute_strategy, batch_size):
         distribute_strategy: support s=split, c=copy, u=unstack,
         """
     assert batch_size % dev_count == 0, "batch_size need to be integer times larger than dev_count."
-    print('data in yield pieces')
-    print(len(data))
+    # print('data in yield pieces')
+    # print(len(data))
 
     assert type(data) == type(distribute_strategy), [type(data), type(distribute_strategy)]
     assert len(data) == len(distribute_strategy), [len(data), len(distribute_strategy)]
@@ -53,12 +53,11 @@ def yield_pieces(data, distribute_strategy, batch_size):
         if type(data) == dict:
             yield dict(zip(*[keys, temp]))
         else:
-            print('yielded pieces')
-            print(len(temp))
+            # print('yielded pieces')
+            # print(len(temp))
             yield temp
 
-def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
-
+def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train'):
     if postprocess_fn is None:
         def postprocess_fn(batch):
             return batch
@@ -91,6 +90,7 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
         queue.task_done()
         if ret is not None:
             batches, num_pad = ret
+            id = batches[0]['__task_id'][0][0] if phase == 'train' else -1
             batch_buf = []
             flag_buf = []
             for idx, batch in enumerate(batches):
@@ -98,12 +98,24 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
                 flag = idx-len(batches) < -num_pad
                 # if num_pad > 0:
                 #     num_pad -= 1
-                batch = postprocess_fn(batch)
+                batch = postprocess_fn(batch, id)
                 batch_buf.append(batch)
                 flag_buf.append(flag)
-            yield batch_buf, flag_buf
-        else:
+            yield batch_buf, flag_buf, id
+        else: 
             break
     queue.join()
 
+
+def decode_fake(nums, mask, bs):
+    n_t = 0
+    for flag in mask: 
+        if not flag:
+            break
+        n_t = n_t + 1
+    
+    n_f = len(mask) - n_t
+    p1 = nums - (n_t-1) * bs
+    each_f = p1 / (n_f+1)
+    return each_f * n_f
 

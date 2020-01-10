@@ -21,7 +21,7 @@ import time
 import numpy as np
 import paddlepalm.utils.basic_helper as helper
 from paddlepalm.utils import reader_helper, saver
-from paddlepalm.distribute import gpu_dev_count, data_feeder
+from paddlepalm.distribute import gpu_dev_count, data_feeder, decode_fake
 # from paddlepalm.default_settings import *
 
 DEBUG=False
@@ -217,12 +217,16 @@ class Trainer(object):
         with fluid.program_guard(train_prog, train_init_prog):
             loss_var = fluid.layers.reduce_sum(task_output_vars[self.name+'.loss'])
 
-        self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=loss_var.name)
+        for _id, block in enumerate(self._train_prog.blocks):
+          for var in block.vars:
+            print("[debug] : %d, %s" % (_id, var))
+
         return loss_var
 
     def build_backward(self, optimizer, weight_decay=None, use_ema=False, ema_decay=0.9999):
         # build optimizer
-        optimizer._set_prog(self._train_prog)
+        assert self._train_init_prog is not None, "train graph not foung! You should build_forward first."
+        optimizer._set_prog(self._train_prog, self._train_init_prog)
         with fluid.program_guard(self._train_prog, self._train_init_prog):
             param_grads = optimizer.build()
 
@@ -258,6 +262,13 @@ class Trainer(object):
                 ema = fluid.optimizer.ExponentialMovingAverage(ema_decay)
                 ema.update()
 
+        # for bid, block in enumerate(self._train_prog.blocks):
+        #     print('block id: '+str(bid))
+        #     for var in block.vars:
+        #         print("%d : %s" % (bid, var))
+            
+        # print(self._train_prog)
+
     def load_data(self, input_file, file_format, batch_size, num_epochs=None, shuffle_train=True):
         # load data
         print("preparing data...", end='')
@@ -287,6 +298,7 @@ class Trainer(object):
 
     def random_init_params(self):
         assert self._train_init_prog is not None, "train graph not foung! You should build_forward first before you random init parameters."
+        self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=loss_var.name)
         on_gpu = gpu_dev_count > 0
         self._exe = helper.build_executor(on_gpu)
         print('random init params...')
@@ -294,7 +306,7 @@ class Trainer(object):
 
     def load_ckpt(self, model_path, phase='train'):
         # load pretrain model (or ckpt)
-        assert self._exe is not None, "You need to random_init_params before load pretrain models."
+        assert self._exe is not None, "You need to random_init_params before load checkpoints."
 
         if phase == 'train':
             assert self._train_init_prog is not None, "train graph not found! You should build_forward first before load checkpoint."
@@ -437,12 +449,12 @@ class Trainer(object):
     def predict_one_batch(self, batch):
         if gpu_dev_count > 1:
             feed, mask = batch
-            rt_outputs = self.exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
+            rt_outputs = self.exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._fetch_list)
             while mask.pop() == False:
                 rt_outputs.pop()
         else:
             feed = self._feed_batch_process_fn(batch)
-            rt_outputs = self._exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
+            rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._fetch_list)
 
         rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
         

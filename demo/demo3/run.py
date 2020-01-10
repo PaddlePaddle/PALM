@@ -6,7 +6,7 @@ if __name__ == '__main__':
 
     max_seqlen = 512
     batch_size = 4
-    num_epochs = 2
+    num_epochs = 20
     lr = 1e-3
     vocab_path = './pretrain/ernie/vocab.txt'
 
@@ -67,7 +67,8 @@ if __name__ == '__main__':
     cls_pred_head = palm.head.Classify(4, 1024, phase='pred')
     trainer.build_predict_head(cls_pred_head, pred_ernie)
 
-    trainer.train(iterator_fn, print_steps=1, save_steps=5, save_path='outputs', save_type='ckpt,predict')
+    # trainer.train(iterator_fn, print_steps=1, save_steps=5, save_path='outputs', save_type='ckpt,predict')
+    trainer.train(iterator_fn, print_steps=1)
     # trainer.save()
 
 
