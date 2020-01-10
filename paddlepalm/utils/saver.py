@@ -46,20 +46,24 @@ def init_checkpoint(exe, init_checkpoint_path, main_program, skip_list = []):
 
 def init_pretraining_params(exe,
                             pretraining_params_path,
+                            convert,
                             main_program):
     assert os.path.exists(pretraining_params_path
                           ), "[%s] cann't be found." % pretraining_params_path
 
+    if convert:
+        assert os.path.exists(os.path.join(pretraining_params_path, '__palmmodel__')), "__palmmodel__ not found."
 
-    assert os.path.exists(os.path.join(pretraining_params_path, '__palmmodel__')), "__palmmodel__ not found."
-    print("Loading pretraining parameters from {}...".format(
-        pretraining_params_path))
+        with tarfile.open(os.path.join(pretraining_params_path, '__palmmodel__'), 'r') as f:
+            f.extractall(os.path.join(pretraining_params_path, '.temp'))
+        
+        log_path = os.path.join(pretraining_params_path, '__palmmodel__')
+        pretraining_params_path = os.path.join(pretraining_params_path, '.temp')
 
-    with tarfile.open(os.path.join(pretraining_params_path, '__palmmodel__'), 'r') as f:
-        f.extractall(os.path.join(pretraining_params_path, '.temp'))
+    else:
+        log_path = pretraining_params_path
     
-    log_path = os.path.join(pretraining_params_path, '__palmmodel__')
-    pretraining_params_path = os.path.join(pretraining_params_path, '.temp')
+    print("Loading pretraining parameters from {}...".format(pretraining_params_path))
 
     def existed_params(var):
         if not isinstance(var, fluid.framework.Parameter):
@@ -73,8 +77,8 @@ def init_pretraining_params(exe,
         pretraining_params_path,
         main_program=main_program,
         predicate=existed_params)
-
-    shutil.rmtree(pretraining_params_path)
+    if convert:
+        shutil.rmtree(pretraining_params_path)
     print('')
 
 
