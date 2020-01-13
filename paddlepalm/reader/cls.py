@@ -71,7 +71,7 @@ class ClassifyReader(BaseReader):
         self._batch_size = batch_size
         self._num_epochs = num_epochs
         self._data_generator = self._reader.data_generator( \
-            input_file, batch_size, num_epochs if phase == 'train' else 1, \
+            input_file, batch_size, num_epochs if self._phase == 'train' else 1, \
             shuffle=shuffle_train if self._phase == 'train' else False, \
             phase=self._phase)
 
