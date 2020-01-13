@@ -13,16 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import json
 
 class BaseHead(object):
 
-    def __init__(self, config, phase, backbone_config):
+    def __init__(self, phase='train'):
         """
             config: dict类型。描述了 任务实例(task instance)+多任务配置文件 中定义超参数
             phase: str类型。运行阶段，目前支持train和predict
             """
         self._stop_gradient = {}
+        self._phase = phase
         self._prog = None
+        self._results_buffer = []
 
     @property
     def inputs_attrs(self):
@@ -67,10 +71,31 @@ class BaseHead(object):
         raise NotImplementedError()
         
 
-    def postprocess(self, rt_outputs):
+    def batch_postprocess(self, rt_outputs):
         """每个训练或推理step后针对当前batch的task_layer的runtime计算结果进行相关后处理。注意，rt_outputs除了包含build方法，还自动包含了loss的计算结果。"""
-        pass
+        if isinstance(rt_outputs, dict):
+            keys = rt_outputs.keys()
+            vals = [rt_outputs[k] for k in keys]
+            lens = [len(v) for v in vals]
+            if len(set(lens)) == 1:
+                results = [dict(zip(*[keys, i])) for i in zip(*vals)]
+                self._results_buffer.extend(results)
+                return results
+            else:
+                print('WARNING: irregular output results. visualize failed.')
+                self._results_buffer.append(rt_outputs)
+        return None
         
-    def epoch_postprocess(self, post_inputs):
-        pass
+    def epoch_postprocess(self, post_inputs, output_dir=None):
+        if output_dir is not None:
+            for i in self._results_buffer:
+                print(i)
+        else:
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            with open(os.path.join(output_dir, self._phase), 'w') as writer:
+                for i in self._results_buffer:
+                    writer.write(json.dumps(i)+'\n')
+            
+        
 

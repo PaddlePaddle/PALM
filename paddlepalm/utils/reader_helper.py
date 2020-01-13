@@ -35,6 +35,27 @@ def create_feed_batch_process_fn(net_inputs):
 
     return feed_batch_process_fn
 
+
+def create_multihead_feed_batch_process_fn(net_inputs):
+
+    def feed_batch_process_fn(data, id=-1):
+        # temps = {}
+        # for i in range(len(net_inputs)):
+        temp = {}
+        inputs = net_inputs[id] if id != -1 else net_inputs
+        
+        for q, var in inputs.items():
+            if isinstance(var, str) or isinstance(var, unicode):
+                temp[var] = data[q]
+            else:
+                temp[var.name] = data[q]
+            # temps[i] = temp
+            
+        return temp
+
+    return feed_batch_process_fn
+
+
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
     if not isinstance(rt_val, np.ndarray):
         rt_val = np.array(rt_val)

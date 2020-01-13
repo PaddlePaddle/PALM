@@ -87,14 +87,16 @@ class Classify(BaseHead):
             self._preds.extend(preds.tolist())
             return preds
 
-    def epoch_postprocess(self, post_inputs):
+    def epoch_postprocess(self, post_inputs, output_dir=None):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
         if not self._is_training:
-            if self._pred_output_path is None:
-                raise ValueError('argument pred_output_path not found in config. Please add it into config dict/file.')
-            with open(os.path.join(self._pred_output_path, 'predictions.json'), 'w') as writer:
+            if output_dir is None:
                 for p in self._preds:
-                    writer.write(str(p)+'\n')
-            print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
+                    print(p)
+            else:
+                with open(os.path.join(self._pred_output_path, 'predictions.json'), 'w') as writer:
+                    for p in self._preds:
+                        writer.write(str(p)+'\n')
+                print('Predictions saved at '+os.path.join(self._pred_output_path, 'predictions.json'))
 
                 

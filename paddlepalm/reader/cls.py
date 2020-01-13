@@ -32,7 +32,7 @@ class ClassifyReader(BaseReader):
         BaseReader.__init__(self, phase)
 
         assert lang.lower() in ['en', 'cn', 'english', 'chinese'], "supported language: en (English), cn (Chinese)."
-        assert phase in ['train', 'pred'], "supported phase: train, pred."
+        assert phase in ['train', 'predict'], "supported phase: train, predict."
 
         for_cn = lang.lower() == 'cn' or lang.lower() == 'chinese'
 
@@ -66,10 +66,13 @@ class ClassifyReader(BaseReader):
         return self._get_registed_attrs(attrs)
 
 
-    def _load_data(self, input_file, batch_size, num_epochs=None, \
+    def load_data(self, input_file, batch_size, num_epochs=None, \
                   file_format='csv', shuffle_train=True):
-        self._data_generator = self._reader.data_generator(input_file, batch_size, \
-            num_epochs, shuffle=shuffle_train if self._phase == 'train' else False, \
+        self._batch_size = batch_size
+        self._num_epochs = num_epochs
+        self._data_generator = self._reader.data_generator( \
+            input_file, batch_size, num_epochs if phase == 'train' else 1, \
+            shuffle=shuffle_train if self._phase == 'train' else False, \
             phase=self._phase)
 
     def _iterator(self): 
@@ -91,5 +94,9 @@ class ClassifyReader(BaseReader):
     @property
     def num_examples(self):
         return self._reader.get_num_examples(phase=self._phase)
+
+    @property
+    def num_epochs(self):
+        return self._num_epochs
 
 

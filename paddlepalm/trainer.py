@@ -29,15 +29,13 @@ DEBUG=False
 
 class Trainer(object):
 
-    def __init__(self, name, reader, task_head, \
-                 mix_ratio=1.0, reuse_head_with=None, \
+    def __init__(self, name, mix_ratio=1.0, reuse_head_with=None, \
                  silent=False):
 
         self._name = name
         self._verbose = not silent
-        self._reader = reader
         self._pred_reader = None
-        self._task_head = task_head
+        self._task_head = None
         self._pred_head = None
 
         self._train_init = False
@@ -66,15 +64,12 @@ class Trainer(object):
         self._expected_train_steps = None
         self._expected_train_epochs = None
         self._steps_pur_epoch = None
+        self._pred_steps_pur_epoch = None
         self._cur_train_epoch = 0
         self._cur_train_step = 0
         self._train_finish = False
 
-        # 存放不同运行阶段（train，eval，pred）的数据集reader，key为phase，value为Reader实例
-        # self._reader = {'train': reader, 'eval': None, 'pred': self._pred_reader}
-        # self._input_layer = None
         self._inputname_to_varname = {}
-        # self._task_layer = {'train': task_head, 'eval': None, 'pred': pred_head}
         self._pred_input_name_list = []
         self._pred_input_varname_list = []
         self._pred_fetch_name_list = []
@@ -92,7 +87,7 @@ class Trainer(object):
         self._lock = False
         self._build_forward = False
 
-    def build_predict_head(self, pred_head, pred_backbone, pred_prog=None, pred_init_prog=None):
+    def build_predict_forward(self, pred_backbone, pred_head, pred_prog=None, pred_init_prog=None):
         self._pred_head = pred_head
         # self._pred_reader = self._reader.clone(phase='pred')
         pred_task_attr_from_reader = helper.encode_inputs(self._pred_head.inputs_attrs['reader'], self.name)
@@ -101,8 +96,10 @@ class Trainer(object):
         # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
         # _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
         # _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
-        pred_input_names, pred_shape_and_dtypes, _ = reader_helper.merge_input_attrs(pred_backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
+        pred_input_names, pred_shape_and_dtypes, pred_name_to_position = reader_helper.merge_input_attrs(pred_backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_input_names, pred_shape_and_dtypes)]
+        self._pred_shape_and_dtypes = pred_shape_and_dtypes
+        self._pred_name_to_position = pred_name_to_position
         
         if pred_prog is None:
             pred_prog = fluid.Program()
@@ -114,6 +111,7 @@ class Trainer(object):
             pred_net_inputs = reader_helper.create_net_inputs(pred_input_attrs)
             # pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
             pred_bb_output_vars = pred_backbone.build(pred_net_inputs)
+            self._pred_net_inputs = pred_net_inputs
 
         # prepare predict vars for saving inference model
         with fluid.program_guard(pred_prog, pred_init_prog):
@@ -128,16 +126,16 @@ class Trainer(object):
                 output_vars = self._build_head(pred_task_inputs, phase='pred', scope=scope)
 
         if output_vars is not None:
-            self._pred_fetch_name_list, self._pred_fetch_var_list = zip(*output_vars.items())
+            self._pred_fetch_name_list, self._pred_fetch_list = zip(*output_vars.items())
         else:
             self._pred_fetch_name_list = []
             self._pred_fetch_var_list = []
 
-        self._distribute_pred_prog = fluid.CompiledProgram(self._pred_prog).with_data_parallel()
         return output_vars
 
 
-    def build_forward(self, backbone, pred_backbone=None, train_prog=None, train_init_prog=None, pred_prog=None, pred_init_prog=None):
+    def build_forward(self, backbone, task_head, train_prog=None, train_init_prog=None, pred_prog=None, pred_init_prog=None):
+        self._task_head = task_head
 
         # assert self._backbone is not None, "backbone is required for Trainer to build net forward to run with single task mode"
         self._build_forward = True
@@ -220,9 +218,9 @@ class Trainer(object):
         with fluid.program_guard(train_prog, train_init_prog):
             loss_var = fluid.layers.reduce_sum(task_output_vars[self.name+'.loss'])
 
-        for _id, block in enumerate(self._train_prog.blocks):
-          for var in block.vars:
-            print("[debug] : %d, %s" % (_id, var))
+        # for _id, block in enumerate(self._train_prog.blocks):
+        #   for var in block.vars:
+        #     print("[debug] : %d, %s" % (_id, var))
         self._loss_var = loss_var
         return loss_var
 
@@ -272,43 +270,69 @@ class Trainer(object):
             
         # print(self._train_prog)
 
-    def load_data(self, input_file, file_format, batch_size, num_epochs=None, shuffle_train=True):
+    def fit_reader(self, reader, phase='train'):
         # load data
-        print("preparing data...", end='')
-        self._reader._load_data(input_file=input_file, batch_size=batch_size, \
-                                num_epochs=num_epochs, file_format=file_format, \
-                                shuffle_train=shuffle_train)
-        self._num_examples = self._reader.num_examples
+        assert self._train_init_prog is not None or self._pred_init_prog is not None, "You need to build_forward or build_predict_head first to prepare input features."
         # 这里不确定是否要向上取整，需确认
         # tail = self._num_examples % batch_size > 0
         # self._steps_pur_epoch = self._num_examples // batch_size + 1 if tail else 0
-        self._steps_pur_epoch = self._num_examples // batch_size
+        batch_size = reader._batch_size
+        self._num_epochs = reader.num_epochs
+        if phase == 'train':
+            self._steps_pur_epoch = reader.num_examples // batch_size
+            shape_and_dtypes = self._shape_and_dtypes
+            name_to_position = self._name_to_position
+            net_inputs = self._net_inputs
+            self._train_batch_size = batch_size
+            self._num_examples = reader.num_examples
+        elif phase == 'predict':
+            tail = self._num_examples % batch_size > 0
+            self._pred_steps_pur_epoch = reader.num_examples // batch_size + 1 if tail else 0
+            shape_and_dtypes = self._pred_shape_and_dtypes
+            name_to_position = self._pred_name_to_position
+            net_inputs = self._pred_net_inputs
+            self._predict_batch_size = batch_size
+            self._pred_num_examples = reader.num_examples
+        else:
+            raise NotImplementedError()
+            
         print('ok!')
 
         # merge dataset iterators and create net input vars
-        iterator = self._reader._iterator()
+        iterator = reader._iterator()
         prefix = self.name
 
         # 对yield出的数据进行runtime检查和适配
-        iterator_fn = reader_helper.create_iterator_fn(iterator, prefix, self._shape_and_dtypes, self._name_to_position, return_type='dict')
-        feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(self._net_inputs)
-        self._feed_batch_process_fn = feed_batch_process_fn
+        iterator_fn = reader_helper.create_iterator_fn(iterator, prefix, shape_and_dtypes, name_to_position, return_type='dict')
+        self._raw_iterator_fn = iterator_fn
+        feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(net_inputs)
         if gpu_dev_count > 1:
             distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn)
         else:
             distribute_feeder_fn = iterator_fn
-        return distribute_feeder_fn()
+
+        if phase == 'train':
+            self._train_reader = distribute_feeder_fn()
+            self._feed_batch_process_fn = feed_batch_process_fn
+        elif phase == 'predict':
+            self._predict_reader = distribute_feeder_fn()
+            self._pred_feed_batch_process_fn = feed_batch_process_fn
+        # return distribute_feeder_fn()
 
     def _init_exe_prog(self, for_train=True):
-        assert self._train_init_prog is not None, "train graph not foung! You should build_forward first before you random init parameters."
-        self._train_init = True
-        self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
-        on_gpu = gpu_dev_count > 0
-        self._exe = helper.build_executor(on_gpu)
-        if not for_train:
-            raise NotImplementedError()
+        if not self._train_init and not self._predict_init:
+            on_gpu = gpu_dev_count > 0
+            self._exe = helper.build_executor(on_gpu)
+
+        if for_train:
+            assert self._train_prog is not None, "train graph not foung! You should build_forward first before you random init parameters."
+            self._train_init = True
+        else:
+            assert self._pred_prog is not None, "predict graph not foung! You should build_predict_head first before you random init parameters."
+            self._predict_init = True
 
     def random_init_params(self):
+        
         if not self._train_init:
             self._init_exe_prog()
         
@@ -319,9 +343,9 @@ class Trainer(object):
         # load pretrain model (or ckpt)
         # assert self._exe is not None, "You need to random_init_params before load checkpoints."
         if phase == 'train' and not self._train_init:
-            self._init_exe_prog()
+            self._init_exe_prog(for_train=True)
         if phase == 'predict' and not self._predict_init:
-            pass
+            self._init_exe_prog(for_train=False)
 
         if phase == 'train':
             assert self._train_init_prog is not None, "train graph not found! You should build_forward first before load checkpoint."
@@ -344,23 +368,23 @@ class Trainer(object):
     def load_predict_model(self, model_path):
         raise NotImplementedError()
 
-    def load_pretrain(self, model_path):
+    def load_pretrain(self, model_path, convert=False):
         # load pretrain model (or ckpt)
         assert self._exe is not None, "You need to random_init_params before load pretrain models."
 
         saver.init_pretraining_params(
             self._exe,
             model_path,
+            convert=convert,
             main_program=self._train_init_prog)
 
-    def set_predict_head(self):
-        pass
-
-    def train(self, iterator, save_path=None, save_steps=None, save_type='ckpt', print_steps=5):
+    def train(self, save_path=None, save_steps=None, save_type='ckpt', print_steps=5):
         """
         Argument:
             save_type: ckpt, predict, pretrain
         """
+        iterator = self._train_reader
+        self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
 
         save_type = save_type.split(',')
         if 'predict' in save_type:
@@ -412,15 +436,13 @@ class Trainer(object):
             # rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
 
             task_rt_outputs = {k[len(self.name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self.name+'.')}
-            self._task_head.postprocess(task_rt_outputs)
+            self._task_head.batch_postprocess(task_rt_outputs)
 
             # rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
 
             task_rt_outputs = {k[len(self.name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self.name+'.')}
-            self._task_head.postprocess(task_rt_outputs)
+            self._task_head.batch_postprocess(task_rt_outputs)
 
-            self._cur_train_step += 1
-            self._cur_train_epoch = (self._cur_train_step-1) // self._steps_pur_epoch
 
             # if self._save_predict_model and self._cur_train_step % save_steps == 0:
             #     self.save(save_path, suffix='.step'+str(self._cur_train_steps))
@@ -448,6 +470,8 @@ class Trainer(object):
                     fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
                     print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
 
+            if self._num_epochs is None and self._cur_train_step == self._steps_pur_epoch:
+                break
         # save_path = os.path.join(main_conf['save_path'], 'ckpt',
         #                          "step_" + str(global_step))
         # fluid.io.save_persistables(self.exe, save_path, saver_program)
@@ -455,32 +479,83 @@ class Trainer(object):
 
         # print("ALL tasks train finished, exiting...")
 
+    def get_one_batch(self, phase='train'):
+        if phase == 'train':
+            return next(self._train_reader)
+        elif phase == 'predict':
+            return next(self._predict_reader)
+        else:
+            raise NotImplementedError()
+        
+    def predict(self, output_dir=None, print_steps=1000):
+        """
+        Argument:
+            save_type: ckpt, predict, pretrain
+        """
+        iterator = self._predict_reader
+        self._distribute_pred_prog = fluid.CompiledProgram(self._pred_prog).with_data_parallel()
+
+        if output_dir is not None and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        time_begin = time.time()
+        cur_predict_step = 0
+        for feed in iterator:
+            rt_outputs = self.predict_one_batch(feed)
+            # rt_outputs = {k[len(self.name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self.name+'.')}
+            # print(rt_outputs)
+            self._pred_head.batch_postprocess(rt_outputs)
+
+            cur_predict_step += 1
+
+            if print_steps > 0 and cur_predict_step % print_steps == 0:
+                time_end = time.time()
+                time_cost = time_end - time_begin
+
+                print("batch {}/{}, speed: {:.2f} steps/s".format(
+                       cur_predict_step, self._pred_steps_pur_epoch,
+                       print_steps / time_cost))
+                time_begin = time.time()
+
+        if self._pred_head.epoch_inputs_attrs:
+            reader_outputs = self._pred_reader.get_epoch_outputs()
+        else:
+            reader_outputs = None
+
+        results = self._pred_head.epoch_postprocess({'reader':reader_outputs}, output_dir=output_dir)
+        return results
+
     def train_one_step(self, batch):
         if gpu_dev_count > 1:
             feed, mask = batch
             rt_outputs = self.exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
-            while mask.pop() == False:
-                rt_outputs.pop()
+            num_fakes = decode_fake(len(rt_outputs[0]), mask, self._batch_size)
+            for _ in range(num_fakes):
+                for item in rt_outputs:
+                    item.pop()
         else:
             feed = self._feed_batch_process_fn(batch)
             rt_outputs = self._exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
 
         rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
+        self._cur_train_step += 1
+        self._cur_train_epoch = (self._cur_train_step-1) // self._steps_pur_epoch
         return rt_outputs
 
     def predict_one_batch(self, batch):
         if gpu_dev_count > 1:
             feed, mask = batch
-            rt_outputs = self.exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._fetch_list)
-            while mask.pop() == False:
-                rt_outputs.pop()
+            rt_outputs = self.exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)
+            num_fakes = decode_fake(len(rt_outputs[0]), mask, self._batch_size)
+            for _ in range(num_fakes):
+                for item in rt_outputs:
+                    item.pop()
         else:
-            feed = self._feed_batch_process_fn(batch)
-            rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._fetch_list)
+            feed = self._pred_feed_batch_process_fn(batch)
+            rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)
 
-        rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
-        
-        
+        rt_outputs = {k:v for k,v in zip(self._pred_fetch_name_list, rt_outputs)}
+        return rt_outputs
 
     def _build_head(self, net_inputs, phase, scope=""):
         if phase == 'train':
@@ -488,12 +563,6 @@ class Trainer(object):
         if phase == 'pred':
             output_vars = self._pred_head.build(net_inputs, scope_name=scope)
         return output_vars
-
-    def _postprocess(self, rt_outputs, phase):
-        return self._task_layer[phase].postprocess(rt_outputs)
-
-    def _epoch_postprocess(self, epoch_inputs, phase):
-        return self._task_layer[phase].epoch_postprocess(epoch_inputs)
     
     def save(self, save_path, suffix=None):
         # dirpath = save_path.rstrip('/').rstrip('\\') + suffix
@@ -536,20 +605,6 @@ class Trainer(object):
     def num_examples(self):
         return self._num_examples
 
-    # @property
-    # def _pred_input(self):
-    #     return zip(*[self._pred_input_name_list, self._pred_input_varname_list])
-
-    # @_pred_input.setter
-    # def _pred_input(self, val):
-    #     assert isinstance(val, dict)
-    #     self._pred_input_name_list, self._pred_input_varname_list = \
-    #         zip(*[[k, v.name] for k,v in val.items()])
-
-    # @property
-    # def _pred_fetch_list(self):
-    #     return [self._pred_fetch_name_list, self._pred_fetch_var_list]
-
     @property
     def mix_ratio(self):
         if self._mix_ratio is not None:
@@ -563,57 +618,6 @@ class Trainer(object):
         if self._verbose:
             print('{}: mix_ratio is set to {}'.format(self._name, self._mix_ratio))
 
-    @property
-    def save_infermodel_every_n_steps(self):
-        return self._save_infermodel_every_n_steps
-
-    @save_infermodel_every_n_steps.setter
-    def save_infermodel_every_n_steps(self, val):
-        self._save_infermodel_every_n_steps = val
-
-    @property
-    def expected_train_steps(self):
-        return self._expected_train_steps
-
-    @expected_train_steps.setter
-    def expected_train_steps(self, value):
-        self._expected_train_steps = value
-        self._expected_train_epochs = value / float(self._steps_pur_epoch)
-
-    @property
-    def expected_train_epochs(self):
-        return self._expected_train_epochs
-
-    @property
-    def cur_train_epoch(self):
-        return self._cur_train_epoch
-
-    @property
-    def cur_train_step(self):
-        return self._cur_train_step
-
-    # @cur_train_step.setter
-    # def _cur_train_step(self, value):
-    #     self._cur_train_step = value
-    #     if self._cur_train_step > self._steps_pur_epoch:
-    #         self._cur_train_epoch += 1
-    #         self._cur_train_step = 1
-    #     if self._is_target and self._cur_train_step + self._cur_train_epoch * self._steps_pur_epoch >= self._expected_train_steps:
-    #         self._train_finish = True
-    @steps_pur_epoch.setter
-    def steps_pur_epoch(self, value):
-        self._steps_pur_epoch = value
-
-    @property
-    def train_finish(self):
-        return self._train_finish
-
-    def tasklayer_reuse_with(self, task):
-        assert isinstance(task, Task)
-        if self._lock:
-            raise Exception('you can only set tasklayer reuses BEFORE Controller created.')
-        self._task_reuse_scope = task.name
-    
     def _set_lock(self):
         self._lock = True
 

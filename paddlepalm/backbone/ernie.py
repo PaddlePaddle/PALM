@@ -114,8 +114,6 @@ class ERNIE(BaseBackbone):
         input_mask = inputs['input_mask']
         task_ids = inputs['task_ids']
 
-        fluid.layers.Print(src_ids)
-
         # padding id in vocabulary must be set to 0
         emb_out = fluid.embedding(
             input=src_ids,

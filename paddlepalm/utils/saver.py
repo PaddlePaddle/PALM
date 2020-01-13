@@ -47,7 +47,9 @@ def init_checkpoint(exe, init_checkpoint_path, main_program, skip_list = []):
 def init_pretraining_params(exe,
                             pretraining_params_path,
                             convert,
-                            main_program):
+                            main_program,
+                            strict=False):
+                            
     assert os.path.exists(pretraining_params_path
                           ), "[%s] cann't be found." % pretraining_params_path
 
@@ -69,7 +71,10 @@ def init_pretraining_params(exe,
         if not isinstance(var, fluid.framework.Parameter):
             return False
         if not os.path.exists(os.path.join(pretraining_params_path, var.name)):
-            print('Warning: {} not found in {}.'.format(var.name, log_path))
+            if strict:
+                raise Exception('Error: {} not found in {}.'.format(var.name, log_path))
+            else:
+                print('Warning: {} not found in {}.'.format(var.name, log_path))
         return os.path.exists(os.path.join(pretraining_params_path, var.name))
 
     fluid.io.load_vars(

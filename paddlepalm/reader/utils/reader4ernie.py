@@ -219,7 +219,7 @@ class BaseReader(object):
                 qid=qid)
         return record
 
-    def _prepare_batch_data(self, examples, batch_size, phase=None):
+    def _prepare_batch_data(self, examples, batch_size, phase='train'):
         """generate batch records"""
         batch_records, max_len = [], 0
         if len(examples) < batch_size:
@@ -243,13 +243,11 @@ class BaseReader(object):
         if phase == 'pred' and batch_records:
             yield self._pad_batch_records(batch_records)
 
-    def get_num_examples(self, input_file=None, phase=None):
-        if self.examples is not None:
-            if phase is None:
-                phase = 'all'
-            return len(self.examples[phase])
+    def get_num_examples(self, input_file=None, phase='train'):
+        if input_file is None:
+            return len(self.examples.get(phase, []))
         else:
-            assert input_file is not None, "Argument input_file should be given or the data_generator should be created when this func is called."
+            # assert input_file is not None, "Argument input_file should be given or the data_generator should be created when this func is called."
             examples = self._read_tsv(input_file)
             return len(examples)
 
