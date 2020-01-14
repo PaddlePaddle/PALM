@@ -46,7 +46,6 @@ class Adam(BaseOptimizer):
             fluid.clip.set_gradient_clip(
                 clip=fluid.clip.GradientClipByGlobalNorm(clip_norm=clip_norm_thres))
 
-        print(self._loss)
         _, param_grads = optimizer.minimize(self._loss)
         return param_grads
 

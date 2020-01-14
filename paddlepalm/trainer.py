@@ -41,6 +41,8 @@ class Trainer(object):
         self._train_init = False
         self._predict_init = False
 
+        self._check_save = lambda: False
+
         # if save_predict_model:
         #     self._save_predict_model = True
         #     assert pred_head is not None, "pred_head is required to save predict model."
@@ -58,6 +60,8 @@ class Trainer(object):
         self._target_vars = None
 
         self._num_examples = 0
+
+        self._multi_task = False
 
         # training process management
         self._mix_ratio = mix_ratio
@@ -133,8 +137,11 @@ class Trainer(object):
 
         return output_vars
 
+    def _set_multitask(self):
+        self._multi_task = True
 
-    def build_forward(self, backbone, task_head, train_prog=None, train_init_prog=None, pred_prog=None, pred_init_prog=None):
+    def build_forward(self, backbone, task_head):
+        # assert not self._multi_task, "you cannot build_forward in trainer when a train is wrapper by MultiHeadTrainer."
         self._task_head = task_head
 
         # assert self._backbone is not None, "backbone is required for Trainer to build net forward to run with single task mode"
@@ -168,23 +175,22 @@ class Trainer(object):
 
         input_attrs = [[i, j, k] for i, (j,k) in zip(input_names, shape_and_dtypes)]
 
-        if train_prog is None:
-            train_prog = fluid.Program()
-        if train_init_prog is None:
-            train_init_prog = fluid.Program()
-        self._prog = train_prog
+        train_prog = fluid.Program()
+        train_init_prog = fluid.Program()
+
         self._train_prog = train_prog
         self._train_init_prog = train_init_prog
-        with fluid.program_guard(train_prog, train_init_prog):
+        if not self._multi_task:
+            with fluid.program_guard(train_prog, train_init_prog):
+                net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
+                bb_output_vars = backbone.build(net_inputs)
+        else:
             net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
-            self._net_inputs = net_inputs
-
-            # build backbone and task layers
-            # bb_output_vars = self._backbone.build(net_inputs, scope_name='__paddlepalm_')
             bb_output_vars = backbone.build(net_inputs)
-            assert sorted(bb_output_vars.keys()) == sorted(backbone.outputs_attr.keys())
+        self._net_inputs = net_inputs
+        assert sorted(bb_output_vars.keys()) == sorted(backbone.outputs_attr.keys())
+
         # self._bb_output_vars.keys
-        
 
         # fluid.framework.switch_main_program(train_prog)
         # fluid.framework.switch_startup_program(train_init_prog)
@@ -195,9 +201,14 @@ class Trainer(object):
         task_inputs['reader'] = task_inputs_from_reader
 
         scope = self.name+'.'
-        with fluid.program_guard(train_prog, train_init_prog):
+        if not self._multi_task:
+            with fluid.program_guard(train_prog, train_init_prog):
+                with fluid.unique_name.guard(scope):
+                    output_vars = self._build_head(task_inputs, phase='train', scope=scope)
+        else:
             with fluid.unique_name.guard(scope):
                 output_vars = self._build_head(task_inputs, phase='train', scope=scope)
+
         output_vars = {self.name+'.'+key: val for key, val in output_vars.items()}
         old = len(task_output_vars) # for debug
         task_output_vars.update(output_vars)
@@ -215,7 +226,10 @@ class Trainer(object):
         # task_id_vec = layers.one_hot(task_id_var, num_instances)
         # losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
         # loss = layers.reduce_sum(task_id_vec * losses)
-        with fluid.program_guard(train_prog, train_init_prog):
+        if not self._multi_task:
+            with fluid.program_guard(train_prog, train_init_prog):
+                loss_var = fluid.layers.reduce_sum(task_output_vars[self.name+'.loss'])
+        else:
             loss_var = fluid.layers.reduce_sum(task_output_vars[self.name+'.loss'])
 
         # for _id, block in enumerate(self._train_prog.blocks):
@@ -225,6 +239,7 @@ class Trainer(object):
         return loss_var
 
     def build_backward(self, optimizer, weight_decay=None, use_ema=False, ema_decay=0.9999):
+        # assert not self._multi_task, "you cannot build_backward in trainer when a train is wrapper by MultiHeadTrainer."
         # build optimizer
         assert self._train_init_prog is not None, "train graph not foung! You should build_forward first."
         optimizer._set_prog(self._train_prog, self._train_init_prog)
@@ -235,7 +250,7 @@ class Trainer(object):
 
                 param_list = dict()
 
-                for param in self._prog.global_block().all_parameters():
+                for param in self._train_prog.global_block().all_parameters():
                     param_list[param.name] = param * 1.0
                     param_list[param.name].stop_gradient = True
 
@@ -271,8 +286,11 @@ class Trainer(object):
         # print(self._train_prog)
 
     def fit_reader(self, reader, phase='train'):
+        # assert not self._multi_task, "you cannot fit_reader in trainer when a train is wrapper by MultiHeadTrainer."
         # load data
-        assert self._train_init_prog is not None or self._pred_init_prog is not None, "You need to build_forward or build_predict_head first to prepare input features."
+
+        assert self._shape_and_dtypes is not None or self._pred_shape_and_dtypes is not None, "You need to build_forward or build_predict_head first to prepare input features."
+
         # 这里不确定是否要向上取整，需确认
         # tail = self._num_examples % batch_size > 0
         # self._steps_pur_epoch = self._num_examples // batch_size + 1 if tail else 0
@@ -378,6 +396,43 @@ class Trainer(object):
             convert=convert,
             main_program=self._train_init_prog)
 
+    def set_saver(self, save_path, save_steps, save_type='ckpt'):
+
+        save_type = save_type.split(',')
+        if 'predict' in save_type:
+            assert self._pred_head is not None, "Predict head not found! You should build_predict_head first if you want to save predict model."
+            assert save_path is not None and save_steps is not None, 'save_path and save_steps is required to save model.'
+            self._save_predict = True
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
+        else:
+            self._save_predict = False
+
+        if 'ckpt' in save_type:
+            if save_path is not None and save_steps is not None:
+                self._save_ckpt = True
+                if not os.path.exists(save_path):
+                    os.makedirs(save_path)
+            else:
+                "WARNING: save_path or save_steps is not set, model will not be saved during training."
+                self._save_ckpt = False
+        else:
+            self._save_ckpt = False
+
+        def temp_func():
+            if (self._save_predict or self._save_ckpt) and self._cur_train_step % save_steps == 0:
+                if self._save_predict:
+                    self.save(save_path, suffix='pred.step'+str(self._cur_train_step))
+                    print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
+                if self._save_ckpt:
+                    fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
+                    print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
+                return True
+            else:
+                return False
+
+        self._check_save = temp_func
+            
     def train(self, save_path=None, save_steps=None, save_type='ckpt', print_steps=5):
         """
         Argument:
@@ -386,26 +441,7 @@ class Trainer(object):
         iterator = self._train_reader
         self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
 
-        save_type = save_type.split(',')
-        if 'predict' in save_type:
-            assert self._pred_head is not None, "Predict head not found! You should build_predict_head first if you want to save predict model."
-            assert save_path is not None and save_steps is not None, 'save_path and save_steps is required to save model.'
-            save_predict = True
-            if not os.path.exists(save_path):
-                os.makedirs(save_path)
-        else:
-            save_predict = False
 
-        if 'ckpt' in save_type:
-            if save_path is not None and save_steps is not None:
-                save_ckpt = True
-                if not os.path.exists(save_path):
-                    os.makedirs(save_path)
-            else:
-                "WARNING: save_path or save_steps is not set, model will not be saved during training."
-                save_ckpt = False
-        else:
-            save_ckpt = False
 
         # if save_path is not None or save_steps is not None:
         #     assert self._save_predict_model, "If you want to save model, you need set save_predict_model=True when this trainer is built."
@@ -438,12 +474,6 @@ class Trainer(object):
             task_rt_outputs = {k[len(self.name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self.name+'.')}
             self._task_head.batch_postprocess(task_rt_outputs)
 
-            # rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
-
-            task_rt_outputs = {k[len(self.name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self.name+'.')}
-            self._task_head.batch_postprocess(task_rt_outputs)
-
-
             # if self._save_predict_model and self._cur_train_step % save_steps == 0:
             #     self.save(save_path, suffix='.step'+str(self._cur_train_steps))
 
@@ -462,13 +492,9 @@ class Trainer(object):
             # if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
             #     print(cur_task.name+': train finished!')
             #     cur_task.save()
+            
+            self._check_save()
 
-            if (save_predict or save_ckpt) and self._cur_train_step % save_steps == 0:
-                if save_predict:
-                    self.save(save_path, suffix='pred.step'+str(self._cur_train_step))
-                if save_ckpt:
-                    fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
-                    print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
 
             if self._num_epochs is None and self._cur_train_step == self._steps_pur_epoch:
                 break
@@ -525,22 +551,41 @@ class Trainer(object):
         results = self._pred_head.epoch_postprocess({'reader':reader_outputs}, output_dir=output_dir)
         return results
 
-    def train_one_step(self, batch):
+    def train_one_step(self, batch, executor=None, distribute_train_prog=None):
+        exe = self._exe if executor is None else executor
+        distribute_train_prog = self._distribute_train_prog if distribute_train_prog is None else distribute_train_prog
+
         if gpu_dev_count > 1:
             feed, mask = batch
-            rt_outputs = self.exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
+            rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
             num_fakes = decode_fake(len(rt_outputs[0]), mask, self._batch_size)
             for _ in range(num_fakes):
                 for item in rt_outputs:
                     item.pop()
         else:
             feed = self._feed_batch_process_fn(batch)
-            rt_outputs = self._exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
+            rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=self._fetch_list)
 
         rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
         self._cur_train_step += 1
         self._cur_train_epoch = (self._cur_train_step-1) // self._steps_pur_epoch
         return rt_outputs
+
+    @property
+    def num_epochs(self):
+        return self._num_epochs
+
+    @property
+    def cur_train_steps(self):
+        return self._cur_train_step
+
+    @property
+    def cur_train_epoch(self):
+        return self._cur_train_epoch
+
+    @property
+    def steps_pur_epoch(self):
+        return self._steps_pur_epoch
 
     def predict_one_batch(self, batch):
         if gpu_dev_count > 1:
