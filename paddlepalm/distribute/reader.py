@@ -90,7 +90,6 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train'):
         queue.task_done()
         if ret is not None:
             batches, num_pad = ret
-            id = batches[0]['__task_id'][0][0] if phase == 'train' else -1
             batch_buf = []
             flag_buf = []
             for idx, batch in enumerate(batches):
@@ -98,10 +97,11 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train'):
                 flag = idx-len(batches) < -num_pad
                 # if num_pad > 0:
                 #     num_pad -= 1
-                batch = postprocess_fn(batch, id)
+                # batch = postprocess_fn(batch, id)
+                batch = postprocess_fn(batch)
                 batch_buf.append(batch)
                 flag_buf.append(flag)
-            yield batch_buf, flag_buf, id
+            yield batch_buf, flag_buf
         else: 
             break
     queue.join()

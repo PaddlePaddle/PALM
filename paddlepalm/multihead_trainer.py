@@ -3,6 +3,7 @@ from paddle import fluid
 from paddle.fluid import layers
 from paddlepalm.distribute import gpu_dev_count, cpu_dev_count
 from paddlepalm import Trainer
+from paddlepalm.utils.reader_helper import create_multihead_iterator_fn, create_multihead_feed_batch_process_fn
 
 dev_count = 1 if gpu_dev_count <= 1 else gpu_dev_count
 VERBOSE=False
@@ -63,14 +64,6 @@ class MultiHeadTrainer(Trainer):
             head = head_dict[self._trainers[i].name]
             # loss_var = self._trainers[i].build_forward(backbone, head, train_prog, train_init_prog)
             loss_var = self._trainers[i].build_forward(backbone, head)
-            print(self._trainers[i].name)
-            print(self._trainers[i].name)
-            print(self._trainers[i].name)
-            print(self._trainers[i].name)
-            print(i)
-            print(i)
-            print(i)
-            print(i)
             return loss_var
       
         # task_fns = {}
@@ -82,8 +75,9 @@ class MultiHeadTrainer(Trainer):
 
         #     task_fns[i] = task_loss()
 
-        task_fns = {i: lambda: get_loss(i) for i in range(num_heads)}
-        print(task_fns)
+
+        # task_fns = {i: lambda: get_loss(i) for i in range(num_heads)}
+        task_fns = {i: lambda i=i: get_loss(i) for i in range(num_heads)}
 
         with fluid.program_guard(train_prog, train_init_prog):
             head_id_var = fluid.data(name="branch",shape=[1],dtype='int64')
@@ -115,7 +109,7 @@ class MultiHeadTrainer(Trainer):
         trainer_dict[sampling_reference].fit_reader(reader_dict[sampling_reference])
         base_steps_pur_epoch = trainer_dict[sampling_reference]._steps_pur_epoch
 
-        name_to_position = []
+        input_names = []
         joint_shape_and_dtypes = []
         iterators = []
         prefixes = []
@@ -126,9 +120,9 @@ class MultiHeadTrainer(Trainer):
             assert t.name in reader_dict
             assert reader_dict[t.name].num_epochs is None, "{}: num_epochs is not None. \
                 To run with multi-head mode, num_epochs of each Trainer should be set as None.".format(t.name)
-            print(num_epochs, t.mix_ratio, base_steps_pur_epoch)
+            # print(num_epochs, t.mix_ratio, base_steps_pur_epoch)
             max_train_steps = int(num_epochs * t.mix_ratio * base_steps_pur_epoch)
-            if not t.set_as_aux:
+            if not t._as_auxilary:
                 print('{}: expected train steps {}.'.format(t.name, max_train_steps))
             global_steps += max_train_steps
             if t.name != sampling_reference:
@@ -137,14 +131,14 @@ class MultiHeadTrainer(Trainer):
             prefixes.append(t.name)
             mrs.append(t.mix_ratio)
             iterators.append(t._raw_iterator_fn())
-            name_to_position.append(t._name_to_position)
+            input_names.append(t._input_names)
             joint_shape_and_dtypes.append(t._shape_and_dtypes)
 
         print('Estimated overall train steps {}.'.format(global_steps))
         self._overall_train_steps = global_steps
 
-        iterator_fn = create_joint_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, \
-            mrs, name_to_position, dev_count=dev_count, verbose=VERBOSE, return_type='dict')
+        iterator_fn = create_multihead_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, \
+            mrs, input_names, dev_count=dev_count)
         feed_batch_process_fn = reader_helper.create_multihead_feed_batch_process_fn(net_inputs)
 
         if gpu_dev_count > 1:
@@ -187,8 +181,8 @@ class MultiHeadTrainer(Trainer):
         time_begin = time.time()
         for feed in iterator:
             print(feed)
-            batch, task_id = feed
-            rt_outputs = self.train_one_step(batch, task_id)
+            # batch, task_id = feed
+            rt_outputs, task_id = self.train_one_step(feed, task_id)
 
             task_rt_outputs = {k[len(self._trainers[task_id].name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self._trainers[task_id].name+'.')}
             self._task_head.batch_postprocess(task_rt_outputs)
@@ -222,20 +216,23 @@ class MultiHeadTrainer(Trainer):
                 break
 
 
-    def train_one_step(self, batch, task_id):
+    def train_one_step(self, batch):
 
         if dev_count > 1:
             assert isinstance(batch, list)
-            for f in batch:
-                f['branch'] = np.array([task_id], dtype='int64')
+            # for f in batch:
+            #     f['branch'] = np.array([task_id], dtype='int64')
+            task_id = batch[0]['__task_id']
         else:
             assert isinstance(batch, dict)
-            batch['branch'] = np.array([task_id], dtype='int64')
+            task_id = batch['__task_id']
+            # batch['branch'] = np.array([task_id], dtype='int64')
             
         # feed = self._trainers[task_id].get_one_batch()
         rt_outputs = self._trainers[task_id].train_one_step(batch, self._exe, self._distribute_train_prog)
 
         self._cur_train_steps += 1
+        return rt_outputs, task_id
         
         # if dev_count > 1:
         #     # feed, mask, task_id = batch

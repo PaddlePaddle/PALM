@@ -36,24 +36,24 @@ def create_feed_batch_process_fn(net_inputs):
     return feed_batch_process_fn
 
 
-def create_multihead_feed_batch_process_fn(net_inputs):
-
-    def feed_batch_process_fn(data, id=-1):
-        # temps = {}
-        # for i in range(len(net_inputs)):
-        temp = {}
-        inputs = net_inputs[id] if id != -1 else net_inputs
-        
-        for q, var in inputs.items():
-            if isinstance(var, str) or isinstance(var, unicode):
-                temp[var] = data[q]
-            else:
-                temp[var.name] = data[q]
-            # temps[i] = temp
-            
-        return temp
-
-    return feed_batch_process_fn
+# def create_multihead_feed_batch_process_fn(net_inputs):
+# 
+#     def feed_batch_process_fn(data, id=-1):
+#         # temps = {}
+#         # for i in range(len(net_inputs)):
+#         temp = {}
+#         inputs = net_inputs[id] if id != -1 else net_inputs
+#         
+#         for q, var in inputs.items():
+#             if isinstance(var, str) or isinstance(var, unicode):
+#                 temp[var] = data[q]
+#             else:
+#                 temp[var.name] = data[q]
+#             # temps[i] = temp
+#             
+#         return temp
+# 
+#     return feed_batch_process_fn
 
 
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
@@ -146,6 +146,41 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
                 yield temp
 
     return iterator_fn
+
+def create_multihead_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, names, dev_count=1, keep_one_task=True):
+    task_ids = range(len(iterators))
+    weights = [mr / float(sum(mrs)) for mr in mrs]
+    if not keep_one_task:
+        dev_count = 1
+
+    pos_to_outname = {j:i for i,j in outname_to_pos.items()}
+
+    def iterator():
+        while True:
+            id = np.random.choice(task_ids, p=weights)
+            task_id_tensor = np.array([id]).astype("int64")
+            
+            for i in range(dev_count):
+                
+                outputs = next(iterators[id]) # dict type
+
+                prefix = iterator_prefixes[id]
+                results = {}
+                results['__task_id'] = task_id_tensor
+                for outname, val in outputs.items():
+                    task_outname = prefix + '.' + outname
+
+                    if outname in names[id]:
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=outname+': ')
+                        results[outname] = val
+
+                    if task_outname in names[id]:
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=task_outname+': ')
+                        results[task_outname] = val
+
+                yield results
+
+    return iterator
 
 
 def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0):
@@ -250,7 +285,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
     return iterator
 
 
-def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batchsize=True, insert_seqlen=True, insert_batchsize_x_seqlen=True):
+def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False):
     """
     Args:
         task_attrs(list[dict]|dict): task input attributes, key=attr_name, val=[shape, dtype], support single task and nested tasks
@@ -262,7 +297,7 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
     names = []
     start = 0
     if insert_taskid:
-        ret.append(([1,1], 'int64'))
+        ret.append(([1], 'int64'))
         names.append('__task_id')
         start += 1
     
@@ -283,16 +318,11 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
         
     names += sorted(backbone_attr.keys())
     ret.extend([backbone_attr[k] for k in names[start:]])
-    name_to_position = {}
     # pos=0 is for task_id, thus we start from 1
-    for pos, k in enumerate(names):
-        name_to_position[k] = pos
     for task_attr in task_attrs:
         task_names = sorted(task_attr.keys())
         names.extend(task_names)
         ret.extend([task_attr[k] for k in task_names])
-        for pos, k in enumerate(task_names, start=len(name_to_position)):
-            name_to_position[k] = pos
-    return names, ret, name_to_position
+    return names, ret
     
 

@@ -41,7 +41,7 @@ class Trainer(object):
         self._train_init = False
         self._predict_init = False
 
-        self._check_save = lambda: False
+        nelf._check_save = lambda: False
 
         # if save_predict_model:
         #     self._save_predict_model = True
@@ -98,9 +98,11 @@ class Trainer(object):
         # pred_task_attr_from_reader = self._pred_head.inputs_attrs['reader']
 
         # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
+
+        # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
         # _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
         # _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
-        pred_input_names, pred_shape_and_dtypes, pred_name_to_position = reader_helper.merge_input_attrs(pred_backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
+        pred_input_names, pred_shape_and_dtypes, pred_name_to_position = reader_helper.merge_input_attrs(pred_backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False)
         pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_input_names, pred_shape_and_dtypes)]
         self._pred_shape_and_dtypes = pred_shape_and_dtypes
         self._pred_name_to_position = pred_name_to_position
@@ -161,10 +163,11 @@ class Trainer(object):
 
 
         # merge reader input attrs from backbone and task_instances
-        input_names, shape_and_dtypes, name_to_position = reader_helper.merge_input_attrs(backbone.inputs_attr, task_attr_from_reader, insert_taskid=False, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False)
+        input_names, shape_and_dtypes, name_to_position = reader_helper.merge_input_attrs(backbone.inputs_attr, task_attr_from_reader, insert_taskid=False)
         # shapes: [task_id, shapes_of_backbone, shapes_of_inst1, ..., shapes_of_instN]
         self._shape_and_dtypes = shape_and_dtypes
         self._name_to_position = name_to_position
+        self._input_names = input_names
 
         if DEBUG:
             print('----- for debug -----')
@@ -237,8 +240,6 @@ class Trainer(object):
         #     print("[debug] : %d, %s" % (_id, var))
         self._loss_var = loss_var
         return loss_var
-
-    def build_backward(self, optimizer, weight_decay=None, use_ema=False, ema_decay=0.9999):
         # assert not self._multi_task, "you cannot build_backward in trainer when a train is wrapper by MultiHeadTrainer."
         # build optimizer
         assert self._train_init_prog is not None, "train graph not foung! You should build_forward first."
@@ -285,6 +286,9 @@ class Trainer(object):
             
         # print(self._train_prog)
 
+    def set_as_aux(self):
+        self._as_auxilary = True
+
     def fit_reader(self, reader, phase='train'):
         # assert not self._multi_task, "you cannot fit_reader in trainer when a train is wrapper by MultiHeadTrainer."
         # load data
@@ -315,6 +319,11 @@ class Trainer(object):
             raise NotImplementedError()
             
         print('ok!')
+
+        # merge dataset iterators and create net input vars
+        iterator = reader._iterator()
+        prefix = self.name
+
 
         # merge dataset iterators and create net input vars
         iterator = reader._iterator()
@@ -659,10 +668,5 @@ class Trainer(object):
 
     @mix_ratio.setter
     def mix_ratio(self, value):
-        self._mix_ratio = float(value)
-        if self._verbose:
-            print('{}: mix_ratio is set to {}'.format(self._name, self._mix_ratio))
-
-    def _set_lock(self):
         self._lock = True
 
