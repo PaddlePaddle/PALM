@@ -30,6 +30,7 @@ if __name__ == '__main__':
     print(predict_cls_reader.outputs_attr)
     # 不同的backbone会对任务reader有不同的特征要求，例如对于分类任务，基本的输入feature为token_ids和label_ids，但是对于BERT，还要求从输入中额外提取position、segment、input_mask等特征，因此经过register后，reader会自动补充backbone所要求的字段
     cls_reader.register_with(ernie)
+    cls_reader2.register_with(ernie)
     print(cls_reader.outputs_attr)
     print(predict_cls_reader.outputs_attr)
 
@@ -57,14 +58,10 @@ if __name__ == '__main__':
 
     loss_var = mh_trainer.build_forward(ernie, [cls_head, cls_head2])
 
-    # controller.build_forward()
-    # Error! a head/backbone can be only build once! Try NOT to call build_forward method for any Trainer!
-
-    # n_steps = cls_reader.num_examples * num_epochs // batch_size
-    # warmup_steps = int(0.1 * n_steps)
-    # print(warmup_steps)
-    # sched = palm.lr_sched.TriangularSchedualer(warmup_steps, n_steps)
-    sched = None
+    n_steps = cls_reader.num_examples * num_epochs // batch_size
+    warmup_steps = int(0.1 * n_steps)
+    print(warmup_steps)
+    sched = palm.lr_sched.TriangularSchedualer(warmup_steps, n_steps)
 
     adam = palm.optimizer.Adam(loss_var, lr, sched)
 
@@ -77,45 +74,4 @@ if __name__ == '__main__':
     mh_trainer.fit_readers_with_mixratio([cls_reader, cls_reader2], 'cls', 2)
     mh_trainer.train(print_steps=1)
     # trainer.save()
-
-    # print('prepare to predict...')
-    # pred_ernie = palm.backbone.ERNIE.from_config(config, phase='pred')
-    # cls_pred_head = palm.head.Classify(4, 1024, phase='pred')
-    # trainer.build_predict_forward(pred_ernie, cls_pred_head)
-
-    # predict_cls_reader.load_data(predict_file, 8)
-    # print(predict_cls_reader.num_examples)
-    # predict_cls_reader.register_with(pred_ernie)
-    # trainer.fit_reader(predict_cls_reader, phase='predict')
-    # print('predicting..')
-    # trainer.predict(print_steps=20)
-
-
-
-
-
-
-
-
-    # controller = palm.Controller([mrqa, match4mrqa, mlm4mrqa])
-
-    # loss = controller.build_forward(bb, mask_task=[])
-
-    # n_steps = controller.estimate_train_steps(basetask=mrqa, num_epochs=2, batch_size=8, dev_count=4)
-    # adam = palm.optimizer.Adam(loss)
-    # sched = palm.schedualer.LinearWarmup(learning_rate, max_train_steps=n_steps, warmup_steps=0.1*n_steps)
-    # 
-    # controller.build_backward(optimizer=adam, schedualer=sched, weight_decay=0.001, use_ema=True, ema_decay=0.999)
-
-    # controller.random_init_params()
-    # controller.load_pretrain('../../pretrain_model/ernie/params')
-    # controller.train()
-
-
-
-
-
-    # controller = palm.Controller(config='config.yaml', task_dir='tasks', for_train=False)
-    # controller.pred('mrqa', inference_model_dir='output_model/secondrun/mrqa/infer_model')
-
 

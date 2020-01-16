@@ -4,7 +4,6 @@ from paddle.fluid import layers
 from paddlepalm.distribute import gpu_dev_count, cpu_dev_count
 from paddlepalm import Trainer
 from paddlepalm.utils import reader_helper
-import numpy as np
 import time
 
 dev_count = 1 if gpu_dev_count <= 1 else gpu_dev_count
@@ -18,9 +17,6 @@ class MultiHeadTrainer(Trainer):
             assert len(reuse_flags) == len(trainers)
 
         self._trainers = trainers
-
-        name_maxlen = max([len(i.name) for i in self._trainers])
-        self._name_pads = {i.name: name_maxlen-len(i.name) for i in self._trainers}
 
         self._train_init = False
         self._predict_init = False
@@ -86,6 +82,7 @@ class MultiHeadTrainer(Trainer):
 
         with fluid.program_guard(train_prog, train_init_prog):
             task_id_var = fluid.data(name="__task_id",shape=[1],dtype='int64')
+            task_id_var += 0
             # task_id_var = fluid.layers.fill_constant(shape=[1],dtype='int64', value=1)
             # print(task_id_var.name)
 
@@ -96,9 +93,9 @@ class MultiHeadTrainer(Trainer):
         self._task_id_var = task_id_var
         self._loss_var = loss_var
         self._fetch_list = [loss_var.name]
-        # for b in train_prog.blocks:
-        #     for var in b.vars:
-        #         pass
+        for b in train_prog.blocks:
+            for var in b.vars:
+                pass
                 # if 'task_id' in var:
                 #     print(var)
                 #     exit()
@@ -123,11 +120,9 @@ class MultiHeadTrainer(Trainer):
         trainer_dict = {t.name: t for t in self._trainers}
         assert sampling_reference in trainer_dict
 
-        trainer_dict[sampling_reference].fit_reader(reader_dict[sampling_reference], task_id=self._task_id_var)
+        trainer_dict[sampling_reference].fit_reader(reader_dict[sampling_reference])
         base_steps_pur_epoch = trainer_dict[sampling_reference]._steps_pur_epoch
 
-        self._finish_steps = {}
-        self._finish = {}
         input_names = []
         name_to_pos = []
         joint_shape_and_dtypes = []
@@ -144,15 +139,9 @@ class MultiHeadTrainer(Trainer):
             max_train_steps = int(num_epochs * t.mix_ratio * base_steps_pur_epoch)
             if not t._as_auxilary:
                 print('{}: expected train steps {}.'.format(t.name, max_train_steps))
-                self._finish_steps[t.name] = max_train_steps
-                self._finish[t.name] = False
-            else:
-                self._finish_steps[t.name] = 9999999999
-                self._finish[t.name] = True
-
             global_steps += max_train_steps
             if t.name != sampling_reference:
-                t.fit_reader(reader_dict[t.name], task_id=self._task_id_var)
+                t.fit_reader(reader_dict[t.name])
             net_inputs.append(t._net_inputs)
             prefixes.append(t.name)
             mrs.append(t.mix_ratio)
@@ -179,15 +168,6 @@ class MultiHeadTrainer(Trainer):
         elif phase == 'predict':
             self._predict_reader = distribute_feeder_fn()
             self._pred_feed_batch_process_fn = feed_batch_process_fn
-
-    def check_finish(self, task_name, silent=False):
-        trainers = {t.name:t for t in self._trainers}
-        if trainers[task_name]._cur_train_step == self._finish_steps[task_name]:
-            if not silent:
-                print(task_name+' train finish!')
-            self._finish[task_name]=True
-        flags = list(set(self._finish.values()))
-        return len(flags) == 1 and flags[0] == True
         
     def train(self, save_path=None, save_steps=None, save_type='ckpt', print_steps=5):
         iterator = self._train_reader
@@ -220,7 +200,7 @@ class MultiHeadTrainer(Trainer):
             rt_outputs, task_id = self.train_one_step(feed)
 
             task_rt_outputs = {k[len(self._trainers[task_id].name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self._trainers[task_id].name+'.')}
-            self._trainers[task_id]._task_head.batch_postprocess(task_rt_outputs)
+            self._task_head.batch_postprocess(task_rt_outputs)
 
             if print_steps > 0 and self._cur_train_step % print_steps == 0:
                 loss = rt_outputs[self._trainers[task_id].name+'.loss']
@@ -229,17 +209,12 @@ class MultiHeadTrainer(Trainer):
                 time_end = time.time()
                 time_cost = time_end - time_begin
 
-                print("global step: {}, {}: step {}/{} (epoch {}), loss: {:.3f}, speed: {:.2f} steps/s".format(
-                       self._cur_train_step, ' '*self._name_pads[self._trainers[task_id].name]+self._trainers[task_id].name, \
-                       (self._trainers[task_id]._cur_train_step-1) % self._trainers[task_id]._steps_pur_epoch + 1, \
-                       self._trainers[task_id]._steps_pur_epoch, self._trainers[task_id]._cur_train_epoch, \
+                print("global step: {}, step {}/{} (epoch {}), loss: {:.3f}, speed: {:.2f} steps/s".format(
+                       (self._cur_train_step, self._trainers[task_id]._cur_train_step-1) % self._trainers[task_id]._steps_pur_epoch + 1, self._trainers[task_id]._steps_pur_epoch, self._trainers[task_id]._cur_train_epoch,
                        loss, print_steps / time_cost))
                 time_begin = time.time()
 
             self._check_save()
-            finish = self.check_finish(self._trainers[task_id].name)
-            if finish:
-                break
 
             # if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
             #     print(cur_task.name+': train finished!')
@@ -252,19 +227,28 @@ class MultiHeadTrainer(Trainer):
             #         fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
             #         print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
 
+            if self._num_epochs is None and self._cur_train_step == self._steps_pur_epoch:
+                break
+
 
     def train_one_step(self, batch):
 
         if dev_count > 1:
             assert isinstance(batch, list)
+            # for f in batch:
+            #     f['branch'] = np.array([task_id], dtype='int64')
             task_id = batch[0]['__task_id'][0]
         else:
             assert isinstance(batch, dict)
             task_id = batch['__task_id'][0]
+            # batch['branch'] = np.array([task_id], dtype='int64')
             
+        # feed = self._trainers[task_id].get_one_batch()
+        print(batch)
+        print(self._distribute_train_prog)
         rt_outputs = self._trainers[task_id].train_one_step(batch, self._exe, self._distribute_train_prog, self._fetch_list)
 
-        self._cur_train_step += 1
+        self._cur_train_steps += 1
         return rt_outputs, task_id
         
         # if dev_count > 1:

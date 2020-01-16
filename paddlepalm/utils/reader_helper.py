@@ -56,10 +56,22 @@ def create_feed_batch_process_fn(net_inputs):
 #     return feed_batch_process_fn
 
 
+def check_io(in_attr, out_attr, strict=False, in_name="left", out_name="right"):
+    for name, attr in in_attr.items():
+        assert name in out_attr, in_name+': '+name+' not found in '+out_name
+        if attr != out_attr[name]:
+            if strict:
+                raise ValueError(name+': shape or dtype not consistent!')
+            else:
+                logging.warning('{}: shape or dtype not consistent!\n{}:\n{}\n{}:\n{}'.format(name, in_name, attr, out_name, out_attr[name]))
+
+
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
     if not isinstance(rt_val, np.ndarray):
+        if rt_val is None:
+            raise Exception(message+": get None value. ")
         rt_val = np.array(rt_val)
-        assert rt_val.dtype != np.dtype('O'), "yielded data is not a valid tensor(number of elements on some dimension may differ)."
+        assert rt_val.dtype != np.dtype('O'), message+"yielded data is not a valid tensor (number of elements on some dimension may not consistent): {}".format(rt_val)
         if rt_val.dtype == np.dtype('float64'):
             rt_val = rt_val.astype('float32')
     
@@ -147,13 +159,11 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
 
     return iterator_fn
 
-def create_multihead_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, names, dev_count=1, keep_one_task=True):
+def create_multihead_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, names, outname_to_pos, dev_count=1, keep_one_task=True):
     task_ids = range(len(iterators))
     weights = [mr / float(sum(mrs)) for mr in mrs]
     if not keep_one_task:
         dev_count = 1
-
-    pos_to_outname = {j:i for i,j in outname_to_pos.items()}
 
     def iterator():
         while True:
@@ -171,10 +181,12 @@ def create_multihead_iterator_fn(iterators, iterator_prefixes, joint_shape_and_d
                     task_outname = prefix + '.' + outname
 
                     if outname in names[id]:
+                        idx = outname_to_pos[id][outname]
                         val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=outname+': ')
                         results[outname] = val
 
                     if task_outname in names[id]:
+                        idx = outname_to_pos[id][task_outname]
                         val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=task_outname+': ')
                         results[task_outname] = val
 
@@ -297,7 +309,7 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
     names = []
     start = 0
     if insert_taskid:
-        ret.append(([1], 'int64'))
+        ret.append(([1, 1], 'int64'))
         names.append('__task_id')
         start += 1
     
@@ -318,11 +330,14 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
         
     names += sorted(backbone_attr.keys())
     ret.extend([backbone_attr[k] for k in names[start:]])
+    name_to_position = {}
     # pos=0 is for task_id, thus we start from 1
+    for pos, k in enumerate(names):
+        name_to_position[k] = pos
     for task_attr in task_attrs:
         task_names = sorted(task_attr.keys())
         names.extend(task_names)
         ret.extend([task_attr[k] for k in task_names])
-    return names, ret
-    
-
+        for pos, k in enumerate(task_names, start=len(name_to_position)):
+            name_to_position[k] = pos
+    return names, ret, name_to_position
