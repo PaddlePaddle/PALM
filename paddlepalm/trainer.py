@@ -242,7 +242,6 @@ class Trainer(object):
         #   for var in block.vars:
         #     print("[debug] : %d, %s" % (_id, var))
         self._loss_var = loss_var
-        print(loss_var)
         return loss_var
 
     def build_backward(self, optimizer, weight_decay=None, use_ema=False, ema_decay=None):
@@ -385,8 +384,10 @@ class Trainer(object):
         # assert self._exe is not None, "You need to random_init_params before load checkpoints."
         if phase == 'train' and not self._train_init:
             self._init_exe_prog(for_train=True)
+            self._exe.run(self._train_init_prog)
         if phase == 'predict' and not self._predict_init:
             self._init_exe_prog(for_train=False)
+            self._exe.run(self._pred_init_prog)
 
         if phase == 'train':
             assert self._train_init_prog is not None, "train graph not found! You should build_forward first before load checkpoint."
