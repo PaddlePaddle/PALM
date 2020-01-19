@@ -54,7 +54,22 @@ PaddlePALM support both python2 and python3, linux and windows, CPU and GPU. The
 pip install paddlepalm
 ```
 
-We incorporate many pretrained models to initialize model backbone parameters. Training big NLP model, e.g., 12-layer transformers, with pretrained models is practically much more superior than that with randomly initialized parameters. To see all the available pretrained models and download, run following code in python interpreter (input command `python` in shell):
+### Installing via source
+
+```shell
+git clone https://github.com/PaddlePaddle/PALM.git
+cd PALM && python setup.py install
+```
+
+### Library Dependencies
+- Python >= 2.7 (即将支持python3)
+- cuda >= 9.0
+- cudnn >= 7.0
+- PaddlePaddle >= 1.6.3 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
+
+
+### Downloading pretrain models
+We incorporate many pretrained models to initialize model backbone parameters. Training big NLP model, e.g., 12-layer transformers, with pretrained models is practically much more effective than that with randomly initialized parameters. To see all the available pretrained models and download, run following code in python interpreter (input command `python` in shell):
 
 ```python
 >>> from paddlepalm import downloader
@@ -76,7 +91,6 @@ Available pretrain items:
 ...
 ```
 
-Then 
 
 ## Usage
 
@@ -108,37 +122,13 @@ To run with multi-task learning mode:
 
 The save/load and predict operations of a multi_head_trainer is the same as a trainer.
 
-### reader
-
-### backbone
-
-### 
+More implementation details of running multi-task learning with multi_head_trainer can be found [here]().
 
 
 
 
-推荐使用pip安装paddlepalm框架：
 
-```shell
-pip install paddlepalm
-```
-
-对于离线机器，可以使用基于源码的安装方式：
-
-```shell
-git clone https://github.com/PaddlePaddle/PALM.git
-cd PALM && python setup.py install
-```
-
-
-
-**环境依赖**
-
-- Python >= 2.7 (即将支持python3)
-- cuda >= 9.0
-- cudnn >= 7.0
-- PaddlePaddle >= 1.6.1 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
-
+V
 ## 框架代码结构
 
 ```text
@@ -170,37 +160,7 @@ cd PALM && python setup.py install
 ```
 
 
-## 前期准备
 
-### 理论准备
-
-框架默认采用一对多（One-to-Many）的参数共享方式，如图
-
-
-![image-20191022194400259](https://tva1.sinaimg.cn/large/006y8mN6ly1g88ajvpqmgj31hu07wn5s.jpg)
-
-
-例如我们有一个目标任务MRC和两个辅助任务MLM和MATCH，我们希望通过MLM和MATCH来提高目标任务MRC的测试集表现（即提升模型泛化能力），那么我们可以令三个任务共享相同的文本特征抽取模型（例如BERT、ERNIE等），然后分别为每个任务定义输出层，计算各自的loss值。
-
-框架默认采用任务采样+mini-batch采样的方式（alternating mini-batches optimization）进行模型训练，即对于每个训练step，首先对候选任务进行采样（采样权重取决于用户设置的`mix_ratio`），而后从该任务的训练集中采样出一个mini-batch（采样出的样本数取决于用户设置的`batch_size`）。
-
-### 框架原理
-paddlepalm框架的运行原理图如图所示
-
-![PALM原理图](https://tva1.sinaimg.cn/large/006y8mN6ly1g8j1isf3fcj31ne0tyqbd.jpg)
-
-首先用户为数据集载入与处理、主干网络和任务编写配置文件（框架实现了灵活易用的[配置广播机制](#配置广播机制)），而后用其创建多任务学习的控制器（`Controller`）。进而控制器创建任务实例，并根据用户调用的训练和预测接口对其参数和各个任务实例进行管理和调度。下面我们通过三个DEMO和进阶篇来快速入门并更深入的理解paddlepalm。
-
-### 预训练模型
-
-#### 下载
-我们提供了BERT、ERNIE等主干网络的相关预训练模型。为了加速模型收敛，获得更佳的测试集表现，我们强烈建议用户在多任务学习时尽量在预训练模型的基础上进行（而不是从参数随机初始化开始）。用户可通过运行`script/download_pretrain_models <model_name>`下载需要的预训练模型，例如，下载预训练BERT模型（uncased large）的命令如下
-
-```shell
-bash script/download_pretrain_backbone.sh bert
-```
-
-脚本会自动在**当前文件夹**中创建一个pretrain_model目录（注：运行DEMO时，需保证pretrain_model文件夹在PALM项目目录下），并在其中创建bert子目录，里面存放预训练模型(`params`文件夹内)、相关的网络参数(`bert_config.json`)和字典(`vocab.txt`)。除了BERT模型，脚本还提供了ERNIE预训练模型（uncased large）的一键下载，将`<model_name>`改成`ernie`即可。全部可用的预训练模型列表见[paddlenlp/lark](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/PaddleLARK)
 
 
 #### 转换

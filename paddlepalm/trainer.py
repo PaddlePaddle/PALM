@@ -292,9 +292,16 @@ class Trainer(object):
         # print(self._train_prog)
 
     def set_as_aux(self):
+        """Set the task in this trainer as auxilary task. \nCAUSIOUS: This API only works on multi-task learning mode. Each task is set as target task by default. """
         self._as_auxilary = True
 
     def fit_reader(self, reader, phase='train', task_id=None):
+        """
+        Bind a reader and train/predict data to this trainer. 
+        
+        Arguments:
+            - reader: 
+        """
         # assert not self._multi_task, "you cannot fit_reader in trainer when a train is wrapper by MultiHeadTrainer."
         # load data
 

@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from paddlepalm.reader.base_reader import BaseReader
+from paddlepalm.reader.base_reader import Reader
 from paddlepalm.reader.utils.reader4ernie import ClassifyReader as CLSReader
 
 
-class ClassifyReader(BaseReader):
+class ClassifyReader(Reader):
     
     def __init__(self, vocab_path, max_len, tokenizer='wordpiece', \
              lang='en', seed=None, do_lower_case=False, phase='train'):
@@ -29,7 +29,7 @@ class ClassifyReader(BaseReader):
 
         """
 
-        BaseReader.__init__(self, phase)
+        Reader.__init__(self, phase)
 
         assert lang.lower() in ['en', 'cn', 'english', 'chinese'], "supported language: en (English), cn (Chinese)."
         assert phase in ['train', 'predict'], "supported phase: train, predict."
