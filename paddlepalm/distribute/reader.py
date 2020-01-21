@@ -56,6 +56,7 @@ def yield_pieces(data, distribute_strategy, batch_size):
             # print(len(temp))
             yield temp
 
+
 def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
     if postprocess_fn is None:
         def postprocess_fn(batch):
