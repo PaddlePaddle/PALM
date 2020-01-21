@@ -34,13 +34,16 @@ _items = {
     'pretrain': {'ernie-en-uncased-large': 'https://ernie.bj.bcebos.com/ERNIE_Large_en_stable-2.0.0.tar.gz',
                  'bert-en-uncased-large': 'https://bert-models.bj.bcebos.com/uncased_L-24_H-1024_A-16.tar.gz',
                  'bert-en-uncased-base': 'https://bert-models.bj.bcebos.com/uncased_L-12_H-768_A-12.tar.gz',
+                 'ernie-ch-uncased-base':'https://ernie.bj.bcebos.com/ERNIE_1.0_max-len-512.tar.gz',
+                 'roberta-cn-base': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_ext_L-12_H-768_A-12.tar.gz',
+                 'roberta-cn-large': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.tar.gz',
                  'utils': None},
     'reader': {'utils': None},
     'backbone': {'utils': None},
     'tasktype': {'utils': None},
 }
 
-def _download(item, scope, path, silent=False):
+def _download(item, scope, path, silent=False, convert=False):
     data_url = _items[item][scope]
     if data_url == None:
         return
@@ -100,9 +103,10 @@ def _download(item, scope, path, silent=False):
             os.removedirs(source_path)
         if not silent:
             print ('done!')
-        if not silent:
-            print ('Converting params...', end=" ")
-        _convert(data_dir, silent)
+        if convert:
+            if not silent:
+                print ('Converting params...', end=" ")
+            _convert(data_dir, silent)
         if not silent:
             print ('done!')
 

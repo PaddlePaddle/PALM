@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import paddle.fluid as fluid
-from paddlepalm.interface import task_paradigm
+from paddlepalm.head.base_head import Head
 import collections
 import numpy as np
 import os
@@ -26,34 +26,37 @@ import json
 RawResult = collections.namedtuple("RawResult",
                                    ["unique_id", "start_logits", "end_logits"])
 
-class TaskParadigm(task_paradigm):
-    """"""
+class MRC(Head):
+    """
+    Machine Reading Comprehension
+    """
 
-    def __init__(self, config, phase, backbone_config=None):
-        
+    def __init__(self, max_query_len, input_dim, pred_output_path=None, verbose=False, with_negative=False, do_lower_case=False, max_ans_len=None, null_score_diff_threshold=0.0, n_best_size=20, phase='train'):
+
         self._is_training = phase == 'train'
-        self._max_sequence_length = config['max_seq_len']
-        self._hidden_size = backbone_config['hidden_size']
+        self._hidden_size = input_dim
+        self._max_sequence_length = max_query_len
+ 
         self._pred_results = []
         
-        if phase == 'pred':
-            self._max_answer_length = config.get('max_answer_len', None)
-            self._null_score_diff_threshold = config.get('null_score_diff_threshold', 0.0)
-            self._n_best_size = config.get('n_best_size', 20)
-            self._pred_output_path = config.get('pred_output_path', None)
-            self._verbose = config.get('verbose', False)
-            self._with_negative = config.get('with_negative', False)
-            self._do_lower_case = config.get('do_lower_case', False)
+        output_dir = pred_output_path
+        self._max_answer_length = max_ans_len
+        self._null_score_diff_threshold = null_score_diff_threshold
+        self._n_best_size = n_best_size
+        output_dir = pred_output_path
+        self._verbose = verbose
+        self._with_negative = with_negative
+        self._do_lower_case = do_lower_case
 
 
     @property
     def inputs_attrs(self):
         if self._is_training:
-            reader = {"start_positions": [[-1, 1], 'int64'],
-                      "end_positions": [[-1, 1], 'int64'],
+            reader = {"start_positions": [[-1], 'int64'],
+                      "end_positions": [[-1], 'int64'],
                       }
         else:
-            reader = {'unique_ids': [[-1, 1], 'int64']}
+            reader = {'unique_ids': [[-1], 'int64']}
         bb = {"encoder_outputs": [[-1, -1, self._hidden_size], 'float32']}
         return {'reader': reader, 'backbone': bb}
         
@@ -70,20 +73,25 @@ class TaskParadigm(task_paradigm):
         else:
             return {'start_logits': [[-1, -1, 1], 'float32'],
                     'end_logits': [[-1, -1, 1], 'float32'],
-                    'unique_ids': [[-1, 1], 'int64']}
+                    'unique_ids': [[-1], 'int64']}
 
 
     def build(self, inputs, scope_name=""):
         if self._is_training:
             start_positions = inputs['reader']['start_positions']
             end_positions = inputs['reader']['end_positions']
-            max_position = inputs["reader"]["seqlen"] - 1
-            start_positions = fluid.layers.elementwise_min(start_positions, max_position)
-            end_positions = fluid.layers.elementwise_min(end_positions, max_position)
+            # max_position = inputs["reader"]["seqlen"] - 1
+            # start_positions = fluid.layers.elementwise_min(start_positions, max_position)
+            # end_positions = fluid.layers.elementwise_min(end_positions, max_position)
             start_positions.stop_gradient = True
             end_positions.stop_gradient = True
         else:
             unique_id = inputs['reader']['unique_ids']
+
+            # It's used to help fetch variable 'unique_ids' that will be removed in the future
+            helper_constant = fluid.layers.fill_constant(shape=[1], value=1, dtype='int64')
+            fluid.layers.elementwise_mul(unique_id, helper_constant)  
+            
 
         enc_out = inputs['backbone']['encoder_outputs']
         logits = fluid.layers.fc(
@@ -100,9 +108,11 @@ class TaskParadigm(task_paradigm):
         start_logits, end_logits = fluid.layers.unstack(x=logits, axis=0)
 
         def _compute_single_loss(logits, positions):
-            """Compute start/end loss for mrc model"""
-            loss = fluid.layers.softmax_with_cross_entropy(
-                logits=logits, label=positions)
+            """Compute start/en
+            d loss for mrc model"""
+            inputs = fluid.layers.softmax(logits)
+            loss = fluid.layers.cross_entropy(
+                input=inputs, label=positions)
             loss = fluid.layers.mean(x=loss)
             return loss
 
@@ -117,10 +127,10 @@ class TaskParadigm(task_paradigm):
                     'unique_ids': unique_id}
 
 
-    def postprocess(self, rt_outputs):
+    def batch_postprocess(self, rt_outputs):
         """this func will be called after each step(batch) of training/evaluating/predicting process."""
         if not self._is_training:
-            unique_ids = np.squeeze(rt_outputs['unique_ids'], -1)
+            unique_ids = rt_outputs['unique_ids']
             start_logits = rt_outputs['start_logits']
             end_logits = rt_outputs['end_logits']
             for idx in range(len(unique_ids)):
@@ -139,19 +149,19 @@ class TaskParadigm(task_paradigm):
                         start_logits=s,
                         end_logits=e))
 
-    def epoch_postprocess(self, post_inputs):
+    def epoch_postprocess(self, post_inputs, output_dir=None):
         """(optional interface) this func will be called after evaluation/predicting process and each epoch during training process."""
 
         if not self._is_training:
-            if self._pred_output_path is None:
-                raise ValueError('argument pred_output_path not found in config. Please add it into config dict/file.')
+            if output_dir is None:
+                raise ValueError('argument output_dir not found in config. Please add it into config dict/file.')
             examples = post_inputs['reader']['examples']
             features = post_inputs['reader']['features']
-            if not os.path.exists(self._pred_output_path):
-                os.makedirs(self._pred_output_path)
-            output_prediction_file = os.path.join(self._pred_output_path, "predictions.json")
-            output_nbest_file = os.path.join(self._pred_output_path, "nbest_predictions.json")
-            output_null_log_odds_file = os.path.join(self._pred_output_path, "null_odds.json")
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            output_prediction_file = os.path.join(output_dir, "predictions.json")
+            output_nbest_file = os.path.join(output_dir, "nbest_predictions.json")
+            output_null_log_odds_file = os.path.join(output_dir, "null_odds.json")
             _write_predictions(examples, features, self._pred_results,
                               self._n_best_size, self._max_answer_length,
                               self._do_lower_case, output_prediction_file,
@@ -194,8 +204,9 @@ def _write_predictions(all_examples, all_features, all_results, n_best_size,
         # keep track of the minimum score of null start+end of position 0
         score_null = 1000000  # large and positive
         min_null_feature_index = 0  # the paragraph slice with min mull score
-        null_start_logit = 0  # the start logit at the slice with min null score
+        ull_start_logit = 0  # the start logit at the slice with min null score
         null_end_logit = 0  # the end logit at the slice with min null score
+    
         for (feature_index, feature) in enumerate(features):
             result = unique_id_to_result[feature.unique_id]
             start_indexes = _get_best_indexes(result.start_logits, n_best_size)

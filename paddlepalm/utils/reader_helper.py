@@ -16,6 +16,7 @@
 import os
 import sys
 import random
+import logging
 import numpy as np
 import paddle
 from paddle import fluid

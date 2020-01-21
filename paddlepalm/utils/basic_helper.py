@@ -3,6 +3,7 @@ import os
 import json
 import yaml
 from config_helper import PDConfig
+import logging
 from paddle import fluid
 
 def get_basename(f):
