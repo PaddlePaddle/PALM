@@ -1,4 +1,0 @@
-train_file: "data/match4mrqa/train.tsv"
-reader: match
-paradigm: match
-
