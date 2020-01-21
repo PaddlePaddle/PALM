@@ -24,7 +24,6 @@ def yield_pieces(data, distribute_strategy, batch_size):
         assert isinstance(data, list), "the input data must be a list or dict, and contained with multiple tensors."
         data_list = data
         ds_list = distribute_strategy
-
     stride = batch_size // dev_count
     p = stride
     # while p < len(data_list) + stride:
@@ -57,7 +56,8 @@ def yield_pieces(data, distribute_strategy, batch_size):
             # print(len(temp))
             yield temp
 
-def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train'):
+
+def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
     if postprocess_fn is None:
         def postprocess_fn(batch):
             return batch

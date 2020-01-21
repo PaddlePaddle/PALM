@@ -14,7 +14,7 @@
 # limitations under the License.
 """v1.1"""
 from copy import copy
-class BaseReader(object):
+class Reader(object):
     """interface of data manager."""
 
     def __init__(self, phase='train'):
@@ -42,7 +42,6 @@ class BaseReader(object):
         self._register.add(attr_name)
             
     def register_with(self, backbone):
-        print(backbone)
         for attr in backbone.inputs_attr:
             self.require_attr(attr)
         self._registered_backbone = backbone

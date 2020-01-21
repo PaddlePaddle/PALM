@@ -15,7 +15,7 @@
 """v1.1"""
 
 
-class BaseBackbone(object):
+class Backbone(object):
     """interface of backbone model."""
 
     def __init__(self, config, phase):
