@@ -16,6 +16,7 @@
 import os
 import sys
 import random
+import logging
 import numpy as np
 import paddle
 from paddle import fluid
@@ -35,10 +36,43 @@ def create_feed_batch_process_fn(net_inputs):
 
     return feed_batch_process_fn
 
+
+# def create_multihead_feed_batch_process_fn(net_inputs):
+# 
+#     def feed_batch_process_fn(data, id=-1):
+#         # temps = {}
+#         # for i in range(len(net_inputs)):
+#         temp = {}
+#         inputs = net_inputs[id] if id != -1 else net_inputs
+#         
+#         for q, var in inputs.items():
+#             if isinstance(var, str) or isinstance(var, unicode):
+#                 temp[var] = data[q]
+#             else:
+#                 temp[var.name] = data[q]
+#             # temps[i] = temp
+#             
+#         return temp
+# 
+#     return feed_batch_process_fn
+
+
+def check_io(in_attr, out_attr, strict=False, in_name="left", out_name="right"):
+    for name, attr in in_attr.items():
+        assert name in out_attr, in_name+': '+name+' not found in '+out_name
+        if attr != out_attr[name]:
+            if strict:
+                raise ValueError(name+': shape or dtype not consistent!')
+            else:
+                logging.warning('{}: shape or dtype not consistent!\n{}:\n{}\n{}:\n{}'.format(name, in_name, attr, out_name, out_attr[name]))
+
+
 def _check_and_adapt_shape_dtype(rt_val, attr, message=""):
     if not isinstance(rt_val, np.ndarray):
+        if rt_val is None:
+            raise Exception(message+": get None value. ")
         rt_val = np.array(rt_val)
-        assert rt_val.dtype != np.dtype('O'), "yielded data is not a valid tensor(number of elements on some dimension may differ)."
+        assert rt_val.dtype != np.dtype('O'), message+"yielded data is not a valid tensor (number of elements on some dimension may not consistent): {}".format(rt_val)
         if rt_val.dtype == np.dtype('float64'):
             rt_val = rt_val.astype('float32')
     
@@ -125,6 +159,41 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
                 yield temp
 
     return iterator_fn
+
+def create_multihead_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, names, outname_to_pos, dev_count=1, keep_one_task=True):
+    task_ids = range(len(iterators))
+    weights = [mr / float(sum(mrs)) for mr in mrs]
+    if not keep_one_task:
+        dev_count = 1
+
+    def iterator():
+        while True:
+            id = np.random.choice(task_ids, p=weights)
+            task_id_tensor = np.array([id]).astype("int64")
+            
+            for i in range(dev_count):
+                
+                outputs = next(iterators[id]) # dict type
+
+                prefix = iterator_prefixes[id]
+                results = {}
+                results['__task_id'] = task_id_tensor
+                for outname, val in outputs.items():
+                    task_outname = prefix + '.' + outname
+
+                    if outname in names[id]:
+                        idx = outname_to_pos[id][outname]
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=outname+': ')
+                        results[outname] = val
+
+                    if task_outname in names[id]:
+                        idx = outname_to_pos[id][task_outname]
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=task_outname+': ')
+                        results[task_outname] = val
+
+                yield results
+
+    return iterator
 
 
 def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, outname_to_pos, dev_count=1, keep_one_task=True, verbose=0):
@@ -229,7 +298,7 @@ def create_joint_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtype
     return iterator
 
 
-def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batchsize=True, insert_seqlen=True, insert_batchsize_x_seqlen=True):
+def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batchsize=False, insert_seqlen=False, insert_batchsize_x_seqlen=False):
     """
     Args:
         task_attrs(list[dict]|dict): task input attributes, key=attr_name, val=[shape, dtype], support single task and nested tasks
@@ -241,7 +310,7 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
     names = []
     start = 0
     if insert_taskid:
-        ret.append(([1,1], 'int64'))
+        ret.append(([1, 1], 'int64'))
         names.append('__task_id')
         start += 1
     
@@ -273,5 +342,3 @@ def merge_input_attrs(backbone_attr, task_attrs, insert_taskid=True, insert_batc
         for pos, k in enumerate(task_names, start=len(name_to_position)):
             name_to_position[k] = pos
     return names, ret, name_to_position
-    
-

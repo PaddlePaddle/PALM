@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from paddlepalm.reader.base_reader import BaseReader
+from paddlepalm.reader.base_reader import Reader
 from paddlepalm.reader.utils.reader4ernie import ClassifyReader as CLSReader
 
 
-class ClassifyReader(BaseReader):
+class ClassifyReader(Reader):
     
     def __init__(self, vocab_path, max_len, tokenizer='wordpiece', \
              lang='en', seed=None, do_lower_case=False, phase='train'):
@@ -29,10 +29,10 @@ class ClassifyReader(BaseReader):
 
         """
 
-        BaseReader.__init__(self, phase)
+        Reader.__init__(self, phase)
 
         assert lang.lower() in ['en', 'cn', 'english', 'chinese'], "supported language: en (English), cn (Chinese)."
-        assert phase in ['train', 'pred'], "supported phase: train, pred."
+        assert phase in ['train', 'predict'], "supported phase: train, predict."
 
         for_cn = lang.lower() == 'cn' or lang.lower() == 'chinese'
 
@@ -66,10 +66,13 @@ class ClassifyReader(BaseReader):
         return self._get_registed_attrs(attrs)
 
 
-    def _load_data(self, input_file, batch_size, num_epochs=None, \
+    def load_data(self, input_file, batch_size, num_epochs=None, \
                   file_format='csv', shuffle_train=True):
-        self._data_generator = self._reader.data_generator(input_file, batch_size, \
-            num_epochs, shuffle=shuffle_train if self._phase == 'train' else False, \
+        self._batch_size = batch_size
+        self._num_epochs = num_epochs
+        self._data_generator = self._reader.data_generator( \
+            input_file, batch_size, num_epochs if self._phase == 'train' else 1, \
+            shuffle=shuffle_train if self._phase == 'train' else False, \
             phase=self._phase)
 
     def _iterator(self): 
@@ -91,5 +94,9 @@ class ClassifyReader(BaseReader):
     @property
     def num_examples(self):
         return self._reader.get_num_examples(phase=self._phase)
+
+    @property
+    def num_epochs(self):
+        return self._num_epochs
 
 

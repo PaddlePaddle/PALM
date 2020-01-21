@@ -19,57 +19,76 @@ from __future__ import print_function
 import numpy as np
 
 
-def mask(batch_tokens, total_token_num, vocab_size, CLS=1, SEP=2, MASK=3):
+def mask(batch_tokens, total_token_num, vocab_size, CLS=1, SEP=2, MASK=3, dev_count=1):
     """
     Add mask for batch_tokens, return out, mask_label, mask_pos;
     Note: mask_pos responding the batch_tokens after padded;
     """
     max_len = max([len(sent) for sent in batch_tokens])
-    mask_label = []
-    mask_pos = []
-    prob_mask = np.random.rand(total_token_num)
-    # Note: the first token is [CLS], so [low=1]
-    replace_ids = np.random.randint(1, high=vocab_size, size=total_token_num)
-    pre_sent_len = 0
-    prob_index = 0
-    for sent_index, sent in enumerate(batch_tokens):
-        mask_flag = False
-        prob_index += pre_sent_len
-        for token_index, token in enumerate(sent):
-            prob = prob_mask[prob_index + token_index]
-            if prob > 0.15:
-                continue
-            elif 0.03 < prob <= 0.15:
-                # mask
-                if token != SEP and token != CLS:
+
+    multidev_batch_tokens = []
+    multidev_mask_label = []
+    multidev_mask_pos = []
+
+    big_batch_tokens = batch_tokens
+    stride = len(batch_tokens) // dev_count
+    if stride == 0:
+        return None, None, None
+    p = stride
+
+    for i in range(dev_count):
+        batch_tokens = big_batch_tokens[p-stride:p]
+        p += stride
+        mask_label = []
+        mask_pos = []
+        prob_mask = np.random.rand(total_token_num)
+        # Note: the first token is [CLS], so [low=1]
+        replace_ids = np.random.randint(1, high=vocab_size, size=total_token_num)
+        pre_sent_len = 0
+        prob_index = 0
+        for sent_index, sent in enumerate(batch_tokens):
+            mask_flag = False
+            prob_index += pre_sent_len
+            for token_index, token in enumerate(sent):
+                prob = prob_mask[prob_index + token_index]
+                if prob > 0.15:
+                    continue
+                elif 0.03 < prob <= 0.15:
+                    # mask
+                    if token != SEP and token != CLS:
+                        mask_label.append(sent[token_index])
+                        sent[token_index] = MASK
+                        mask_flag = True
+                        mask_pos.append(sent_index * max_len + token_index)
+                elif 0.015 < prob <= 0.03:
+                    # random replace
+                    if token != SEP and token != CLS:
+                        mask_label.append(sent[token_index])
+                        sent[token_index] = replace_ids[prob_index + token_index]
+                        mask_flag = True
+                        mask_pos.append(sent_index * max_len + token_index)
+                else:
+                    # keep the original token
+                    if token != SEP and token != CLS:
+                        mask_label.append(sent[token_index])
+                        mask_pos.append(sent_index * max_len + token_index)
+            pre_sent_len = len(sent)
+            # ensure at least mask one word in a sentence
+            while not mask_flag:
+                token_index = int(np.random.randint(1, high=len(sent) - 1, size=1))
+                if sent[token_index] != SEP and sent[token_index] != CLS:
                     mask_label.append(sent[token_index])
                     sent[token_index] = MASK
                     mask_flag = True
                     mask_pos.append(sent_index * max_len + token_index)
-            elif 0.015 < prob <= 0.03:
-                # random replace
-                if token != SEP and token != CLS:
-                    mask_label.append(sent[token_index])
-                    sent[token_index] = replace_ids[prob_index + token_index]
-                    mask_flag = True
-                    mask_pos.append(sent_index * max_len + token_index)
-            else:
-                # keep the original token
-                if token != SEP and token != CLS:
-                    mask_label.append(sent[token_index])
-                    mask_pos.append(sent_index * max_len + token_index)
-        pre_sent_len = len(sent)
-        # ensure at least mask one word in a sentence
-        while not mask_flag:
-            token_index = int(np.random.randint(1, high=len(sent) - 1, size=1))
-            if sent[token_index] != SEP and sent[token_index] != CLS:
-                mask_label.append(sent[token_index])
-                sent[token_index] = MASK
-                mask_flag = True
-                mask_pos.append(sent_index * max_len + token_index)
-    mask_label = np.array(mask_label).astype("int64").reshape([-1])
-    mask_pos = np.array(mask_pos).astype("int64").reshape([-1])
-    return batch_tokens, mask_label, mask_pos
+        mask_label = np.array(mask_label).astype("int64").reshape([-1])
+        mask_pos = np.array(mask_pos).astype("int64").reshape([-1])
+
+        multidev_batch_tokens.extend(batch_tokens)
+        multidev_mask_label.append(mask_label)
+        multidev_mask_pos.append(mask_pos)
+    
+    return multidev_batch_tokens, multidev_mask_label, multidev_mask_pos
 
 
 def prepare_batch_data(insts,
@@ -83,7 +102,8 @@ def prepare_batch_data(insts,
                        task_id=0,
                        return_input_mask=True,
                        return_max_len=True,
-                       return_num_token=False):
+                       return_num_token=False, 
+                       dev_count=1):
     """
     1. generate Tensor of data
     2. generate Tensor of position
@@ -101,7 +121,8 @@ def prepare_batch_data(insts,
         vocab_size=voc_size,
         CLS=cls_id,
         SEP=sep_id,
-        MASK=mask_id)
+        MASK=mask_id,
+        dev_count=dev_count)
     # Second step: padding
     src_id, self_input_mask = pad_batch_data(
         out, 
@@ -125,7 +146,7 @@ def prepare_batch_data(insts,
     return_list = [
         src_id, pos_id, sent_id, self_input_mask, task_ids, mask_label, mask_pos
     ]
-    return return_list if len(return_list) > 1 else return_list[0]
+    return return_list
 
 
 def pad_batch_data(insts,

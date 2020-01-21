@@ -14,30 +14,39 @@
 # limitations under the License.
 
 import paddle.fluid as fluid
-from paddlepalm.interface import task_paradigm
+from paddlepalm.head.base_head import Head
 from paddle.fluid import layers
+import numpy as np
+import os
 from paddlepalm.backbone.utils.transformer import pre_process_layer
 
-class TaskParadigm(task_paradigm):
+class MaskLM(Head):
     '''
-    matching
+    mlm
     '''
-    def __init__(self, config, phase, backbone_config=None):
+    def __init__(self, input_dim, vocab_size, hidden_act, initializer_range, dropout_prob=0.0, \
+                 param_initializer_range=0.02, phase='train'):
         self._is_training = phase == 'train'
-        self._emb_size = backbone_config['hidden_size']
-        self._hidden_size = backbone_config['hidden_size']
-        self._vocab_size = backbone_config['vocab_size']
-        self._hidden_act = backbone_config['hidden_act']
-        self._initializer_range = backbone_config['initializer_range']
+        self._emb_size = input_dim
+        self._hidden_size = input_dim
+        self._dropout_prob = dropout_prob if phase == 'train' else 0.0
+        self._param_initializer = fluid.initializer.TruncatedNormal(
+            scale=param_initializer_range)
+        self._preds = []
+
+        self._vocab_size = vocab_size
+        self._hidden_act = hidden_act
+        self._initializer_range = initializer_range
     
     @property
     def inputs_attrs(self):
         reader = {
-            "mask_label": [[-1, 1], 'int64'],
-            "mask_pos": [[-1, 1], 'int64']}
+            "token_ids":[[-1, -1], 'int64'],
+            "mask_label": [[-1], 'int64'],
+            "mask_pos": [[-1], 'int64'],
+            }
         if not self._is_training:
             del reader['mask_label']
-            del reader['batchsize_x_seqlen']
         bb = {
             "encoder_outputs": [[-1, -1, self._hidden_size], 'float32'],
             "embedding_table": [[-1, self._vocab_size, self._emb_size], 'float32']}
@@ -54,7 +63,13 @@ class TaskParadigm(task_paradigm):
         mask_pos = inputs["reader"]["mask_pos"]
         if self._is_training:
             mask_label = inputs["reader"]["mask_label"] 
-            max_position = inputs["reader"]["batchsize_x_seqlen"] - 1
+            l1 = fluid.layers.shape(inputs["reader"]["token_ids"] )[0]
+            # bxs = inputs["reader"]["token_ids"].shape[2].value
+            l2 = fluid.layers.shape(inputs["reader"]["token_ids"][0])[0]
+            bxs = (l1*l2).astype(np.int64)
+            # max_position = inputs["reader"]["batchsize_x_seqlen"] - 1
+            max_position = bxs - 1
+
             mask_pos = fluid.layers.elementwise_min(mask_pos, max_position)
             mask_pos.stop_gradient = True
 
@@ -100,11 +115,31 @@ class TaskParadigm(task_paradigm):
             is_bias=True)
 
         if self._is_training:
-            mask_lm_loss = fluid.layers.softmax_with_cross_entropy(
-                logits=fc_out, label=mask_label)
+            inputs = fluid.layers.softmax(fc_out)
+            mask_lm_loss = fluid.layers.cross_entropy(
+                input=inputs, label=mask_label)
             loss = fluid.layers.mean(mask_lm_loss)
             return {'loss': loss}
         else:
             return {'logits': fc_out}
+
+    def batch_postprocess(self, rt_outputs):
+        if not self._is_training:
+            logits = rt_outputs['logits']
+            preds = np.argmax(logits, -1)
+            self._preds.extend(preds.tolist())
+            return preds
+
+    def epoch_postprocess(self, post_inputs, output_dir=None):
+        # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
+        if not self._is_training:
+            if output_dir is None:
+                for p in self._preds:
+                    print(p)
+            else:
+                with open(os.path.join(output_dir, 'predictions.json'), 'w') as writer:
+                    for p in self._preds:
+                        writer.write(str(p)+'\n')
+                print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))
 
 

@@ -71,10 +71,10 @@ class TaskInstance(object):
         self._train_finish = False
 
         # 存放不同运行阶段（train，eval，pred）的数据集reader，key为phase，value为Reader实例
-        self._reader = {'train': None, 'eval': None, 'pred': None}
+        self._reader = {'train': None, 'eval': None, 'predict': None}
         self._input_layer = None
         self._inputname_to_varname = {}
-        self._task_layer = {'train': None, 'eval': None, 'pred': None}
+        self._task_layer = {'train': None, 'eval': None, 'predict': None}
         self._pred_input_name_list = []
         self._pred_input_varname_list = []
         self._pred_fetch_name_list = []
@@ -90,7 +90,7 @@ class TaskInstance(object):
 
     def build_task_layer(self, net_inputs, phase, scope=""):
         output_vars = self._task_layer[phase].build(net_inputs, scope_name=scope)
-        if phase == 'pred':
+        if phase == 'predict':
             if output_vars is not None:
                 self._pred_fetch_name_list, self._pred_fetch_var_list = zip(*output_vars.items())
             else:

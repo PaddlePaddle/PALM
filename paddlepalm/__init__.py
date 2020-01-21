@@ -9,6 +9,7 @@ import head
 
 
 from trainer import Trainer
+from multihead_trainer import MultiHeadTrainer
 
 del interface
 del task_instance
