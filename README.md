@@ -34,27 +34,20 @@ PALM (PArallel Learning from Multi-tasks) 是一个强大通用、预置丰富�
 
 ## 安装
 
-推荐使用pip安装paddlepalm框架：
 
-```shell
-pip install paddlepalm
-```
-
-对于离线机器，可以使用基于源码的安装方式：
+对于当前版本的PALM，由于依赖一些暂未正式发布的paddle新特性，因此暂不支持pip源的安装方式。请先安装paddle的[develop版本](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/install/Tables.html#whl-dev)，然后通过源码方法进行安装：
 
 ```shell
 git clone https://github.com/PaddlePaddle/PALM.git
 cd PALM && python setup.py install
 ```
 
-
-
 **环境依赖**
 
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
-- PaddlePaddle >= 1.6.1 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
+- PaddlePaddle >= 1.6.3 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装，若v1.6.3版本暂未发布，也可安装[develop版本](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/install/Tables.html#whl-dev))
 
 ## 框架代码结构
 
