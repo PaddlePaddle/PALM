@@ -28,12 +28,21 @@ DEBUG=False
 
 
 class Trainer(object):
+    """
+    The core unit to start a training/predicting session for single task. A trainer is to build computation graph, manage training and evaluation process, achieve model/checkpoint saving and pretrain_model/checkpoint loading.
+    """
 
-    def __init__(self, name, mix_ratio=1.0, reuse_head_with=None, \
-                 silent=False):
+    def __init__(self, name, mix_ratio=1.0, reuse_head_with=None):
+        """Create a new trainer.
+
+        Args:
+            name: string. The name of the trainer(training task).
+            mix_ratio: sampling weight of this trainer in multi-task learning mode. Default is 1.0.
+            reuse_head_with: reuse parameters of task head with another trainer. Default is None, not reuse with others.
+
+        """
 
         self._name = name
-        self._verbose = not silent
         self._pred_reader = None
         self._task_head = None
         self._pred_head = None
@@ -63,6 +72,7 @@ class Trainer(object):
 
         self._multi_task = False
         self._as_auxilary = False
+        self._task_id = None
 
         # training process management
         self._mix_ratio = mix_ratio
@@ -92,59 +102,19 @@ class Trainer(object):
         self._lock = False
         self._build_forward = False
 
-    def build_predict_forward(self, pred_backbone, pred_head, pred_prog=None, pred_init_prog=None):
-        self._pred_head = pred_head
-        self._pred_backbone = pred_backbone
-        # self._pred_reader = self._reader.clone(phase='pred')
-        pred_task_attr_from_reader = helper.encode_inputs(self._pred_head.inputs_attrs['reader'], self.name)
-        # pred_task_attr_from_reader = self._pred_head.inputs_attrs['reader']
-
-        # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
-
-        # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
-        # _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
-        # _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
-        pred_input_names, pred_shape_and_dtypes, pred_name_to_position = reader_helper.merge_input_attrs(pred_backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False)
-        pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_input_names, pred_shape_and_dtypes)]
-        self._pred_shape_and_dtypes = pred_shape_and_dtypes
-        self._pred_name_to_position = pred_name_to_position
-        
-        if pred_prog is None:
-            pred_prog = fluid.Program()
-        self._pred_prog = pred_prog
-        if pred_init_prog is None:
-            pred_init_prog = fluid.Program()
-        self._pred_init_prog = pred_init_prog
-        with fluid.program_guard(pred_prog, pred_init_prog):
-            pred_net_inputs = reader_helper.create_net_inputs(pred_input_attrs)
-            # pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
-            pred_bb_output_vars = pred_backbone.build(pred_net_inputs)
-            self._pred_net_inputs = pred_net_inputs
-
-        # prepare predict vars for saving inference model
-        with fluid.program_guard(pred_prog, pred_init_prog):
-            cur_inputs = helper.decode_inputs(pred_net_inputs, self.name)
-            # self.pred_input = cur_inputs
-            self._pred_input_name_list, self._pred_input_varname_list = \
-                zip(*[[k, v.name] for k,v in cur_inputs.items()])
-
-            pred_task_inputs = {'backbone': pred_bb_output_vars, 'reader': cur_inputs}
-            scope = self.name + '.'
-            with fluid.unique_name.guard(scope):
-                output_vars = self._build_head(pred_task_inputs, phase='pred', scope=scope)
-
-        if output_vars is not None:
-            self._pred_fetch_name_list, self._pred_fetch_list = zip(*output_vars.items())
-        else:
-            self._pred_fetch_name_list = []
-            self._pred_fetch_var_list = []
-
-        return output_vars
-
-    def _set_multitask(self):
-        self._multi_task = True
-
     def build_forward(self, backbone, task_head):
+        """
+        Build forward computation graph for training, which usually built from input layer to loss node.
+
+        Args:
+            backbone: a Backbone object with phase == 'train', which is used to extract multi-level text features, e.g., contextual word embedding and sentence embedding.
+            head: a Head object with phase == 'train', which is used to build task specific output layers.
+        
+        Return:
+            loss_var: a Variable object. The computational graph variable(node) of loss.
+        """
+
+
         # assert not self._multi_task, "you cannot build_forward in trainer when a train is wrapper by MultiHeadTrainer."
         self._task_head = task_head
         self._backbone = backbone
@@ -242,12 +212,87 @@ class Trainer(object):
         #   for var in block.vars:
         #     print("[debug] : %d, %s" % (_id, var))
         self._loss_var = loss_var
+
+        if not self._multi_task:
+            self._init_exe_prog(for_train=True)
+
         return loss_var
 
+    def build_predict_forward(self, pred_backbone, pred_head):
+        """
+        Build computation graph for evaluation and prediction.
+
+        Arguments:
+            - pred_backbone: a Backbone object with phase == 'predict'. For evaluating model during training, the predict backbone should keep the same with train backbone.
+            - pred_head: a Head object with phase == 'predict'. For evaluating model during training, the predict head should keep the same with train head.
+        
+        Return:
+            - output_vars: dict type. Each value is a computational graph variable(node) argumented by pred_head outputs_attr.
+        """
+        self._pred_head = pred_head
+        self._pred_backbone = pred_backbone
+        # self._pred_reader = self._reader.clone(phase='pred')
+        pred_task_attr_from_reader = helper.encode_inputs(self._pred_head.inputs_attrs['reader'], self.name)
+        # pred_task_attr_from_reader = self._pred_head.inputs_attrs['reader']
+
+        # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
+
+        # _check_io(pred_backbone.inputs_attr, pred_reader.outputs_attr, in_name=bb_name+'_backbone', out_name='reader.pred')
+        # _check_io(pred_parad.inputs_attrs['reader'], pred_reader.outputs_attr, in_name='task_paradigm.pred.reader', out_name='reader.pred')
+        # _check_io(pred_parad.inputs_attrs['backbone'], pred_backbone.outputs_attr, in_name='task_paradigm.pred.backbone', out_name=bb_name+'_backbone')
+        pred_input_names, pred_shape_and_dtypes, pred_name_to_position = reader_helper.merge_input_attrs(pred_backbone.inputs_attr, pred_task_attr_from_reader, insert_taskid=False)
+        pred_input_attrs = [[i, j, k] for i, (j,k) in zip(pred_input_names, pred_shape_and_dtypes)]
+        self._pred_shape_and_dtypes = pred_shape_and_dtypes
+        self._pred_name_to_position = pred_name_to_position
+
+        pred_prog = fluid.Program()
+        self._pred_prog = pred_prog
+        pred_init_prog = fluid.Program()
+        self._pred_init_prog = pred_init_prog
+        with fluid.program_guard(pred_prog, pred_init_prog):
+            pred_net_inputs = reader_helper.create_net_inputs(pred_input_attrs)
+            # pred_bb_output_vars = pred_backbone.build(pred_net_inputs, scope_name='__paddlepalm_')
+            pred_bb_output_vars = pred_backbone.build(pred_net_inputs)
+            self._pred_net_inputs = pred_net_inputs
+
+        # prepare predict vars for saving inference model
+        with fluid.program_guard(pred_prog, pred_init_prog):
+            cur_inputs = helper.decode_inputs(pred_net_inputs, self.name)
+            # self.pred_input = cur_inputs
+            self._pred_input_name_list, self._pred_input_varname_list = \
+                zip(*[[k, v.name] for k,v in cur_inputs.items()])
+
+            pred_task_inputs = {'backbone': pred_bb_output_vars, 'reader': cur_inputs}
+            scope = self.name + '.'
+            with fluid.unique_name.guard(scope):
+                output_vars = self._build_head(pred_task_inputs, phase='predict', scope=scope)
+
+        if output_vars is not None:
+            self._pred_fetch_name_list, self._pred_fetch_list = zip(*output_vars.items())
+        else:
+            self._pred_fetch_name_list = []
+            self._pred_fetch_var_list = []
+
+        if not self._multi_task:
+            self._init_exe_prog(for_train=False)
+            self._exe.run(self._pred_init_prog)
+            
+        return output_vars
+
     def build_backward(self, optimizer, weight_decay=None, use_ema=False, ema_decay=None):
+        """
+        Build backward computation graph and training strategy.
+
+        Arguments:
+            - optimizer: 
+            - weight_decay: optional, default is None (disable weight decay).
+            - use_ema: optional, default is False. The flag to control whether to apply Exponential Moving Average strategy on parameter updates.
+            - ema_decay: optional, default is None. Only works with use_ema == True. Control decay rate of EMA strategy.
+
+        """
         # assert not self._multi_task, "you cannot build_backward in trainer when a train is wrapper by MultiHeadTrainer."
         # build optimizer
-        assert self._train_init_prog is not None, "train graph not foung! You should build_forward first."
+        assert self._loss_var is not None and self._train_init_prog is not None, "train graph not foung! You should build_forward first."
         optimizer._set_prog(self._train_prog, self._train_init_prog)
         with fluid.program_guard(self._train_prog, self._train_init_prog):
             param_grads = optimizer.build()
@@ -290,21 +335,25 @@ class Trainer(object):
         #         print("%d : %s" % (bid, var))
             
         # print(self._train_prog)
+        self._exe.run(self._train_init_prog)
 
     def set_as_aux(self):
         """Set the task in this trainer as auxilary task. \nCAUSIOUS: This API only works on multi-task learning mode. Each task is set as target task by default. """
         self._as_auxilary = True
 
-    def fit_reader(self, reader, phase='train', task_id=None):
+    def fit_reader(self, reader, phase='train'):
         """
-        Bind a reader and train/predict data to this trainer. 
+        Bind a reader and loaded train/predict data to trainer. 
         
-        Arguments:
-            - reader: 
+        Args:
+            reader: a Reader object. The running phase of the reader should be consistent with `phase` argument of this method.
+            phase: running phase. Currently support: train, predict.
+
         """
         # assert not self._multi_task, "you cannot fit_reader in trainer when a train is wrapper by MultiHeadTrainer."
         # load data
 
+        self._check_phase(phase)
         assert self._shape_and_dtypes is not None or self._pred_shape_and_dtypes is not None, "You need to build_forward or build_predict_head first to prepare input features."
 
         # 这里不确定是否要向上取整，需确认
@@ -316,8 +365,8 @@ class Trainer(object):
             self._steps_pur_epoch = reader.num_examples // batch_size
             shape_and_dtypes = self._shape_and_dtypes
             name_to_position = self._name_to_position
-            if task_id is not None:
-                self._net_inputs['__task_id'] = task_id
+            if self._task_id is not None:
+                self._net_inputs['__task_id'] = self._task_id
             net_inputs = self._net_inputs
             self._train_batch_size = batch_size
             self._num_examples = reader.num_examples
@@ -366,60 +415,56 @@ class Trainer(object):
             self._pred_feed_batch_process_fn = feed_batch_process_fn
         # return distribute_feeder_fn()
 
-    def _init_exe_prog(self, for_train=True):
-        if not self._train_init and not self._predict_init:
-            on_gpu = gpu_dev_count > 0
-            self._exe = helper.build_executor(on_gpu)
+    def load_ckpt(self, model_path):
+        """
+        load training checkpoint for further training or predicting.
 
-        if for_train:
-            assert self._train_prog is not None, "train graph not foung! You should build_forward first before you random init parameters."
-            self._train_init = True
-        else:
-            assert self._pred_prog is not None, "predict graph not foung! You should build_predict_head first before you random init parameters."
-            self._predict_init = True
-
-    def random_init_params(self):
-        
-        if not self._train_init:
-            self._init_exe_prog()
-        
-        print('random init params...')
-        self._exe.run(self._train_init_prog)
-
-    def load_ckpt(self, model_path, phase='train'):
+        Args:
+            model_path: the path of saved checkpoint/parameters.
+        """
         # load pretrain model (or ckpt)
         # assert self._exe is not None, "You need to random_init_params before load checkpoints."
-        if phase == 'train' and not self._train_init:
-            self._init_exe_prog(for_train=True)
-            self._exe.run(self._train_init_prog)
-        if phase == 'predict' and not self._predict_init:
-            self._init_exe_prog(for_train=False)
-            self._exe.run(self._pred_init_prog)
+        # if phase == 'train' and not self._train_init:
+        #     self._init_exe_prog(for_train=True)
+        #     self._exe.run(self._train_init_prog)
+        # if phase == 'predict' and not self._predict_init:
+        #     self._init_exe_prog(for_train=False)
+        #     self._exe.run(self._pred_init_prog)
 
-        if phase == 'train':
-            assert self._train_init_prog is not None, "train graph not found! You should build_forward first before load checkpoint."
+        assert self._train_init_prog is not None or self._pred_init_prog is not None, "model graph not built. You should at least build_forward or build_predict_forward to load its checkpoint."
+
+        # if phase == 'train':
+        #     assert self._train_init_prog is not None, "train graph not found! You should build_forward first before load checkpoint."
+        if self._train_init_prog is not None:
             saver.init_pretraining_params(
                 self._exe,
                 model_path,
                 main_program=self._train_init_prog,
                 strict=True)
-        elif phase == 'predict':
-            assert self._pred_init_prog is not None, "predict graph not found! You should build_predict_head first before load checkpoint."
+        # elif phase == 'predict':
+        elif self._pred_init_prog is not None:
+            # assert self._pred_init_prog is not None, "predict graph not found! You should build_predict_head first before load checkpoint."
             saver.init_pretraining_params(
                 self._exe,
                 model_path,
                 main_program=self._pred_init_prog,
                 strict=True)
         else:
-            raise NotImplementedError()
+            raise Exception("model not found. You should at least build_forward or build_predict_forward to load its checkpoint.")
             
-
     def load_predict_model(self, model_path):
         raise NotImplementedError()
 
     def load_pretrain(self, model_path, convert=False):
+        """
+        load pretrain models(backbone) for training.
+
+        Args:
+            model_path: the path of saved pretrained parameters.
+        """
         # load pretrain model (or ckpt)
-        assert self._exe is not None, "You need to random_init_params before load pretrain models."
+        # assert self._exe is not None, "You need to random_init_params before load pretrain models."
+        assert self._train_init_prog is not None, "training graph not found. You should at least build_forward to load its pretrained parameters."
 
         saver.init_pretraining_params(
             self._exe,
@@ -428,6 +473,15 @@ class Trainer(object):
             main_program=self._train_init_prog)
 
     def set_saver(self, save_path, save_steps, save_type='ckpt'):
+        """
+        create a build-in saver into trainer. A saver will automatically save checkpoint or predict model every `save_steps` training steps.
+
+        Args:
+            save_path: a string. the path to save checkpoints or predict models.
+            save_steps: an integer. the frequency to save models.
+            save_type: a string. The type of saved model. Currently support checkpoint(ckpt) and predict model(predict), default is ckpt. If both two types are needed to save, you can set as "ckpt,predict".
+
+        """
 
         save_type = save_type.split(',')
         if 'predict' in save_type:
@@ -453,7 +507,7 @@ class Trainer(object):
         def temp_func():
             if (self._save_predict or self._save_ckpt) and self._cur_train_step % save_steps == 0:
                 if self._save_predict:
-                    self.save(save_path, suffix='pred.step'+str(self._cur_train_step))
+                    self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
                     print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
                 if self._save_ckpt:
                     fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
@@ -464,10 +518,12 @@ class Trainer(object):
 
         self._check_save = temp_func
             
-    def train(self, save_path=None, save_steps=None, save_type='ckpt', print_steps=5):
+    def train(self, print_steps=5):
         """
-        Argument:
-            save_type: ckpt, predict, pretrain
+        start training.
+
+        Args:
+            print_steps: int. Logging frequency of training message, e.g., current step, loss and speed.
         """
         iterator = self._train_reader
         self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
@@ -530,19 +586,14 @@ class Trainer(object):
         # print('checkpoint has been saved at '+save_path)
 
         # print("ALL tasks train finished, exiting...")
-
-    def get_one_batch(self, phase='train'):
-        if phase == 'train':
-            return next(self._train_reader)
-        elif phase == 'predict':
-            return next(self._predict_reader)
-        else:
-            raise NotImplementedError()
         
     def predict(self, output_dir=None, print_steps=1000):
         """
-        Argument:
-            save_type: ckpt, predict, pretrain
+        start predicting.
+
+        Args:
+            output_dir: str. The path to save prediction results, default is None. If set as None, the results would output to screen directly. 
+            print_steps: int. Logging frequency of predicting message, e.g., current progress and speed.
         """
         iterator = self._predict_reader
         self._distribute_pred_prog = fluid.CompiledProgram(self._pred_prog).with_data_parallel()
@@ -577,10 +628,65 @@ class Trainer(object):
         results = self._pred_head.epoch_postprocess({'reader':reader_outputs}, output_dir=output_dir)
         return results
 
-    def train_one_step(self, batch, executor=None, distribute_train_prog=None, fetch_list=None):
-        exe = self._exe if executor is None else executor
-        distribute_train_prog = self._distribute_train_prog if distribute_train_prog is None else distribute_train_prog
-        fetch_list = self._fetch_list if fetch_list is None else fetch_list
+    def _check_phase(self, phase):
+        assert phase in ['train', 'predict'], "Supported phase: train, predict,"
+
+    def _set_multitask(self):
+        self._multi_task = True
+
+    def _set_task_id(self, task_id):
+        self._task_id = task_id
+
+    def _init_exe_prog(self, for_train=True):
+        if not self._train_init and not self._predict_init:
+            on_gpu = gpu_dev_count > 0
+            self._exe = helper.build_executor(on_gpu)
+
+        if for_train:
+            assert self._train_prog is not None, "train graph not found! You should build_forward first before you random init parameters."
+            self._train_init = True
+        else:
+            assert self._pred_prog is not None, "predict graph not found! You should build_predict_head first before you random init parameters."
+            self._predict_init = True
+
+    # def random_init_params(self):
+    #     """
+    #     randomly initialize model parameters.
+    #     """
+    #     
+    #     if not self._train_init:
+    #         self._init_exe_prog()
+    #     
+    #     print('random init params...')
+    #     self._exe.run(self._train_init_prog)
+
+    def get_one_batch(self, phase='train'):
+        self._check_phase(phase)
+        if phase == 'train':
+            return next(self._train_reader)
+        elif phase == 'predict':
+            return next(self._predict_reader)
+        else:
+            raise NotImplementedError()
+
+    def _set_exe(self, exe):
+        self._exe = exe
+
+    def _set_dist_train(self, prog):
+        self._distribute_train_prog = prog
+
+    def _set_fetch_list(self, fetch_list):
+        self._fetch_list = fetch_list
+
+    # def train_one_step(self, batch, executor=None, distribute_train_prog=None, fetch_list=None):
+    def train_one_step(self, batch):
+        # exe = self._exe if executor is None else executor
+        # distribute_train_prog = self._distribute_train_prog if distribute_train_prog is None else distribute_train_prog
+        # fetch_list = self._fetch_list if fetch_list is None else fetch_list
+
+        exe = self._exe
+        distribute_train_prog = self._distribute_train_prog
+        fetch_list = self._fetch_list
 
         if gpu_dev_count > 1:
             feed, mask = batch
@@ -599,22 +705,6 @@ class Trainer(object):
         self._check_save()
         return rt_outputs
 
-    @property
-    def num_epochs(self):
-        return self._num_epochs
-
-    @property
-    def cur_train_steps(self):
-        return self._cur_train_step
-
-    @property
-    def cur_train_epoch(self):
-        return self._cur_train_epoch
-
-    @property
-    def steps_pur_epoch(self):
-        return self._steps_pur_epoch
-
     def predict_one_batch(self, batch):
         if gpu_dev_count > 1:
             feed, mask = batch
@@ -630,14 +720,47 @@ class Trainer(object):
         rt_outputs = {k:v for k,v in zip(self._pred_fetch_name_list, rt_outputs)}
         return rt_outputs
 
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def num_examples(self):
+        return self._num_examples
+
+    @property
+    def mix_ratio(self):
+        return self._mix_ratio
+
+    @mix_ratio.setter
+    def mix_ratio(self, value):
+        self._mix_ratio = value
+
+    @property
+    def num_epochs(self):
+        return self._num_epochs
+
+    @property
+    def cur_train_step(self):
+        return self._cur_train_step
+
+    @property
+    def cur_train_epoch(self):
+        return self._cur_train_epoch
+
+    @property
+    def steps_pur_epoch(self):
+        return self._steps_pur_epoch
+
     def _build_head(self, net_inputs, phase, scope=""):
+        self._check_phase(phase)
         if phase == 'train':
             output_vars = self._task_head.build(net_inputs, scope_name=scope)
-        if phase == 'pred':
+        if phase == 'predict':
             output_vars = self._pred_head.build(net_inputs, scope_name=scope)
         return output_vars
     
-    def save(self, save_path, suffix=None):
+    def _save(self, save_path, suffix=None):
         # dirpath = save_path.rstrip('/').rstrip('\\') + suffix
         if suffix is not None:
             dirpath = os.path.join(save_path, suffix)
@@ -669,23 +792,4 @@ class Trainer(object):
             fluid.io.load_inference_model(infer_model_path, self._exe)
         print(self._name+': inference model loaded from ' + infer_model_path)
         return pred_prog
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def num_examples(self):
-        return self._num_examples
-
-    @property
-    def mix_ratio(self):
-        if self._mix_ratio is not None:
-            return self._mix_ratio
-        else:
-            raise ValueError("{}: mix_ratio is None".format(self._name))
-
-    @mix_ratio.setter
-    def mix_ratio(self, value):
-        self._lock = True
 

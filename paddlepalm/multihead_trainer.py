@@ -12,10 +12,20 @@ VERBOSE=False
 
 
 class MultiHeadTrainer(Trainer):
+    """
+    The core unit to start a multi-task training/predicting session. A MultiHeadTrainer is built based on several Trainers. Beyond the inheritance of Trainer, it additionally achieves model backbone reuse across tasks, trainer sampling for multi-task learning, and multi-head inference for effective evaluation and prediction. 
+    """
     
-    def __init__(self, trainers, reuse_flags=None):
-        if reuse_flags is not None:
-            assert len(reuse_flags) == len(trainers)
+    def __init__(self, trainers):
+        """Create a new multi_head_trainer.
+
+        Args:
+            trainers: a list of Trainer objects.
+
+        """
+        # if reuse_flags is not None:
+        #     assert len(reuse_flags) == len(trainers)
+        Trainer.__init__(self, '')
 
         self._trainers = trainers
 
@@ -46,6 +56,16 @@ class MultiHeadTrainer(Trainer):
             t._set_multitask()
 
     def build_forward(self, backbone, heads):
+        """
+        Build forward computation graph for training, which usually built from input layer to loss node.
+
+        Args:
+            backbone: a Backbone object with phase == 'train', which is used to extract multi-level text features, e.g., contextual word embedding and sentence embedding.
+            heads: a list of Head objects. Phase of each head should be set as 'train', which is used to build task specific output layers.
+        
+        Return:
+            - loss_var: a Variable object. The computational graph variable(node) of loss.
+        """
 
         if isinstance(heads, list):
             head_dict = {k.name: v for k,v in zip(self._trainers, heads)}
@@ -103,12 +123,21 @@ class MultiHeadTrainer(Trainer):
                 #     print(var)
                 #     exit()
                 # print(var)
+        if not self._multi_task:
+            self._init_exe_prog(for_train=True)
         return loss_var
 
     def fit_readers(self, reader_dict):
         raise NotImplementedError()
 
     def fit_readers_with_mixratio(self, readers, sampling_reference, num_epochs, phase='train'):
+        """
+        Bind readers and loaded train/predict data to trainers. 
+
+        Args:
+            readers: a dict or list of Reader objects. For dict case, each key is a trainer's name, and the mapped value is the reader object to bind to the trainer. For list case, each 
+        """
+        self._check_phase(phase)
 
         if isinstance(readers, list):
             reader_dict = {k.name: v for k,v in zip(self._trainers, readers)}
@@ -118,12 +147,13 @@ class MultiHeadTrainer(Trainer):
             raise ValueError()
         
         num_heads = len(self._trainers)
-        assert len(reader_dict) == num_heads
+        assert len(reader_dict) == num_heads, "received number of readers is not consistent with trainers."
 
         trainer_dict = {t.name: t for t in self._trainers}
         assert sampling_reference in trainer_dict
 
-        trainer_dict[sampling_reference].fit_reader(reader_dict[sampling_reference], task_id=self._task_id_var)
+        trainer_dict[sampling_reference]._set_task_id(self._task_id_var)
+        trainer_dict[sampling_reference].fit_reader(reader_dict[sampling_reference])
         base_steps_pur_epoch = trainer_dict[sampling_reference]._steps_pur_epoch
 
         self._finish_steps = {}
@@ -152,7 +182,8 @@ class MultiHeadTrainer(Trainer):
 
             global_steps += max_train_steps
             if t.name != sampling_reference:
-                t.fit_reader(reader_dict[t.name], task_id=self._task_id_var)
+                t._set_task_id(self._task_id_var)
+                t.fit_reader(reader_dict[t.name])
             net_inputs.append(t._net_inputs)
             prefixes.append(t.name)
             mrs.append(t.mix_ratio)
@@ -180,7 +211,7 @@ class MultiHeadTrainer(Trainer):
             self._predict_reader = distribute_feeder_fn()
             self._pred_feed_batch_process_fn = feed_batch_process_fn
 
-    def check_finish(self, task_name, silent=False):
+    def _check_finish(self, task_name, silent=False):
         trainers = {t.name:t for t in self._trainers}
         if trainers[task_name]._cur_train_step == self._finish_steps[task_name]:
             if not silent:
@@ -189,30 +220,19 @@ class MultiHeadTrainer(Trainer):
         flags = list(set(self._finish.values()))
         return len(flags) == 1 and flags[0] == True
         
-    def train(self, save_path=None, save_steps=None, save_type='ckpt', print_steps=5):
+    def train(self, print_steps=5):
+        """
+        start training.
+
+        Args:
+            print_steps: int. Logging frequency of training message, e.g., current step, loss and speed.
+        """
         iterator = self._train_reader
         self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
-
-        save_type = save_type.split(',')
-        if 'predict' in save_type:
-            assert self._pred_head is not None, "Predict head not found! You should build_predict_head first if you want to save predict model."
-            assert save_path is not None and save_steps is not None, 'save_path and save_steps is required to save model.'
-            save_predict = True
-            if not os.path.exists(save_path):
-                os.makedirs(save_path)
-        else:
-            save_predict = False
-
-        if 'ckpt' in save_type:
-            if save_path is not None and save_steps is not None:
-                save_ckpt = True
-                if not os.path.exists(save_path):
-                    os.makedirs(save_path)
-            else:
-                "WARNING: save_path or save_steps is not set, model will not be saved during training."
-                save_ckpt = False
-        else:
-            save_ckpt = False
+        for t in self._trainers:
+            t._set_exe(self._exe)
+            t._set_dist_train(self._distribute_train_prog)
+            t._set_fetch_list(self._fetch_list)
 
         time_begin = time.time()
         for feed in iterator:
@@ -237,7 +257,7 @@ class MultiHeadTrainer(Trainer):
                 time_begin = time.time()
 
             self._check_save()
-            finish = self.check_finish(self._trainers[task_id].name)
+            finish = self._check_finish(self._trainers[task_id].name)
             if finish:
                 break
 
@@ -262,9 +282,11 @@ class MultiHeadTrainer(Trainer):
             assert isinstance(batch, dict)
             task_id = batch['__task_id'][0]
             
-        rt_outputs = self._trainers[task_id].train_one_step(batch, self._exe, self._distribute_train_prog, self._fetch_list)
+        # rt_outputs = self._trainers[task_id].train_one_step(batch, self._exe, self._distribute_train_prog, self._fetch_list)
+        rt_outputs = self._trainers[task_id].train_one_step(batch)
 
         self._cur_train_step += 1
+        self._check_save()
         return rt_outputs, task_id
         
         # if dev_count > 1:

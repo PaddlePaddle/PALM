@@ -24,10 +24,10 @@ from paddle import fluid
 from paddle.fluid import layers
 
 from paddlepalm.backbone.utils.transformer import pre_process_layer, encoder
-from paddlepalm.backbone.base_backbone import BaseBackbone
+from paddlepalm.backbone.base_backbone import Backbone
 
 
-class ERNIE(BaseBackbone):
+class ERNIE(Backbone):
     
     def __init__(self, hidden_size, num_hidden_layers, num_attention_heads, vocab_size, \
           max_position_embeddings, sent_type_vocab_size, task_type_vocab_size, \

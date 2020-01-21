@@ -15,12 +15,12 @@
 
 import paddle.fluid as fluid
 from paddle.fluid import layers
-from paddlepalm.head.base_head import BaseHead
+from paddlepalm.head.base_head import Head
 import numpy as np
 import os
 
 
-class Classify(BaseHead):
+class Classify(Head):
     """
     classification
     """

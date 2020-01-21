@@ -25,14 +25,11 @@ if __name__ == '__main__':
     # 创建该分类任务的reader，由诸多参数控制数据集读入格式、文件数量、预处理规则等
     cls_reader = palm.reader.ClassifyReader(vocab_path, max_seqlen)
     cls_reader2 = palm.reader.ClassifyReader(vocab_path, max_seqlen)
-    predict_cls_reader = palm.reader.ClassifyReader(vocab_path, max_seqlen, phase='predict')
     print(cls_reader.outputs_attr)
-    print(predict_cls_reader.outputs_attr)
     # 不同的backbone会对任务reader有不同的特征要求，例如对于分类任务，基本的输入feature为token_ids和label_ids，但是对于BERT，还要求从输入中额外提取position、segment、input_mask等特征，因此经过register后，reader会自动补充backbone所要求的字段
     cls_reader.register_with(ernie)
     cls_reader2.register_with(ernie)
     print(cls_reader.outputs_attr)
-    print(predict_cls_reader.outputs_attr)
 
     print("preparing data...")
     print(cls_reader.num_examples)
@@ -66,8 +63,8 @@ if __name__ == '__main__':
     adam = palm.optimizer.Adam(loss_var, lr, sched)
 
     mh_trainer.build_backward(optimizer=adam, weight_decay=0.001)
-
-    mh_trainer.random_init_params()
+    
+    # mh_trainer.random_init_params()
     mh_trainer.load_pretrain('pretrain/ernie/params')
 
     # trainer.train(iterator_fn, print_steps=1, save_steps=5, save_path='outputs', save_type='ckpt,predict')

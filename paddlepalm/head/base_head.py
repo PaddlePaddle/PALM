@@ -16,7 +16,7 @@
 import os
 import json
 
-class BaseHead(object):
+class Head(object):
 
     def __init__(self, phase='train'):
         """

@@ -23,10 +23,10 @@ from paddle import fluid
 from paddle.fluid import layers
 
 from paddlepalm.backbone.utils.transformer import pre_process_layer, encoder
-from paddlepalm.backbone.base_backbone import BaseBackbone
+from paddlepalm.backbone.base_backbone import Backbone
 
 
-class BERT(BaseBackbone):
+class BERT(Backbone):
 
 
     def __init__(hidden_size, num_hidden_layers, num_attention_heads, vocab_size, \
