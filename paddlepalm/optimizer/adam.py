@@ -20,9 +20,9 @@ from __future__ import print_function
 
 import numpy as np
 import paddle.fluid as fluid
-from paddlepalm.optimizer.base_optimizer import BaseOptimizer
+from paddlepalm.optimizer.base_optimizer import Optimizer
 
-class Adam(BaseOptimizer):
+class Adam(Optimizer):
 
     def __init__(self, loss_var, lr, lr_schedualer=None):
 
@@ -32,10 +32,10 @@ class Adam(BaseOptimizer):
         self._lr = lr
         self._lr_schedualer = lr_schedualer
     
-    def build(self, grad_clip=None):
+    def _build(self, grad_clip=None):
 
         if self._lr_schedualer is not None:
-            self._lr = self._lr_schedualer.build(self._lr)
+            self._lr = self._lr_schedualer._build(self._lr)
 
         optimizer = fluid.optimizer.Adam(learning_rate=self._lr)
 

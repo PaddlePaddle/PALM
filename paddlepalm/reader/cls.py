@@ -38,7 +38,7 @@ class ClassifyReader(Reader):
     
     def __init__(self, vocab_path, max_len, tokenizer='wordpiece', \
              lang='en', seed=None, do_lower_case=False, phase='train'):
-        """Create a new Reader for classification task data.
+        """Create a new Reader for loading and processing classification task data.
 
         Args:
           vocab_path: the vocab file path to do tokenization and token_ids generation.

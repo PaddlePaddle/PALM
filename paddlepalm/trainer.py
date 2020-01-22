@@ -295,7 +295,7 @@ class Trainer(object):
         assert self._loss_var is not None and self._train_init_prog is not None, "train graph not foung! You should build_forward first."
         optimizer._set_prog(self._train_prog, self._train_init_prog)
         with fluid.program_guard(self._train_prog, self._train_init_prog):
-            param_grads = optimizer.build()
+            param_grads = optimizer._build()
 
             if weight_decay is not None:
 

@@ -17,6 +17,9 @@ from paddlepalm.reader.base_reader import Reader
 from paddlepalm.reader.utils.reader4ernie import SequenceLabelReader as SLReader
 
 class SequenceLabelReader(Reader):
+    """
+    The reader completes the loading and processing of sequence labeling type task (e.g, pos tagging, named entity recognition) dataset. Supported file format: tsv. 
+    """
     
     def __init__(self, vocab_path, max_len, label_map_config, tokenizer='wordpiece', \
              lang='en', seed=None, do_lower_case=False, phase='train', dev_count=1, print_prefix=''):
@@ -65,6 +68,16 @@ class SequenceLabelReader(Reader):
 
     def load_data(self, input_file, batch_size, num_epochs=None, \
                   file_format='tsv', shuffle_train=True):
+        """Load sequence labeling data into reader. 
+
+        Args:
+            input_file: the dataset file path. File format should keep consistent with `file_format` argument.
+            batch_size: number of examples for once yield. CAUSIOUS! If your environment exists multiple GPU devices (marked as dev_count), the batch_size should be divided by dev_count with no remainder!
+            num_epochs: the travelsal times of input examples. Default is None, means once for single-task learning and automatically calculated for multi-task learning. This argument only works on train phase.
+            file_format: the file format of input file. Supported format: tsv. Default is tsv.
+            shuffle_train: whether to shuffle training dataset. Default is True. This argument only works on training phase.
+
+        """
         self._batch_size = batch_size
         self._num_epochs = num_epochs
         self._data_generator = self._reader.data_generator( \

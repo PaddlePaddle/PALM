@@ -29,13 +29,10 @@ import six
 from io import open
 from collections import namedtuple
 
-# from . import gpu_dev_count
-gpu_dev_count=1
 import paddlepalm as palm
 import paddlepalm.tokenizer.ernie_tokenizer as tokenization
 from paddlepalm.reader.utils.batching4ernie import pad_batch_data
 from paddlepalm.reader.utils.mlm_batching import prepare_batch_data
-
 
 
 log = logging.getLogger(__name__)
@@ -481,9 +478,7 @@ class MaskLMReader(Reader):
                         return_input_mask=True,
                         return_max_len=False,
                         return_num_token=False,
-                        # dev_count=gpu_dev_count)
                         dev_count=1)
-
 
                     # yield batch
                     for piece in palm.distribute.yield_pieces(batch_data, ['s', 's', 's', 's', 's', 'u', 'u'], batch_size):

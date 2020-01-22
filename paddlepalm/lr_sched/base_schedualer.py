@@ -1,5 +1,5 @@
 
-class BaseSchedualer():
+class Schedualer():
 
     def __init__(self):
         self._prog = None
@@ -7,6 +7,6 @@ class BaseSchedualer():
     def _set_prog(self, prog):
         self._prog = prog
 
-    def build(self, learning_rate):
+    def _build(self, learning_rate):
         raise NotImplementedError()
 

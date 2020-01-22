@@ -1,14 +1,15 @@
 
-from paddlepalm.lr_sched.schedualer import BaseSchedualer
+from paddlepalm.lr_sched.schedualer import Schedualer
+import paddle.fluid as fluid
 
-def WarmupSchedualer(BaseSchedualer):
+def WarmupSchedualer(Schedualer):
     """ Applies linear warmup of learning rate from 0 to learning_rate until warmup_steps, and then decay to 0 linearly until num_train_steps."""
 
     def __init__(self, warmup_steps):
         schedualer.__init__(self)
         self.warmup_steps = warmup_steps
 
-    def build(self, learning_rate):
+    def _build(self, learning_rate):
 
         with self._prog._lr_schedule_guard():
             lr = fluid.layers.tensor.create_global_var(
