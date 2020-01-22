@@ -38,9 +38,10 @@ _items = {
                  'roberta-cn-base': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_ext_L-12_H-768_A-12.tar.gz',
                  'roberta-cn-large': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.tar.gz',
                  'utils': None},
-    'reader': {'utils': None},
+    'vocab': {'utils': None},
     'backbone': {'utils': None},
-    'tasktype': {'utils': None},
+    'head': {'utils': None},
+    'reader': {'utils': None},
 }
 
 def _download(item, scope, path, silent=False, convert=False):
@@ -131,20 +132,27 @@ def _convert(path, silent=False):
             tar_info.close()
             os.removedirs(path + '/params1/') 
 
-def download(item, scope='all', path='.'):
-    item = item.lower()
-    scope = scope.lower()
-    assert item in _items, '{} is not found. Support list: {}'.format(item, list(_items.keys()))
-   
-    if _items[item]['utils'] is not None:
-        _download(item, 'utils', path, silent=True)
+def download(scope, item='all', path='.'):
+    """download an item. The available scopes and contained items can be showed with `paddlepalm.downloader.ls`.
 
-    if scope != 'all':
-        assert scope in _items[item], '{} is not found. Support scopes: {}'.format(scope, list(_items[item].keys()))
-        _download(item, scope, path)
+    Args:
+        scope: the scope the item belongs to.
+        item: the item to download.
+        path: the target dir to download to. Default is `.`, means current dir.
+    """
+    scope = scope.lower()
+    item = item.lower()
+    ascopeert scope in _scopes, '{} is not found. Support list: {}'.format(scope, list(_scopes.keys()))
+   
+    if _scopes[scope]['utils'] is not None:
+        _download(scope, 'utils', path, silent=True)
+
+    if item != 'all':
+        ascopeert item in _scopes[scope], '{} is not found. Support items: {}'.format(item, list(_scopes[scope].keys()))
+        _download(scope, item, path)
     else:
-        for s in _items[item].keys():
-            _download(item, s, path)
+        for s in _scopes[scope].keys():
+            _download(scope, s, path)
 
 
 def _ls(item, scope, l = 10):
@@ -157,19 +165,22 @@ def _ls(item, scope, l = 10):
                 continue
             print ('  => '+s)
 
-def ls(item='all', scope='all'):
+def ls(scope='all'):
+    """show all the available download items of a scope.
+
+    Args:
+        scope: the scope to show items. Default is 'all', means to show all items in all scopes. Avaliable scopes: pretrain.
+    """
     
-    if scope == 'utils':
-        return
-    if item != 'all':
-        assert item in _items, '{} is not found. Support scopes: {}'.format(item, list(_items.keys()))
-        print ('Available {} items:'.format(item))
-        _ls(item, scope)
+    if scope != 'all':
+        assert scope in _items, '{} is not found. Support scopes: {}'.format(scope, list(_items.keys()))
+        print ('Available {} scopes:'.format(scope))
+        _ls(scope, 'all')
     else:
         l = max(map(len, _items.keys()))
         for i in _items.keys():
             print ('Available {} items: '.format(i))
-            _ls(i, scope, l)
+            _ls(i, 'all', l)
 
 
     

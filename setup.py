@@ -18,7 +18,7 @@
 """
 Setup script.
 Authors: zhouxiangyang(zhouxiangyang@baidu.com)
-Date:    2019/09/29 21:00:01
+Date:    2020/1/22 12:00:01
 """
 import setuptools
 with open("README.md", "r") as fh:
@@ -28,10 +28,10 @@ setuptools.setup(
     version="1.0.0",
     author="PaddlePaddle",
     author_email="zhangyiming04@baidu.com",
-    description="A Multi-task Learning Lib for PaddlePaddle Users.",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/PaddlePadd",
+    description="a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning framework.",
+    # long_description=long_description,
+    # long_description_content_type="text/markdown",
+    url="https://github.com/PaddlePaddle/PALM",
     # packages=setuptools.find_packages(),
     packages = ['paddlepalm', 
         'paddlepalm.backbone', 
@@ -39,16 +39,20 @@ setuptools.setup(
         'paddlepalm.optimizer',
         'paddlepalm.reader', 
         'paddlepalm.reader.utils', 
-        'paddlepalm.task_paradigm', 
+        'paddlepalm.head', 
+        'paddlepalm.distribute', 
+        'paddlepalm.lr_sched', 
         'paddlepalm.tokenizer', 
         'paddlepalm.utils'],
     package_dir={'paddlepalm':'./paddlepalm',
                  'paddlepalm.backbone':'./paddlepalm/backbone',
                  'paddlepalm.backbone.utils':'./paddlepalm/backbone/utils',
                  'paddlepalm.optimizer':'./paddlepalm/optimizer',
+                 'paddlepalm.lr_sched': './paddlepalm/lr_sched',
+                 'paddlepalm.distribute': './paddlepalm/distribute',
                  'paddlepalm.reader':'./paddlepalm/reader',
                  'paddlepalm.reader.utils':'./paddlepalm/reader/utils',
-                 'paddlepalm.task_paradigm':'./paddlepalm/task_paradigm',
+                 'paddlepalm.head':'./paddlepalm/head',
                  'paddlepalm.tokenizer':'./paddlepalm/tokenizer',
                  'paddlepalm.utils':'./paddlepalm/utils'},
     platforms = "any",
@@ -64,7 +68,7 @@ setuptools.setup(
             'Programming Language :: Python :: 3.7',
           ],
     install_requires = [
-        'paddlepaddle-gpu>=1.6.1'
+        'paddlepaddle-gpu>=1.6.3'
     ]
 )
 

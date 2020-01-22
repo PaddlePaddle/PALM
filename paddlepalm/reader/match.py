@@ -18,6 +18,31 @@ from paddlepalm.reader.utils.reader4ernie import ClassifyReader as CLSReader
 
 
 class MatchReader(Reader):
+    """
+    The reader completes the loading and processing of matching-like task (e.g, query-query, question-answer, text similarity, natural language inference) dataset. Supported file format: tsv. 
+    
+    For pointwise learning strategy, there should be two fields in training dataset file, i.e., `text_a`, `text_b` and `label`. For pairwise learning, there should exist three fields, i.e., `text_a`, `text_b` and `text_b_neg`. For predicting, only `text_a` and `text_b` are required.
+    
+    A pointwise learning case shows as follows:
+    ```
+    label [TAB] text_a [TAB] text_b
+    1 [TAB] Today is a good day. [TAB] what a nice day!
+    0 [TAB] Such a terriable day! [TAB] There is a dog.
+    1 [TAB] I feel lucky to meet you, dear. [TAB] You are my lucky, darling.
+    1 [TAB] He likes sunshine and I like him :). [TAB] I like him. He like sunshine.
+    0 [TAB] JUST! GO! OUT! [TAB] Come in please.
+    ```
+    A pairwise learning case shows as follows:
+    text_a [TAB] text_b [TAB] text_b_neg
+    Today is a good day. [TAB] what a nice day! [TAB] terriable day!
+    Such a terriable day! [TAB] So terriable today! [TAB] There is a dog.
+    I feel lucky to meet you, dear. [TAB] You are my lucky, darling. [TAB] 
+    He likes sunshine and I like him :). [TAB] I like him. He like sunshine.
+    JUST! GO! OUT! [TAB] Come in please.
+
+    CAUTIOUS: The first line of the file must be header! And areas are splited by tab (\\t).
+
+    """
     
     def __init__(self, vocab_path, max_len, tokenizer='wordpiece', lang='en', seed=None, \
         do_lower_case=False, learning_strategy='pointwise', phase='train', dev_count=1, print_prefix=''):  # 需要什么加什么

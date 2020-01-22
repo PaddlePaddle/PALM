@@ -1,48 +1,17 @@
 # PaddlePALM
 
-PaddlePALM (Paddle for Multi-task) 是一个灵活通用且易用的NLP大规模预训练与多任务学习框架。通过PaddlePALM，用户可以轻松完成复杂的多任务学习与参数复用，无缝集成「**单任务训练**」、「**多任务辅助训练**」和「**多目标任务联合训练**」这 *3* 种训练方式和灵活的保存与预测机制，且仅需书写极少量代码即可”一键启动”高性能单机单卡和分布式训练与推理。
+PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. With PALM, 8 steps to achieve a typical NLP task for supervised learning or pretraining. 6 steps to achieve multi-task learning for prepared tasks. Zero steps to adapt your code to large-scale training/inference (with multiple GPUs and multiple computation nodes).
 
-框架中内置了丰富的[主干网络](#附录b内置主干网络backbone)及其[预训练模型](#预训练模型)（BERT、ERNIE等）、常见的[任务范式](#附录c内置任务范式paradigm)（分类、匹配、机器阅读理解等）和相应的[数据集读取与处理工具](#附录a内置数据集载入与处理工具reader)。同时框架提供了用户自定义接口，若内置工具、主干网络和任务无法满足需求，开发者可以轻松完成相关组件的自定义。各个组件均为零耦合设计，用户仅需完成组件本身的特性开发即可完成与框架的融合。
-
-PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. With PALM, a typical NLP task can be achieved just in 8 steps. 
-s   
+PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ERNIE,RoBERTa,...) as build-in model backbones. We have decoupled the model backbone, dataset reader and task output layers, so that you can easily replace any of the component to other candidates with quite minor changes of your code. In addition, PaddlePALM support customized development of any component, e.g, backbone, task head, reader and optimizer, which gives high flexibility for developers to adapt to complicated NLP scenes. 
 
 然后给出一些成功案例和一些公开数据集的各个backbone的实验结果（BERT、ERNIE、RoBERTa）和一些成功的多任务学习示例。
-
-## 目录
-
-- [安装](#安装)
-- [前期准备](#前期准备)
-    - [理论准备](#理论准备)
-    - [框架原理](#框架原理)
-    - [预训练模型](#预训练模型)
-- [X行代码实现文本分类](#三个demo入门paddlepalm)
-    - 
-- []
-    - [DEMO1：单任务训练](#demo1单任务训练)
-    - [DEMO2：多任务辅助训练与目标任务预测](#demo2多任务辅助训练与目标任务预测)
-    - [DEMO3：多目标任务联合训练与任务层参数复用](#demo3多目标任务联合训练与任务层参数复用)
-- [进阶篇](#进阶篇)
-    - [配置广播机制](#配置广播机制)
-    - [reader、backbone与paradigm的选择](#readerbackbone与paradigm的选择)
-    - [多目标任务下的训练终止条件与预期训练步数](#多目标任务下的训练终止条件与预期训练步数)
-        - [多个目标任务](#多个目标任务)
-        - [训练终止条件](#训练终止条件)
-        - [任务采样概率与预期训练步数](#任务采样概率与预期训练步数)
-        - [多个目标任务时预期训练步数的计算](#多个目标任务时预期训练步数的计算)
-    - [模型保存与预测机制](#模型保存与预测机制)
-    - [分布式训练](#分布式训练)
-- [附录A：内置数据集载入与处理工具（reader）](#附录a内置数据集载入与处理工具reader)
-- [附录B：内置主干网络（backbone）](#附录b内置主干网络backbone)
-- [附录C：内置任务范式（paradigm）](#附录c内置任务范式paradigm)
-- [附录D：可配置的全局参数列表](#附录d可配置的全局参数列表)
 
 
 ## Package Overview
 
 | **paddlepalm** | an open source NLP pretraining and multitask learning framework, built on paddlepaddle. |
 | **paddlepalm.reader** | a collection of elastic task-specific dataset readers. |
-| **paddlepalm.backbone** | a collection of classic NLP representation models, e.g., BERT. |
+| **paddlepalm.backbone** | a collection of classic NLP representation models, e.g., BERT, ERNIE, RoBERTa. |
 | **paddlepalm.head** | a collection of task-specific output layers. |
 | **paddlepalm.lr_sched** | a collection of learning rate schedualers. |
 | **paddlepalm.optimizer** | a collection of optimizers. |
@@ -67,7 +36,7 @@ cd PALM && python setup.py install
 ```
 
 ### Library Dependencies
-- Python >= 2.7 (即将支持python3)
+- Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
 - PaddlePaddle >= 1.6.3 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
@@ -108,7 +77,7 @@ Available pretrain items:
 5. create a task *trainer* with `paddlepalm.Trainer`, then build forward graph with backbone and task head (created in step 2 and 4) through `trainer.build_forward`.
 6. use `paddlepalm.optimizer` (and `paddlepalm.lr_sched` if is necessary) to create a *optimizer*, then build backward through `trainer.build_backward`.
 7. fit prepared reader and data (achieved in step 1) to trainer with `trainer.fit_reader` method.
-8. randomly initialize model parameters (and `trainer.load_pretrain` if needed), then do training with `trainer.train`.
+8. load pretrain model with `trainer.load_pretrain`, or load checkpoint with `trainer.load_ckpt` or nothing to do for training from scratch, then do training with `trainer.train`.
 
 More implementation details see following demos: [Sentiment Classification](), [Quora Question Pairs matching](), [Tagging](), [SQuAD machine Reading Comprehension]().
 

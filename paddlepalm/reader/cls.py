@@ -24,15 +24,15 @@ class ClassifyReader(Reader):
     For tsv format, training dataset file should have two header areas, i.e., `label` and `text`, and test set only requires `text` area. For example,
 
     ```
-    label	text
-		1	Today is a good day.
-		0	Such a terriable day!
-		1	I feel lucky to meet you, dear.
-		1	He likes sunshine and I like him :).
-		0	JUST! GO! OUT!
-		```
+    label [TAB] text
+    1 [TAB] Today is a good day.
+    0 [TAB] Such a terriable day!
+    1 [TAB] I feel lucky to meet you, dear.
+    1 [TAB] He likes sunshine and I like him :).
+    0 [TAB] JUST! GO! OUT!
+    ```
 
-		CAUTIOUS: The first line of the file must be header! And areas are splited by tab (\\t).
+    CAUTIOUS: The first line of the file must be header! And areas are splited by tab (\\t).
 
     """
     
