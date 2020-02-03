@@ -201,9 +201,9 @@ class MultiHeadTrainer(Trainer):
         feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(net_inputs)
 
         if gpu_dev_count > 1:
-            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn)
+            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn, phase=phase, is_multi=True)
         else:
-            distribute_feeder_fn = iterator_fn
+            distribute_feeder_fn = iterator_fn()
 
         if phase == 'train':
             self._train_reader = distribute_feeder_fn
@@ -277,8 +277,8 @@ class MultiHeadTrainer(Trainer):
     def train_one_step(self, batch):
 
         if dev_count > 1:
-            assert isinstance(batch, list)
-            task_id = batch[0]['__task_id'][0]
+            assert isinstance(batch, tuple)
+            task_id = batch[0][0]['__task_id'][0]
         else:
             assert isinstance(batch, dict)
             task_id = batch['__task_id'][0]

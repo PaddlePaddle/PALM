@@ -415,7 +415,7 @@ class Trainer(object):
         self._raw_iterator_fn = iterator_fn
         feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(net_inputs)
         if gpu_dev_count > 1:
-            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn)
+            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn, phase=phase)
         else:
             distribute_feeder_fn = iterator_fn()
 
@@ -718,9 +718,9 @@ class Trainer(object):
             feed, mask = batch
             rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=fetch_list)
             num_fakes = decode_fake(len(rt_outputs[0]), mask, self._train_batch_size)
-            for _ in range(num_fakes):
-                for item in rt_outputs:
-                    item.pop()
+            if num_fakes:
+                rt_outputs = [i[:-num_fakes] for i in rt_outputs]
+        
         else:
             feed = self._feed_batch_process_fn(batch)
             rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=fetch_list)
@@ -735,9 +735,8 @@ class Trainer(object):
             feed, mask = batch
             rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)
             num_fakes = decode_fake(len(rt_outputs[0]), mask, self._predict_batch_size)
-            for _ in range(num_fakes):
-                for item in rt_outputs:
-                    item.pop()
+            if num_fakes:
+                rt_outputs = [i[:-num_fakes] for i in rt_outputs]
         else:
             feed = self._pred_feed_batch_process_fn(batch)
             rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)

@@ -93,7 +93,7 @@ class MaskLM(Head):
             param_attr=fluid.ParamAttr(
                 name=scope_name+'mask_lm_trans_fc.w_0',
                 initializer=_param_initializer),
-            bias_attr=fluid.ParamAttr(name=scope_name+'mask_lm_trans_fc.b_0'))
+                bias_attr=fluid.ParamAttr(name=scope_name+'mask_lm_trans_fc.b_0'))
         # transform: layer norm
         mask_trans_feat = pre_process_layer(
             mask_trans_feat, 'n', name=scope_name+'mask_lm_trans')
