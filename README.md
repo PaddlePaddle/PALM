@@ -6,10 +6,8 @@ PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ER
 
 With PaddlePALM, it is easy to achieve effecient exploration of robust learning of reading comprehension models with multiple auxilary tasks, and the produced model, [D-Net](), achieve **the 1st place** in [EMNLP2019 MRQA](mrqa.github.io) track.
 
-![mrqa](https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg)
-
 <p align="center">
-	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="450" height="500">
+	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="300" height="333">
 	<p align="center">
 		<em>MRQA2019 Leaderboard</em>
 	</p>
