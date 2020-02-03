@@ -1,19 +1,26 @@
 
-from paddlepalm.lr_sched.schedualer import BaseSchedualer
+from paddlepalm.lr_sched.base_schedualer import Schedualer
 from paddle import fluid
 
-class TriangularSchedualer(BaseSchedualer):
+class TriangularSchedualer(Schedualer):
 
-    """ Applies linear warmup of learning rate from 0 to learning_rate until warmup_steps, and then decay to 0 linearly until num_train_steps."""
+    """ Implementation of Slanted Triangular learning rate schedual method, more details refer to https://arxiv.org/pdf/1801.06146.pdf . Apply linear warmup of learning rate from 0 to learning_rate until warmup_steps, and then decay to 0 linearly until num_train_steps."""
 
     def __init__(self, warmup_steps, num_train_steps):
-        BaseSchedualer.__init__(self)
+        """Create a new TriangularSchedualer object.
+
+        Args:
+            warmup_steps: the learning rate will grow from 0 to max_learning_rate over `warmup_steps` steps.
+            num_train_steps: the number of train steps.
+
+        """
+        Schedualer.__init__(self)
         assert num_train_steps > warmup_steps > 0
         self.warmup_steps = warmup_steps
         self.num_train_steps = num_train_steps
         
 
-    def build(self, learning_rate):
+    def _build(self, learning_rate):
         with self._prog._lr_schedule_guard():
             lr = fluid.layers.tensor.create_global_var(
                 shape=[1],

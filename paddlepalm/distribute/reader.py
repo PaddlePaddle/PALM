@@ -11,8 +11,8 @@ def yield_pieces(data, distribute_strategy, batch_size):
         distribute_strategy: support s=split, c=copy, u=unstack,
         """
     assert batch_size % dev_count == 0, "batch_size need to be integer times larger than dev_count."
-    print('data in yield pieces')
-    print(len(data))
+    # print('data in yield pieces')
+    # print(len(data))
 
     assert type(data) == type(distribute_strategy), [type(data), type(distribute_strategy)]
     assert len(data) == len(distribute_strategy), [len(data), len(distribute_strategy)]
@@ -24,7 +24,6 @@ def yield_pieces(data, distribute_strategy, batch_size):
         assert isinstance(data, list), "the input data must be a list or dict, and contained with multiple tensors."
         data_list = data
         ds_list = distribute_strategy
-
     stride = batch_size // dev_count
     p = stride
     # while p < len(data_list) + stride:
@@ -34,14 +33,14 @@ def yield_pieces(data, distribute_strategy, batch_size):
             s = s.strip().lower()
             if s == 's' or s == 'split':
                 if p - stride >= len(d):
-                    print('WARNING: no more examples to feed empty devices')
+                    # print('WARNING: no more examples to feed empty devices')
                     temp = []
                     return
                 temp.append(d[p-stride:p])
             elif s == 'u' or s == 'unstack':
                 assert len(d) <= dev_count, 'Tensor size on dim 0 must be less equal to dev_count when unstack is applied.'
                 if p//stride > len(d):
-                    print('WARNING: no more examples to feed empty devices')
+                    # print('WARNING: no more examples to feed empty devices')
                     return
                 temp.append(d[p//stride-1])
             elif s == 'c' or s == 'copy':
@@ -53,12 +52,11 @@ def yield_pieces(data, distribute_strategy, batch_size):
         if type(data) == dict:
             yield dict(zip(*[keys, temp]))
         else:
-            print('yielded pieces')
-            print(len(temp))
+            # print('yielded pieces')
+            # print(len(temp))
             yield temp
 
 def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
-
     if postprocess_fn is None:
         def postprocess_fn(batch):
             return batch
@@ -98,12 +96,27 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
                 flag = idx-len(batches) < -num_pad
                 # if num_pad > 0:
                 #     num_pad -= 1
+                # batch = postprocess_fn(batch, id)
                 batch = postprocess_fn(batch)
                 batch_buf.append(batch)
                 flag_buf.append(flag)
             yield batch_buf, flag_buf
-        else:
+        else: 
             break
     queue.join()
 
+
+
+
+def decode_fake(nums, mask, bs):
+    n_t = 0
+    for flag in mask: 
+        if not flag:
+            break
+        n_t = n_t + 1
+    
+    n_f = len(mask) - n_t
+    p1 = nums - (n_t-1) * bs
+    each_f = p1 / (n_f+1)
+    return each_f * n_f
 

@@ -14,13 +14,15 @@
 # limitations under the License.
 """v1.1"""
 from copy import copy
-class BaseReader(object):
+class Reader(object):
     """interface of data manager."""
 
     def __init__(self, phase='train'):
         # assert isinstance(config, dict)
         # self._config = config
         self._phase = phase
+        self._batch_size = None
+        self._num_epochs = 1
         self._register = set()
         self._registered_backbone = None
 
@@ -40,7 +42,6 @@ class BaseReader(object):
         self._register.add(attr_name)
             
     def register_with(self, backbone):
-        print(backbone)
         for attr in backbone.inputs_attr:
             self.require_attr(attr)
         self._registered_backbone = backbone
@@ -117,4 +118,8 @@ class BaseReader(object):
         """数据集中的样本数量，即每个epoch中iterator所生成的样本数。注意，使用滑动窗口等可能导致数据集样本数发生变化的策略时，该接口应返回runtime阶段的实际样本数。"""
         raise NotImplementedError()
 
+    @property
+    def num_epochs(self):
+        """"""
+        raise NotImplementedError()
 

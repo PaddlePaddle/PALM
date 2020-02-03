@@ -31,16 +31,21 @@ __all__ = ["download", "ls"]
 ssl._create_default_https_context = ssl._create_unverified_context
 
 _items = {
-    'pretrain': {'ernie-en-uncased-large': 'https://ernie.bj.bcebos.com/ERNIE_Large_en_stable-2.0.0.tar.gz',
+    'pretrain': {'ernie-en-large': 'https://ernie.bj.bcebos.com/ERNIE_Large_en_stable-2.0.0.tar.gz',
+                 'ernie-en-base': 'https://ernie.bj.bcebos.com/ERNIE_Base_en_stable-2.0.0.tar.gz',
+                 'ernie-zh-base':'https://ernie.bj.bcebos.com/ERNIE_1.0_max-len-512.tar.gz',
                  'bert-en-uncased-large': 'https://bert-models.bj.bcebos.com/uncased_L-24_H-1024_A-16.tar.gz',
                  'bert-en-uncased-base': 'https://bert-models.bj.bcebos.com/uncased_L-12_H-768_A-12.tar.gz',
+                 'roberta-zh-base': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_ext_L-12_H-768_A-12.tar.gz',
+                 'roberta-zh-large': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.tar.gz',
                  'utils': None},
-    'reader': {'utils': None},
+    'vocab': {'utils': None},
     'backbone': {'utils': None},
-    'tasktype': {'utils': None},
+    'head': {'utils': None},
+    'reader': {'utils': None},
 }
 
-def _download(item, scope, path, silent=False):
+def _download(item, scope, path, silent=False, convert=False):
     data_url = _items[item][scope]
     if data_url == None:
         return
@@ -100,9 +105,10 @@ def _download(item, scope, path, silent=False):
             os.removedirs(source_path)
         if not silent:
             print ('done!')
-        if not silent:
-            print ('Converting params...', end=" ")
-        _convert(data_dir, silent)
+        if convert:
+            if not silent:
+                print ('Converting params...', end=" ")
+            _convert(data_dir, silent)
         if not silent:
             print ('done!')
 
@@ -128,6 +134,13 @@ def _convert(path, silent=False):
             os.removedirs(path + '/params1/') 
 
 def download(item, scope='all', path='.'):
+    """download an item. The available scopes and contained items can be showed with `paddlepalm.downloader.ls`.
+
+    Args:
+        scope: the scope the item belongs to.
+        item: the item to download.
+        path: the target dir to download to. Default is `.`, means current dir.
+    """
     item = item.lower()
     scope = scope.lower()
     assert item in _items, '{} is not found. Support list: {}'.format(item, list(_items.keys()))
@@ -166,6 +179,5 @@ def ls(item='all', scope='all'):
         for i in _items.keys():
             print ('Available {} items: '.format(i))
             _ls(i, scope, l)
-
 
     
