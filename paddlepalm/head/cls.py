@@ -38,7 +38,6 @@ class Classify(Head):
         self._param_initializer = fluid.initializer.TruncatedNormal(
             scale=param_initializer_range)
         self._preds = []
-        self._probs = []
 
     @property
     def inputs_attrs(self):
@@ -53,8 +52,7 @@ class Classify(Head):
         if self._is_training:
             return {'loss': [[1], 'float32']}
         else:
-            return {'logits': [[-1, self.num_classes], 'float32'],
-                    'probs': [[-1, self.num_classes], 'float32']}
+            return {'logits': [[-1, self.num_classes], 'float32']}
 
     def build(self, inputs, scope_name=''):
         sent_emb = inputs['backbone']['sentence_embedding']
@@ -74,10 +72,10 @@ class Classify(Head):
             bias_attr=fluid.ParamAttr(
                 name=scope_name+"cls_out_b", initializer=fluid.initializer.Constant(0.)))
 
-        probs = fluid.layers.softmax(logits)
         if self._is_training:
+            inputs = fluid.layers.softmax(logits)
             loss = fluid.layers.cross_entropy(
-                input=probs, label=label_ids)
+                input=inputs, label=label_ids)
             loss = layers.mean(loss)
             return {"loss": loss}
         else:

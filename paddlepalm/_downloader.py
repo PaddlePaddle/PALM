@@ -137,8 +137,8 @@ def download(item, scope='all', path='.'):
     """download an item. The available scopes and contained items can be showed with `paddlepalm.downloader.ls`.
 
     Args:
-        scope: the scope the item belongs to.
         item: the item to download.
+        scope: the scope of the item to download.
         path: the target dir to download to. Default is `.`, means current dir.
     """
     item = item.lower()
@@ -179,5 +179,6 @@ def ls(item='all', scope='all'):
         for i in _items.keys():
             print ('Available {} items: '.format(i))
             _ls(i, scope, l)
+
 
     
