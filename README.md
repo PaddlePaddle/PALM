@@ -127,7 +127,7 @@ You can easily re-produce following competitive results with minor codes, which 
 
 ## Installation
 
-PaddlePALM support both python2 and python3, linux and windows, CPU and GPU. The preferred way to install PaddlePALM is via `pip`. Just run following commands in your shell environment.
+PaddlePALM support both python2 and python3, linux and windows, CPU and GPU. The preferred way to install PaddlePALM is via `pip`. Just run following commands in your shell.
 
 ```bash
 pip install paddlepalm
@@ -144,7 +144,7 @@ cd PALM && python setup.py install
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
-- PaddlePaddle >= 1.6.3 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
+- PaddlePaddle >= 1.7.0 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
 
 ### Downloading pretrain models
@@ -184,12 +184,21 @@ Available pretrain items:
 7. fit prepared reader and data (achieved in step 1) to trainer with `trainer.fit_reader` method.
 8. load pretrain model with `trainer.load_pretrain`, or load checkpoint with `trainer.load_ckpt` or nothing to do for training from scratch, then do training with `trainer.train`.
 
-More implementation details see following demos: [Sentiment Classification](), [Quora Question Pairs matching](), [Tagging](), [SQuAD machine Reading Comprehension]().
+For more implementation details, see following demos: 
 
-To save models/checkpoints during training, just call `trainer.set_saver` method. More implementation details see [this]().
+- [Sentiment Classification]()
+- [Quora Question Pairs matching]()
+- [Tagging]()
+- [SQuAD machine Reading Comprehension]().
 
+#### saver
+
+To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this]().
+
+#### predict
 To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this]().
 
+#### multi-task learning
 To run with multi-task learning mode:
 
 1. repeatedly create components (i.e., reader, backbone and head) for each task followed with step 1~5 above. 
@@ -201,7 +210,10 @@ To run with multi-task learning mode:
 
 The save/load and predict operations of a multi_head_trainer is the same as a trainer.
 
-More implementation details of running multi-task learning with multi_head_trainer can be found [here]().
+For more implementation details with multi_head_trainer, see
+
+- [Joint training of dialogue intent recognition and slot filling for ATIS]()
+- [Learning reading comprehension auxilarized with mask language model for MRQA]() (初次发版先不用加)
 
 
 ## License
