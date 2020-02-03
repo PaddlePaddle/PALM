@@ -71,8 +71,9 @@ Once you have the prediction, you can run the evaluation script to evaluate the 
 python evaluate.py
 ```
 
-The evaluation results are as follows:  (need to update)
+The evaluation results are as follows:
 
 ```
-precision: 0.956666666667, recall: 0.949013157895, f1: 0.95688225039
+data num: 1200
+precision: 0.494166666667, recall: 0.0444078947368, f1: 0.0816944009455
 ```
