@@ -9,7 +9,7 @@ With PaddlePALM, it is easy to achieve effecient exploration of robust learning 
 ![mrqa](https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg)
 
 <p align="center">
-	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="450" height="850">
+	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="450" height="550">
 	<p align="center">
 		<em>MRQA2019 Leaderboard</em>
 	</p>
