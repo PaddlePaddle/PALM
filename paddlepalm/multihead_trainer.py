@@ -5,6 +5,7 @@ from paddlepalm.distribute import gpu_dev_count, cpu_dev_count
 from paddlepalm import Trainer
 from paddlepalm.utils import reader_helper
 import numpy as np
+from paddlepalm.distribute import gpu_dev_count, data_feeder, decode_fake
 import time
 
 dev_count = 1 if gpu_dev_count <= 1 else gpu_dev_count
@@ -205,10 +206,10 @@ class MultiHeadTrainer(Trainer):
             distribute_feeder_fn = iterator_fn
 
         if phase == 'train':
-            self._train_reader = distribute_feeder_fn()
+            self._train_reader = distribute_feeder_fn
             self._feed_batch_process_fn = feed_batch_process_fn
         elif phase == 'predict':
-            self._predict_reader = distribute_feeder_fn()
+            self._predict_reader = distribute_feeder_fn
             self._pred_feed_batch_process_fn = feed_batch_process_fn
 
     def _check_finish(self, task_name, silent=False):

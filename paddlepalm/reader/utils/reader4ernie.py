@@ -99,7 +99,7 @@ class Reader(object):
 
         if label_map_config:
             with open(label_map_config, encoding='utf8') as f: 
-                self.label_map = json.load(f)
+                self.label_map = (f)
         else:
             self.label_map = None
 

@@ -24,19 +24,17 @@ class MaskLM(Head):
     '''
     mlm
     '''
-    def __init__(self, input_dim, vocab_size, hidden_act, initializer_range, dropout_prob=0.0, \
+    def __init__(self, input_dim, vocab_size, hidden_act, dropout_prob=0.0, \
                  param_initializer_range=0.02, phase='train'):
         self._is_training = phase == 'train'
         self._emb_size = input_dim
         self._hidden_size = input_dim
         self._dropout_prob = dropout_prob if phase == 'train' else 0.0
-        self._param_initializer = fluid.initializer.TruncatedNormal(
-            scale=param_initializer_range)
         self._preds = []
 
         self._vocab_size = vocab_size
         self._hidden_act = hidden_act
-        self._initializer_range = initializer_range
+        self._initializer_range = param_initializer_range
     
     @property
     def inputs_attrs(self):
