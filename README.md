@@ -1,8 +1,14 @@
 # PaddlePALM
 
-PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. With PALM, 8 steps to achieve a typical NLP task for supervised learning or pretraining. 6 steps to achieve multi-task learning for prepared tasks. Zero steps to adapt your code to large-scale training/inference (with multiple GPUs and multiple computation nodes).
+PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. 
 
-PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ERNIE,RoBERTa,...) as build-in model backbones. We have decoupled the model backbone, dataset reader and task output layers, so that you can easily replace any of the component to other candidates with quite minor changes of your code. In addition, PaddlePALM support customized development of any component, e.g, backbone, task head, reader and optimizer, which gives developers high flexibility to adapt to diverse NLP scenes. 
+##### Features:
+
+- **Easy-to-use:** with PALM, *8 steps* to achieve a typical NLP task. Moreover, the model backbone, dataset reader and task output layers have been decoupled, which allows the replacement of any component to other candidates with quite minor changes of your code. 
+- **Multi-task Learning friendly:** *6 steps* to achieve multi-task learning for prepared tasks. 
+- **Large Scale and Pre-training freiendly:** automatically utilize multi-gpus (if exists) to accelerate training and inference. Minor codes is required for distributed training on clusters.
+- **Popular NLP Backbones and Pre-trained models:** multiple state-of-the-art general purpose model architectures and pretrained models (e.g., BERT,ERNIE,RoBERTa,...) are built-in. 
+- **Easy to Customize:** support customized development of any component (e.g, backbone, task head, reader and optimizer) with reusement of pre-defined ones, which gives developers high flexibility and effeciency to adapt for diverse NLP scenes. 
 
 With PaddlePALM, it is easy to achieve effecient exploration of robust learning of reading comprehension models with multiple auxilary tasks, and the produced model, [D-Net](), achieve **the 1st place** in [EMNLP2019 MRQA](mrqa.github.io) track.
 
