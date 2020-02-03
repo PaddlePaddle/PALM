@@ -4,9 +4,16 @@ PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-
 
 PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ERNIE,RoBERTa,...) as build-in model backbones. We have decoupled the model backbone, dataset reader and task output layers, so that you can easily replace any of the component to other candidates with quite minor changes of your code. In addition, PaddlePALM support customized development of any component, e.g, backbone, task head, reader and optimizer, which gives developers high flexibility to adapt to diverse NLP scenes. 
 
-With PaddlePALM, it is easy to achieve effecient exploration of robust learning of reading comprehension models with multiple auxilary tasks, and the produced model, [D-Net](), achieve the **1st place** in [EMNLP2019 MRQA](mrqa.github.io) track.
+With PaddlePALM, it is easy to achieve effecient exploration of robust learning of reading comprehension models with multiple auxilary tasks, and the produced model, [D-Net](), achieve **the 1st place** in [EMNLP2019 MRQA](mrqa.github.io) track.
 
 ![mrqa](https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg)
+
+<p align="center">
+	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="150" height="240">
+	<p align="center">
+		<em>MRQA</em>
+	</p>
+</p>
 
 Beyond the research scope, PaddlePALM has been applied on **Baidu Search Engine** to seek for more accurate user query understanding and answer mining, which implies the high reliability and performance of PaddlePALM.
 
