@@ -191,14 +191,14 @@ For more implementation details, see following demos:
 - [Tagging]()
 - [SQuAD machine Reading Comprehension]().
 
-#### Set Saver
+### set saver
 
 To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this]().
 
-### Do Prediction
+### do prediction
 To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this]().
 
-### Multi-task Learning
+### multi-task learning
 To run with multi-task learning mode:
 
 1. repeatedly create components (i.e., reader, backbone and head) for each task followed with step 1~5 above. 
