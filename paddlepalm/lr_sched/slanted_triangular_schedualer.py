@@ -1,5 +1,4 @@
-
-from paddlepalm.lr_sched.schedualer import Schedualer
+from paddlepalm.lr_sched.base_schedualer import Schedualer
 from paddle import fluid
 
 class TriangularSchedualer(Schedualer):

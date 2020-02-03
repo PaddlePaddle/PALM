@@ -1,5 +1,5 @@
 
-from paddlepalm.lr_sched.schedualer import Schedualer
+from paddlepalm.lr_sched.base_schedualer import Schedualer
 import paddle.fluid as fluid
 
 def WarmupSchedualer(Schedualer):
