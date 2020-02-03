@@ -212,8 +212,8 @@ The save/load and predict operations of a multi_head_trainer is the same as a tr
 
 For more implementation details with `multi_head_trainer`, see
 
-- [Joint training of dialogue intent recognition and slot filling for ATIS]()
-- [Learning reading comprehension auxilarized with mask language model for MRQA]() (初次发版先不用加)
+- [ATIS: joint training of dialogue intent recognition and slot filling]()
+- [MRQA: learning reading comprehension auxilarized with mask language model]() (初次发版先不用加)
 
 
 ## License
