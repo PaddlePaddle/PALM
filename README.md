@@ -2,9 +2,15 @@
 
 PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. With PALM, 8 steps to achieve a typical NLP task for supervised learning or pretraining. 6 steps to achieve multi-task learning for prepared tasks. Zero steps to adapt your code to large-scale training/inference (with multiple GPUs and multiple computation nodes).
 
-PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ERNIE,RoBERTa,...) as build-in model backbones. We have decoupled the model backbone, dataset reader and task output layers, so that you can easily replace any of the component to other candidates with quite minor changes of your code. In addition, PaddlePALM support customized development of any component, e.g, backbone, task head, reader and optimizer, which gives high flexibility for developers to adapt to complicated NLP scenes. 
+PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ERNIE,RoBERTa,...) as build-in model backbones. We have decoupled the model backbone, dataset reader and task output layers, so that you can easily replace any of the component to other candidates with quite minor changes of your code. In addition, PaddlePALM support customized development of any component, e.g, backbone, task head, reader and optimizer, which gives developers high flexibility to adapt to diverse NLP scenes. 
 
-然后给出一些成功案例和一些公开数据集的各个backbone的实验结果（BERT、ERNIE、RoBERTa）和一些成功的多任务学习示例。
+With PaddlePALM, it is easy to achieve effecient exploration of robust learning of reading comprehension models with multiple auxilary tasks, and the produced model, [D-Net](), achieve the **1st place** in [EMNLP2019 MRQA](mrqa.github.io) track.
+
+![mrqa](https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg)
+
+Beyond the research scope, PaddlePALM has been applied on **Baidu Search Engine** to seek for more accurate user query understanding and answer mining, which implies the high reliability and performance of PaddlePALM.
+
+You can easily re-produce following competitive results with minor codes, which covers most of NLP tasks such as classification, matching, sequence labeling, reading comprehension, dialogue understanding and so on. More details can be found in `examples`.
 
 <table>
   <tbody>
@@ -90,6 +96,7 @@ PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ER
 
   </tbody>
 </table>
+
 
 
 ## Package Overview
