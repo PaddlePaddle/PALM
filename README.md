@@ -13,7 +13,7 @@ With PaddlePALM, it is easy to achieve effecient exploration of robust learning 
 
 Beyond the research scope, PaddlePALM has been applied on **Baidu Search Engine** to seek for more accurate user query understanding and answer mining, which implies the high reliability and performance of PaddlePALM.
 
-##### Features:
+#### Features:
 
 - **Easy-to-use:** with PALM, *8 steps* to achieve a typical NLP task. Moreover, the model backbone, dataset reader and task output layers have been decoupled, which allows the replacement of any component to other candidates with quite minor changes of your code. 
 - **Multi-task Learning friendly:** *6 steps* to achieve multi-task learning for prepared tasks. 
