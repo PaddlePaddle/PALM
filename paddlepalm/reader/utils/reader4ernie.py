@@ -42,6 +42,12 @@ if six.PY3:
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
+if sys.version[0] == '2':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+else:
+    import importlib
+    importlib.reload(sys)
 
 def csv_reader(fd, delimiter='\t'):
     def gen():
@@ -338,16 +344,8 @@ class Reader(object):
         def f():
             for i in wrapper():
                 yield i
-
-        # def f():
-        #     try:
-        #         for i in wrapper():
-        #             yield i
-        #     except Exception as e:
-        #         import traceback
-        #         traceback.print_exc()
-
         return f
+        # return wrapper
 
 
 class MaskLMReader(Reader):
@@ -478,11 +476,14 @@ class MaskLMReader(Reader):
                         return_input_mask=True,
                         return_max_len=False,
                         return_num_token=False,
-                        dev_count=1)
+                        dev_count=dev_count)
 
                     # yield batch
                     for piece in palm.distribute.yield_pieces(batch_data, ['s', 's', 's', 's', 's', 'u', 'u'], batch_size):
                         yield piece
+                    # # ds = ['s'] * len(batch_data)
+                    # for piece in palm.distribute.yield_pieces(batch_data, ['s'] * 7, batch_size):
+                    #     yield piece
 
         return wrapper
 
@@ -725,7 +726,8 @@ class MRCReader(Reader):
 
     def _read_json(self, input_file, is_training):
         examples = []
-        with open(input_file, "r", encoding='utf8') as f:
+        with open(input_file, "r", encoding='utf-8') as f:
+           # f = f.read().decode(encoding='gbk').encode(encoding='utf-8')
             input_data = json.load(f)["data"]
             for entry in input_data:
                 for paragraph in entry["paragraphs"]:

@@ -26,7 +26,7 @@ class Adam(Optimizer):
 
     def __init__(self, loss_var, lr, lr_schedualer=None):
 
-        BaseOptimizer.__init__(self, loss_var, lr, lr_schedualer=None)
+        Optimizer.__init__(self, loss_var, lr, lr_schedualer=None)
 
         self._loss = loss_var
         self._lr = lr

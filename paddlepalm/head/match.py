@@ -83,8 +83,8 @@ class Match(Head):
             if self._learning_strategy=='paiwise':
                 return {"probs": [[-1, 1], 'float32']}
             else:
-                return {"logits": [[-1, 2], 'float32'],
-                        "probs": [[-1, 2], 'float32']}
+                return {"logits": [[-1, self._num_classes], 'float32'],
+                        "probs": [[-1, self._num_classes], 'float32']}
 
     def build(self, inputs, scope_name=""):
 
@@ -184,6 +184,6 @@ class Match(Head):
                     elif self._learning_strategy == 'pairwise':
                         label = 0 if self._preds[i][0] < 0.5 else 1
                         result = {'index': i, 'label': label, 'probs': self._preds[i][0]}
-                    result = json.dumps(result)
+                    result = json.dumps(result, ensure_ascii=False)
                     writer.write(result+'\n')
             print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))

@@ -33,14 +33,14 @@ def yield_pieces(data, distribute_strategy, batch_size):
             s = s.strip().lower()
             if s == 's' or s == 'split':
                 if p - stride >= len(d):
-                    print('WARNING: no more examples to feed empty devices')
+                    # print('WARNING: no more examples to feed empty devices')
                     temp = []
                     return
                 temp.append(d[p-stride:p])
             elif s == 'u' or s == 'unstack':
                 assert len(d) <= dev_count, 'Tensor size on dim 0 must be less equal to dev_count when unstack is applied.'
                 if p//stride > len(d):
-                    print('WARNING: no more examples to feed empty devices')
+                    # print('WARNING: no more examples to feed empty devices')
                     return
                 temp.append(d[p//stride-1])
             elif s == 'c' or s == 'copy':
@@ -102,18 +102,19 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
                 batch_buf.append(batch)
                 flag_buf.append(flag)
             yield batch_buf, flag_buf
-        else: 
+        else:
             break
     queue.join()
 
 
+
 def decode_fake(nums, mask, bs):
     n_t = 0
-    for flag in mask: 
+    for flag in mask:
         if not flag:
             break
         n_t = n_t + 1
-    
+
     n_f = len(mask) - n_t
     p1 = nums - (n_t-1) * bs
     each_f = p1 / (n_f+1)

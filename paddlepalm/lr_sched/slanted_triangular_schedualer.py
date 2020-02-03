@@ -1,5 +1,4 @@
-
-from paddlepalm.lr_sched.schedualer import Schedualer
+from paddlepalm.lr_sched.base_schedualer import Schedualer
 from paddle import fluid
 
 class TriangularSchedualer(Schedualer):
@@ -14,7 +13,7 @@ class TriangularSchedualer(Schedualer):
             num_train_steps: the number of train steps.
 
         """
-        BaseSchedualer.__init__(self)
+        Schedualer.__init__(self)
         assert num_train_steps > warmup_steps > 0
         self.warmup_steps = warmup_steps
         self.num_train_steps = num_train_steps

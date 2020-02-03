@@ -6,6 +6,91 @@ PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ER
 
 然后给出一些成功案例和一些公开数据集的各个backbone的实验结果（BERT、ERNIE、RoBERTa）和一些成功的多任务学习示例。
 
+<table>
+  <tbody>
+    <tr>
+      <th><strong>Dataset</strong>
+        <br></th>
+      <th colspan="3"><center><strong>chnsenticorp</strong></center></th>
+      <th colspan="3"><center><strong>Quora Question Pairs matching</strong><center></th>
+      <th colspan="3"><strong>MSRA-NER<br>(SIGHAN2006)</strong></th>
+      <th colspan="2"><strong>CMRC2018</strong></th>
+    </tr>
+    <tr>
+      <td rowspan="2">
+        <p>
+          <strong>Metric</strong>
+          <br></p>
+      </td>
+      <td colspan="1">
+        <center><strong>precision</strong></center>
+        <br></td>
+      <td colspan="1">
+        <strong>recall</strong>
+        <br></td>
+      <td colspan="1">
+        <strong>f1-score</strong>
+        <strong></strong>
+        <br></td>
+      <td colspan="1">
+        <center><strong>precision</strong></center>
+        <br></td>
+      <td colspan="1">
+        <strong>recall</strong>
+        <br></td>
+      <td colspan="1">
+        <strong>f1-score</strong>
+        <strong></strong>
+        <br></td>
+      <td colspan="1">
+        <center><strong>precision</strong></center>
+        <br></td>
+      <td colspan="1">
+        <strong>recall</strong>
+        <br></td>
+      <td colspan="1">
+        <strong>f1-score</strong>
+        <strong></strong>
+        <br></td>
+      <td colspan="1">
+        <strong>em</strong>
+        <br></td>
+      <td colspan="1">
+        <strong>f1-score</strong>
+        <br></td>
+    </tr>
+    <tr>
+      <td colspan="3" width="">
+        <strong>test</strong>
+        <br></td>
+      <td colspan="3" width="">
+        <strong>test</strong>
+        <br></td>
+      <td colspan="3" width="">
+        <strong>test</strong>
+        <br></td>
+      <td colspan="2" width="">
+        <strong>dev</strong>
+        <br></td>
+    </tr>
+    <tr>
+      <td><strong>ERNIE Base</strong></td>
+      <td>95.7</td>
+      <td>95.0</td>
+      <td>95.7</td>
+      <td>85.8</td>
+      <td>82.4</td>
+      <td>81.5</td>
+      <td>94.9</td>
+      <td>94.5</td>
+      <td>94.7</td>
+      <td>96.3</td>
+      <td>84.0</td>
+    </tr>
+
+  </tbody>
+</table>
+
 
 ## Package Overview
 
