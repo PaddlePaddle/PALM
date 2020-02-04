@@ -21,7 +21,7 @@ python download.py
 
 If everything goes well, there will be a folder named `data/`  created with all the data files in it.
 
-The data should have 2 fields,  `label` and `text_a`, stored with [tsv](https://en.wikipedia.org/wiki/Tab-separated_values) format. Here are some examples:
+Each data file should have 2 fields,  `label` and `text_a`, stored with [tsv](https://en.wikipedia.org/wiki/Tab-separated_values) format. Here are some examples:
 
 ```
 label  text_a
