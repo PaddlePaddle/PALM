@@ -12,7 +12,7 @@ Make sure you have downloaded the required pre-training model in the current fol
 
 #### Dataset
 
-This task uses the `chnsenticorp` dataset. 
+This example demonstrates with [ChnSentiCorp](https://github.com/SophonPlus/ChineseNlpCorpus/tree/master/datasets/ChnSentiCorp_htl_all), a Chinese sentiment analysis dataset.
 
 Download dataset:
 ```shell
