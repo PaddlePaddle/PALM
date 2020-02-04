@@ -64,7 +64,7 @@ if __name__ == '__main__':
     # step 8-1*: load pretrained parameters
     trainer.load_pretrain(pre_params)
     # step 8-2*: set saver to save model
-    # save_steps = (n_steps-8) // gpu_dev_count // 4
+    # save_steps = (n_steps-8)  // 4
     save_steps = 1520
     trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
     # step 8-3: start training

@@ -34,7 +34,6 @@ class MaskLMReader(Reader):
 
         for_cn = lang.lower() == 'cn' or lang.lower() == 'chinese'
 
-        self._register.add('token_ids')
         self._register.add('mask_pos')
         if phase == 'train':
             self._register.add('mask_label')

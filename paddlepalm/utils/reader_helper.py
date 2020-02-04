@@ -21,13 +21,20 @@ import numpy as np
 import paddle
 from paddle import fluid
 from paddle.fluid import layers
+from paddlepalm.distribute import gpu_dev_count, cpu_dev_count
+dev_count = 1 if gpu_dev_count <= 1 else gpu_dev_count
 
 
 def create_feed_batch_process_fn(net_inputs):
-
-    def feed_batch_process_fn(data):
+    
+    def feed_batch_process_fn(data, id=-1, phase='train', is_multi=False):
         temp = {}
-        for q, var in net_inputs.items():
+        if dev_count > 1 and phase=='train' and is_multi:
+            inputs = net_inputs[id]
+        else:
+            inputs= net_inputs
+
+        for q, var in inputs.items():
             if isinstance(var, str) or isinstance(var, unicode):
                 temp[var] = data[q]
             else:

@@ -34,7 +34,7 @@ text_a  label
 
 ### Step 2: Train & Predict
 
-The code used to perform classification task is in `run.py`. If you have prepared the pre-training model and the data set required for the task, run:
+The code used to perform this task is in `run.py`. If you have prepared the pre-training model and the data set required for the task, run:
 
 ```shell
 python run.py

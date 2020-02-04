@@ -57,9 +57,9 @@ def yield_pieces(data, distribute_strategy, batch_size):
             yield temp
 
 
-def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
+def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train', is_multi=False):
     if postprocess_fn is None:
-        def postprocess_fn(batch):
+        def postprocess_fn(batch, id=-1, phase='train', is_multi=False):
             return batch
 
     def worker(reader, dev_count, queue):
@@ -90,6 +90,10 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
         queue.task_done()
         if ret is not None:
             batches, num_pad = ret
+            if dev_count > 1 and phase == 'train' and is_multi: 
+                id = batches[0]['__task_id'][0]
+            else:
+                id = -1
             batch_buf = []
             flag_buf = []
             for idx, batch in enumerate(batches):
@@ -97,8 +101,8 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2):
                 flag = idx-len(batches) < -num_pad
                 # if num_pad > 0:
                 #     num_pad -= 1
-                # batch = postprocess_fn(batch, id)
-                batch = postprocess_fn(batch)
+                batch = postprocess_fn(batch, id, phase, is_multi=is_multi)
+                # batch = postprocess_fn(batch)
                 batch_buf.append(batch)
                 flag_buf.append(flag)
             yield batch_buf, flag_buf

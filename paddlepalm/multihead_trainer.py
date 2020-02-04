@@ -5,6 +5,7 @@ from paddlepalm.distribute import gpu_dev_count, cpu_dev_count
 from paddlepalm import Trainer
 from paddlepalm.utils import reader_helper
 import numpy as np
+from paddlepalm.distribute import gpu_dev_count, data_feeder, decode_fake
 import time
 
 dev_count = 1 if gpu_dev_count <= 1 else gpu_dev_count
@@ -51,11 +52,12 @@ class MultiHeadTrainer(Trainer):
             'input_varnames': 'self._pred_input_varname_list',
             'fetch_list': 'self._pred_fetch_name_list'}
 
-        self._check_save = lambda: False
+        # self._check_save = lambda: False
         for t in self._trainers:
             t._set_multitask()
 
-    def build_forward(self, backbone, heads):
+    # def build_forward(self, backbone, heads):
+    def build_forward(self):
         """
         Build forward computation graph for training, which usually built from input layer to loss node.
 
@@ -66,20 +68,13 @@ class MultiHeadTrainer(Trainer):
         Return:
             - loss_var: a Variable object. The computational graph variable(node) of loss.
         """
-
-        if isinstance(heads, list):
-            head_dict = {k.name: v for k,v in zip(self._trainers, heads)}
-        elif isinstance(heads, dict):
-            head_dict = heads
-        else:
-            raise ValueError()
-
-        num_heads = len(self._trainers)
-        assert len(head_dict) == num_heads
-
-        for t in self._trainers:
-            assert t.name in head_dict, "expected: {}, exists: {}".format(t.name, head_dict.keys())
-        
+        head_dict = {}
+        backbone = self._trainers[0]._backbone
+        for i in self._trainers:
+            assert i._task_head is not None and i._backbone is not None, "You should build forward for the {} task".format(i._name)
+            assert i._backbone == backbone, "The backbone for each task must be the same"
+            head_dict[i._name] = i._task_head
+            
         train_prog = fluid.Program()
         train_init_prog = fluid.Program()
         self._train_prog = train_prog
@@ -87,27 +82,13 @@ class MultiHeadTrainer(Trainer):
 
         def get_loss(i):
             head = head_dict[self._trainers[i].name]
-            # loss_var = self._trainers[i].build_forward(backbone, head, train_prog, train_init_prog)
             loss_var = self._trainers[i].build_forward(backbone, head)
             return loss_var
       
-        # task_fns = {}
-        # for i in range(num_heads):
-
-        #     def task_loss():
-        #         task_id = i
-        #         return lambda: get_loss(task_id)
-
-        #     task_fns[i] = task_loss()
-
-
-        # task_fns = {i: lambda: get_loss(i) for i in range(num_heads)}
-        task_fns = {i: lambda i=i: get_loss(i) for i in range(num_heads)}
+        task_fns = {i: lambda i=i: get_loss(i) for i in range(len(self._trainers))}
 
         with fluid.program_guard(train_prog, train_init_prog):
             task_id_var = fluid.data(name="__task_id",shape=[1],dtype='int64')
-            # task_id_var = fluid.layers.fill_constant(shape=[1],dtype='int64', value=1)
-            # print(task_id_var.name)
 
             loss_var = layers.switch_case(
                 branch_index=task_id_var,
@@ -200,15 +181,15 @@ class MultiHeadTrainer(Trainer):
         feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(net_inputs)
 
         if gpu_dev_count > 1:
-            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn)
+            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn, phase=phase, is_multi=True)
         else:
-            distribute_feeder_fn = iterator_fn
+            distribute_feeder_fn = iterator_fn()
 
         if phase == 'train':
-            self._train_reader = distribute_feeder_fn()
+            self._train_reader = distribute_feeder_fn
             self._feed_batch_process_fn = feed_batch_process_fn
         elif phase == 'predict':
-            self._predict_reader = distribute_feeder_fn()
+            self._predict_reader = distribute_feeder_fn
             self._pred_feed_batch_process_fn = feed_batch_process_fn
 
     def _check_finish(self, task_name, silent=False):
@@ -241,7 +222,6 @@ class MultiHeadTrainer(Trainer):
 
             task_rt_outputs = {k[len(self._trainers[task_id].name+'.'):]: v for k,v in rt_outputs.items() if k.startswith(self._trainers[task_id].name+'.')}
             self._trainers[task_id]._task_head.batch_postprocess(task_rt_outputs)
-
             if print_steps > 0 and self._cur_train_step % print_steps == 0:
                 loss = rt_outputs[self._trainers[task_id].name+'.loss']
                 loss = np.mean(np.squeeze(loss)).tolist()
@@ -256,7 +236,7 @@ class MultiHeadTrainer(Trainer):
                        loss, print_steps / time_cost))
                 time_begin = time.time()
 
-            self._check_save()
+            # self._check_save()
             finish = self._check_finish(self._trainers[task_id].name)
             if finish:
                 break
@@ -276,8 +256,8 @@ class MultiHeadTrainer(Trainer):
     def train_one_step(self, batch):
 
         if dev_count > 1:
-            assert isinstance(batch, list)
-            task_id = batch[0]['__task_id'][0]
+            assert isinstance(batch, tuple)
+            task_id = batch[0][0]['__task_id'][0]
         else:
             assert isinstance(batch, dict)
             task_id = batch['__task_id'][0]
@@ -286,7 +266,7 @@ class MultiHeadTrainer(Trainer):
         rt_outputs = self._trainers[task_id].train_one_step(batch)
 
         self._cur_train_step += 1
-        self._check_save()
+        # self._check_save()
         return rt_outputs, task_id
         
         # if dev_count > 1:

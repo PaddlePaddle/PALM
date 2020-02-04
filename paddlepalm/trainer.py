@@ -46,7 +46,7 @@ class Trainer(object):
         self._pred_reader = None
         self._task_head = None
         self._pred_head = None
-
+      
         self._train_reader = None
         self._predict_reader = None
         self._train_iterator = None
@@ -54,6 +54,8 @@ class Trainer(object):
 
         self._train_init = False
         self._predict_init = False
+        self._train_init_prog = None
+        self._pred_init_prog = None
 
         self._check_save = lambda: False
 
@@ -415,7 +417,7 @@ class Trainer(object):
         self._raw_iterator_fn = iterator_fn
         feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(net_inputs)
         if gpu_dev_count > 1:
-            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn)
+            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn, phase=phase)
         else:
             distribute_feeder_fn = iterator_fn()
 
@@ -426,6 +428,7 @@ class Trainer(object):
             self._predict_iterator = distribute_feeder_fn
             self._pred_feed_batch_process_fn = feed_batch_process_fn
         # return distribute_feeder_fn()
+
 
     def load_ckpt(self, model_path):
         """
@@ -465,7 +468,7 @@ class Trainer(object):
                 strict=True)
         else:
             raise Exception("model not found. You should at least build_forward or build_predict_forward to load its checkpoint.")
-            
+
     def load_predict_model(self, model_path, convert=False):
         """
         load pretrain models(backbone) for training.
@@ -500,7 +503,7 @@ class Trainer(object):
             convert=convert,
             main_program=self._train_init_prog)
 
-    def set_saver(self, save_path, save_steps, save_type='ckpt'):
+    def set_saver(self, save_path, save_steps, save_type='ckpt', is_multi=False):
         """
         create a build-in saver into trainer. A saver will automatically save checkpoint or predict model every `save_steps` training steps.
 
@@ -510,6 +513,7 @@ class Trainer(object):
             save_type: a string. The type of saved model. Currently support checkpoint(ckpt) and predict model(predict), default is ckpt. If both two types are needed to save, you can set as "ckpt,predict".
 
         """
+        
 
         save_type = save_type.split(',')
         if 'predict' in save_type:
@@ -534,12 +538,21 @@ class Trainer(object):
 
         def temp_func():
             if (self._save_predict or self._save_ckpt) and self._cur_train_step % save_steps == 0:
+
                 if self._save_predict:
-                    self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
-                    print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
+                    if is_multi:
+                        self._save(save_path, suffix='-pred.step'+str(self._cur_train_step))
+                        print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
+                    else:
+                        self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
+                        print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
                 if self._save_ckpt:
-                    fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
-                    print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
+                    if is_multi:
+                        fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
+                        print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
+                    else:
+                        fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
+                        print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
                 return True
             else:
                 return False
@@ -600,7 +613,7 @@ class Trainer(object):
                        (self._cur_train_step-1) % self._steps_pur_epoch + 1 , self._steps_pur_epoch, self._cur_train_epoch,
                        loss, print_steps / time_cost))
                 time_begin = time.time() 
-                self._check_save()
+                # self._check_save()
             # if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
             #     print(cur_task.name+': train finished!')
             #     cur_task.save()
@@ -718,15 +731,16 @@ class Trainer(object):
             feed, mask = batch
             rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=fetch_list)
             num_fakes = decode_fake(len(rt_outputs[0]), mask, self._train_batch_size)
-            for _ in range(num_fakes):
-                for item in rt_outputs:
-                    item.pop()
+            if num_fakes:
+                rt_outputs = [i[:-num_fakes] for i in rt_outputs]
+        
         else:
             feed = self._feed_batch_process_fn(batch)
             rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=fetch_list)
 
         rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
         self._cur_train_step += 1
+        self._check_save()
         self._cur_train_epoch = (self._cur_train_step-1) // self._steps_pur_epoch
         return rt_outputs
 
@@ -735,9 +749,8 @@ class Trainer(object):
             feed, mask = batch
             rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)
             num_fakes = decode_fake(len(rt_outputs[0]), mask, self._predict_batch_size)
-            for _ in range(num_fakes):
-                for item in rt_outputs:
-                    item.pop()
+            if num_fakes:
+                rt_outputs = [i[:-num_fakes] for i in rt_outputs]
         else:
             feed = self._pred_feed_batch_process_fn(batch)
             rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)
@@ -750,7 +763,7 @@ class Trainer(object):
     @property
     def name(self):
         return self._name
-
+    
     @property
     def num_examples(self):
         return self._num_examples
