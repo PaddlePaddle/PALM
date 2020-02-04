@@ -18,7 +18,7 @@
 """
 Setup script.
 Authors: zhouxiangyang(zhouxiangyang@baidu.com)
-Date:    2020/1/22 12:00:01
+Date:    2020/2/4 00:00:01
 """
 import setuptools
 with open("README.md", "r") as fh:
@@ -68,7 +68,7 @@ setuptools.setup(
             'Programming Language :: Python :: 3.7',
           ],
     install_requires = [
-        'paddlepaddle-gpu>=1.6.3'
+        'paddlepaddle-gpu>=1.7.0'
     ]
 )
 
