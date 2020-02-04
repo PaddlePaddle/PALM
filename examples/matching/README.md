@@ -1,5 +1,5 @@
-## Examples 2: Mathing
-This task is a sentence pair matching task. The following sections detail model preparation, dataset preparation, and how to run the task.
+## Examples 2: Matching
+This task is a sentence pair matching task. The following sections detail model preparation, dataset preparation, and how to run the task with PaddlePALM.
 
 ### Step 1: Prepare Pre-trained Models & Datasets
 
@@ -12,7 +12,7 @@ Make sure you have downloaded the required pre-training model in the current fol
 
 #### Dataset
 
-This task uses the `Quora Question Pairs matching` dataset. 
+Here takes the [Quora Question Pairs](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset as the testbed for matching.
 
 Download dataset:
 ```shell
@@ -26,7 +26,7 @@ python process.py quora_duplicate_questions.tsv train.tsv test.tsv
 
 If everything goes well, there will be a folder named `data/`  created with all the converted datas in it.
 
-The data should have 3 fields,  `text_a  text_b  label`, with tsv format. Here is some example datas:
+The dataset file (for training) should have 3 fields,  `text_a`, `text_b` and `label`, stored with [tsv](https://en.wikipedia.org/wiki/Tab-separated_values) format. Here shows an examples:
 
 ```
 text_a  text_b  label
