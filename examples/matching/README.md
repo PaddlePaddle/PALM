@@ -21,7 +21,7 @@ python download.py
 
 After the dataset is downloaded, you should convert the data format for training:
 ```shell
-python process.py quora_duplicate_questions.tsv train.tsv test.tsv
+python process.py data/quora_duplicate_questions.tsv data/train.tsv data/test.tsv
 ```
 
 If everything goes well, there will be a folder named `data/`  created with all the converted datas in it.
@@ -40,7 +40,7 @@ What are the differences between the Dell Inspiron 3000, 5000, and 7000 series l
 
 ### Step 2: Train & Predict
 
-The code used to perform classification task is in `run.py`. If you have prepared the pre-training model and the data set required for the task, run:
+The code used to perform this task is in `run.py`. If you have prepared the pre-training model and the data set required for the task, run:
 
 ```shell
 python run.py

@@ -28,8 +28,8 @@ def download(src, url):
 
 
 abs_path = os.path.abspath(__file__)
-download_url = "https://ernie.bj.bcebos.com/task_data_zh.tgz"
-downlaod_path = os.path.join(os.path.dirname(abs_path), "task_data_zh.tgz")
+download_url = "https://baidu-nlp.bj.bcebos.com/dmtk_data_1.0.0.tar.gz"
+downlaod_path = os.path.join(os.path.dirname(abs_path), "dmtk_data_1.0.0.tar.gz")
 target_dir = os.path.dirname(abs_path)
 download(downlaod_path, download_url)
 
@@ -37,14 +37,9 @@ tar = tarfile.open(downlaod_path)
 tar.extractall(target_dir)
 os.remove(downlaod_path)
 
-abs_path = os.path.abspath(__file__)
-dst_dir = os.path.join(os.path.dirname(abs_path), "data/mrc")
-if not os.path.exists(dst_dir) or not os.path.isdir(dst_dir):
-    os.makedirs(dst_dir)
-
-for file in os.listdir(os.path.join(target_dir, 'task_data', 'cmrc2018')):
-    shutil.move(os.path.join(target_dir, 'task_data', 'cmrc2018', file), dst_dir)
-
-shutil.rmtree(os.path.join(target_dir, 'task_data'))
-
+shutil.rmtree(os.path.join(target_dir, 'data/dstc2/'))
+shutil.rmtree(os.path.join(target_dir, 'data/mrda/'))
+shutil.rmtree(os.path.join(target_dir, 'data/multi-woz/'))
+shutil.rmtree(os.path.join(target_dir, 'data/swda/'))
+shutil.rmtree(os.path.join(target_dir, 'data/udc/'))
 

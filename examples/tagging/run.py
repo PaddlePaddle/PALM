@@ -32,26 +32,26 @@ if __name__ == '__main__':
     # -----------------------  for training ----------------------- 
 
     # step 1-1: create readers for training
-    ner_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, seed=random_seed)
+    seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, seed=random_seed)
     # step 1-2: load the training data
-    ner_reader.load_data(train_file, file_format='tsv', num_epochs=num_epochs, batch_size=batch_size)
+    seq_label_reader.load_data(train_file, file_format='tsv', num_epochs=num_epochs, batch_size=batch_size)
     
     # step 2: create a backbone of the model to extract text features
     ernie = palm.backbone.ERNIE.from_config(config)
 
     # step 3: register the backbone in reader
-    ner_reader.register_with(ernie)
+    seq_label_reader.register_with(ernie)
 
     # step 4: create the task output head
-    ner_head = palm.head.SequenceLabel(num_classes, input_dim, dropout_prob)
+    seq_label_head = palm.head.SequenceLabel(num_classes, input_dim, dropout_prob)
 
     # step 5-1: create a task trainer
     trainer = palm.Trainer(task_name)
     # step 5-2: build forward graph with backbone and task head
-    loss_var = trainer.build_forward(ernie, ner_head)
+    loss_var = trainer.build_forward(ernie, seq_label_head)
 
     # step 6-1*: use warmup
-    n_steps = ner_reader.num_examples * num_epochs // batch_size
+    n_steps = seq_label_reader.num_examples * num_epochs // batch_size
     warmup_steps = int(0.1 * n_steps)
     print('total_steps: {}'.format(n_steps))
     print('warmup_steps: {}'.format(warmup_steps))
@@ -62,43 +62,43 @@ if __name__ == '__main__':
     trainer.build_backward(optimizer=adam, weight_decay=weight_decay)
   
     # step 7: fit prepared reader and data
-    trainer.fit_reader(ner_reader)
+    trainer.fit_reader(seq_label_reader)
 
-    # step 8-1*: load pretrained parameters
-    trainer.load_pretrain(pre_params)
-    # step 8-2*: set saver to save model
-    save_steps = (n_steps-20)
-    print('save_steps: {}'.format(save_steps))
-    trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
-    # step 8-3: start training
-    trainer.train(print_steps=train_print_steps)
+    # # step 8-1*: load pretrained parameters
+    # trainer.load_pretrain(pre_params)
+    # # step 8-2*: set saver to save model
+    save_steps = 1951
+    # print('save_steps: {}'.format(save_steps))
+    # trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
+    # # step 8-3: start training
+    # trainer.train(print_steps=train_print_steps)
    
     # -----------------------  for prediction ----------------------- 
 
     # step 1-1: create readers for prediction
     print('prepare to predict...')
-    predict_ner_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, phase='predict')
+    predict_seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, phase='predict')
     # step 1-2: load the training data
-    predict_ner_reader.load_data(predict_file, batch_size)
+    predict_seq_label_reader.load_data(predict_file, batch_size)
    
     # step 2: create a backbone of the model to extract text features
     pred_ernie = palm.backbone.ERNIE.from_config(config, phase='predict')
     
     # step 3: register the backbone in reader
-    predict_ner_reader.register_with(pred_ernie)
+    predict_seq_label_reader.register_with(pred_ernie)
 
     # step 4: create the task output head
-    ner_pred_head = palm.head.SequenceLabel(num_classes, input_dim, phase='predict')
+    seq_label_pred_head = palm.head.SequenceLabel(num_classes, input_dim, phase='predict')
     
     # step 5: build forward graph with backbone and task head
-    trainer.build_predict_forward(pred_ernie, ner_pred_head)
+    trainer.build_predict_forward(pred_ernie, seq_label_pred_head)
     
     # step 6: load pretrained model
     pred_model_path = './outputs/ckpt.step' + str(save_steps)
     pred_ckpt = trainer.load_ckpt(pred_model_path)
     
     # step 7: fit prepared reader and data
-    trainer.fit_reader(predict_ner_reader, phase='predict')
+    trainer.fit_reader(predict_seq_label_reader, phase='predict')
    
     # step 8: predict
     print('predicting..')

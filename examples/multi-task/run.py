@@ -8,61 +8,61 @@ if __name__ == '__main__':
 
     # configs
     max_seqlen = 128
-    batch_size = 8   
-    num_epochs = 8
-    lr = 3e-5
-    doc_stride = 128
-    max_query_len = 64
-    max_ans_len = 128
+    batch_size = 16
+    num_epochs = 20
+    print_steps = 5
+    lr = 2e-5
+    num_classes = 130
     weight_decay = 0.01
-    print_steps = 1
-    num_classes = 2
-    random_seed = 1
+    num_classes_intent = 26
     dropout_prob = 0.1
-    vocab_path = './pretrain/ernie-zh-base/vocab.txt'
-    do_lower_case = True
+    random_seed = 0
+    label_map = './data/atis/atis_slot/label_map.json'
+    vocab_path = './pretrain/ernie-en-base/vocab.txt'
 
-    train_file = './data/mrc/train.json'
-    train_file_mlm = './data/mlm/train.tsv'
-    train_file_match = './data/match/train.tsv'
-    predict_file = './data/mrc/dev.json'
+    train_slot = './data/atis/atis_slot/train.tsv'
+    train_intent = './data/atis/atis_intent/train.tsv'
+    predict_file = './data/atis/atis_slot/test.tsv'
     save_path = './outputs/'
     pred_output = './outputs/predict/'
     save_type = 'ckpt'
-    task_name = 'cmrc2018'
-    pre_params = './pretrain/ernie-zh-base/params'
-    config = json.load(open('./pretrain/ernie-zh-base/ernie_config.json'))
+
+    pre_params = './pretrain/ernie-en-base/params'
+    config = json.load(open('./pretrain/ernie-en-base/ernie_config.json'))
     input_dim = config['hidden_size']
 
     # -----------------------  for training ----------------------- 
 
-    # step 1-1: create readers for training
-    mrc_reader = palm.reader.MRCReader(vocab_path, max_seqlen, max_query_len, doc_stride, do_lower_case=do_lower_case)
+    # step 1-1: create readers for training 
+    seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, seed=random_seed)
     match_reader = palm.reader.MatchReader(vocab_path, max_seqlen, seed=random_seed)
+
     # step 1-2: load the training data
-    mrc_reader.load_data(train_file, file_format='json', num_epochs=None, batch_size=batch_size)
-    match_reader.load_data(train_file_match, file_format='tsv', num_epochs=None, batch_size=batch_size)
+    seq_label_reader.load_data(train_slot, file_format='tsv', num_epochs=None, batch_size=batch_size)
+    match_reader.load_data(train_intent, file_format='tsv', num_epochs=None, batch_size=batch_size)
  
     # step 2: create a backbone of the model to extract text features
     ernie = palm.backbone.ERNIE.from_config(config)
 
     # step 3: register the backbone in readers
-    mrc_reader.register_with(ernie)
+    seq_label_reader.register_with(ernie)
     match_reader.register_with(ernie)
 
     # step 4: create task output heads
-    mrc_head = palm.head.MRC(max_query_len, config['hidden_size'], do_lower_case=do_lower_case, max_ans_len=max_ans_len)
-    match_head = palm.head.Match(num_classes, input_dim, dropout_prob)
+    seq_label_head = palm.head.SequenceLabel(num_classes, input_dim, dropout_prob)
+    match_head = palm.head.Match(num_classes_intent, input_dim, dropout_prob)
    
     # step 5-1: create a task trainer
-    trainer_mrc = palm.Trainer(task_name, mix_ratio=1.0)
-    trainer_match = palm.Trainer("match", mix_ratio=0.5)
-    trainer = palm.MultiHeadTrainer([trainer_mrc, trainer_match])
-    # step 5-2: build forward graph with backbone and task head
-    loss_var = trainer.build_forward(ernie, [mrc_head, match_head])
-    
+    trainer_seq_label = palm.Trainer("slot", mix_ratio=1.0)
+    trainer_match = palm.Trainer("intent", mix_ratio=0.5)
+    trainer = palm.MultiHeadTrainer([trainer_seq_label, trainer_match])
+    # # step 5-2: build forward graph with backbone and task head
+    loss_var1 = trainer_match.build_forward(ernie, match_head)
+    loss_var2 = trainer_seq_label.build_forward(ernie, seq_label_head)
+    loss_var = trainer.build_forward()
+
     # step 6-1*: use warmup
-    n_steps = mrc_reader.num_examples * 2 * num_epochs // batch_size
+    n_steps = seq_label_reader.num_examples * 1.5 * num_epochs // batch_size
     warmup_steps = int(0.1 * n_steps)
     sched = palm.lr_sched.TriangularSchedualer(warmup_steps, n_steps)
     # step 6-2: create a optimizer
@@ -71,42 +71,13 @@ if __name__ == '__main__':
     trainer.build_backward(optimizer=adam, weight_decay=weight_decay)
 
     # step 7: fit prepared reader and data
-    trainer.fit_readers_with_mixratio([mrc_reader, match_reader], task_name, num_epochs)
+    trainer.fit_readers_with_mixratio([seq_label_reader, match_reader], "slot", num_epochs)
 
     # step 8-1*: load pretrained parameters
     trainer.load_pretrain(pre_params)
     # step 8-2*: set saver to save model
-    save_steps = n_steps-batch_size
-    trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
+    # save_steps = int(n_steps-batch_size)
+    save_steps = 10
+    trainer_seq_label.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type, is_multi=True)
     # step 8-3: start training
     trainer.train(print_steps=print_steps)
-   
-    # -----------------------  for prediction ----------------------- 
-
-    # step 1-1: create readers for prediction
-    predict_mrc_reader = palm.reader.MRCReader(vocab_path, max_seqlen, max_query_len, doc_stride, do_lower_case=do_lower_case, phase='predict')
-    # step 1-2: load the training data
-    predict_mrc_reader.load_data(predict_file, batch_size)
-
-    # step 2: create a backbone of the model to extract text features
-    pred_ernie = palm.backbone.ERNIE.from_config(config, phase='predict')
-
-    # step 3: register the backbone in reader
-    predict_mrc_reader.register_with(pred_ernie)
-
-    # step 4: create the task output head
-    mrc_pred_head = palm.head.MRC(max_query_len, config['hidden_size'], do_lower_case=do_lower_case, max_ans_len=max_ans_len, phase='predict')
-    
-    # step 5: build forward graph with backbone and task head
-    trainer_mrc.build_predict_forward(pred_ernie, mrc_pred_head)
-
-    # step 6: load pretrained model
-    pred_model_path =  './outputs/ckpt.step'+str(save_steps)
-    pred_ckpt = trainer_mrc.load_ckpt(pred_model_path)
-    
-    # step 7: fit prepared reader and data
-    trainer_mrc.fit_reader(predict_mrc_reader, phase='predict')
-
-    # step 8: predict
-    print('predicting..')
-    trainer_mrc.predict(print_steps=print_steps, output_dir="outputs/")
