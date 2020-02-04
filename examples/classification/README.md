@@ -1,9 +1,9 @@
-## Examples 1: Classification
+## Example 1: Classification
 This task is a sentiment analysis task. The following sections detail model preparation, dataset preparation, and how to run the task.
 
-### Step 1: Prepare Pre-trained Models & Datasets
+### Step 1: Prepare Pre-trained Model & Dataset
 
-#### Pre-trianed Model
+#### Pre-trained Model
 
 The pre-training model of this mission is: [ernie-zh-base](https://github.com/PaddlePaddle/PALM/tree/r0.3-api).
 
@@ -21,7 +21,7 @@ python download.py
 
 If everything goes well, there will be a folder named `data/`  created with all the data files in it.
 
-Each data file should have 2 fields,  `label` and `text_a`, stored with [tsv](https://en.wikipedia.org/wiki/Tab-separated_values) format. Here are some examples:
+The dataset file (for training) should have 2 fields,  `text_a` and `label`, stored with [tsv](https://en.wikipedia.org/wiki/Tab-separated_values) format. Here shows an example:
 
 ```
 label  text_a
