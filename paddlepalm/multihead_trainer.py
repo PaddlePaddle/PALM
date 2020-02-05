@@ -52,7 +52,7 @@ class MultiHeadTrainer(Trainer):
             'input_varnames': 'self._pred_input_varname_list',
             'fetch_list': 'self._pred_fetch_name_list'}
 
-        # self._check_save = lambda: False
+        self._check_save = lambda: False
         for t in self._trainers:
             t._set_multitask()
 
@@ -82,7 +82,9 @@ class MultiHeadTrainer(Trainer):
 
         def get_loss(i):
             head = head_dict[self._trainers[i].name]
+            self._trainers[i]._lock_prog = True
             loss_var = self._trainers[i].build_forward(backbone, head)
+            self._trainers[i]._lock_prog = False
             return loss_var
       
         task_fns = {i: lambda i=i: get_loss(i) for i in range(len(self._trainers))}
@@ -236,7 +238,7 @@ class MultiHeadTrainer(Trainer):
                        loss, print_steps / time_cost))
                 time_begin = time.time()
 
-            # self._check_save()
+            self._check_save()
             finish = self._check_finish(self._trainers[task_id].name)
             if finish:
                 break
@@ -266,7 +268,7 @@ class MultiHeadTrainer(Trainer):
         rt_outputs = self._trainers[task_id].train_one_step(batch)
 
         self._cur_train_step += 1
-        # self._check_save()
+        self._check_save()
         return rt_outputs, task_id
         
         # if dev_count > 1:

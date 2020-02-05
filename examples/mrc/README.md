@@ -1,4 +1,4 @@
-## Examples 4: Machine Reading Comprehension
+## Example 4: Machine Reading Comprehension
 This task is a machine reading comprehension task. The following sections detail model preparation, dataset preparation, and how to run the task.
 
 ### Step 1: Prepare Pre-trained Models & Datasets

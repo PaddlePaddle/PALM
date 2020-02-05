@@ -107,6 +107,7 @@ class Trainer(object):
             'fetch_list': 'self._pred_fetch_name_list'}
 
         self._lock = False
+        self._lock_prog = False
         self._build_forward = False
 
     def build_forward(self, backbone, task_head):
@@ -161,9 +162,11 @@ class Trainer(object):
         train_prog = fluid.Program()
         train_init_prog = fluid.Program()
 
-        self._train_prog = train_prog
-        self._train_init_prog = train_init_prog
-        if not self._multi_task:
+        if not self._lock_prog:
+            self._train_prog = train_prog
+            self._train_init_prog = train_init_prog
+
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
                 bb_output_vars = backbone.build(net_inputs)
@@ -184,7 +187,7 @@ class Trainer(object):
         task_inputs['reader'] = task_inputs_from_reader
 
         scope = self.name+'.'
-        if not self._multi_task:
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 with fluid.unique_name.guard(scope):
                     output_vars = self._build_head(task_inputs, phase='train', scope=scope)
@@ -209,7 +212,7 @@ class Trainer(object):
         # task_id_vec = layers.one_hot(task_id_var, num_instances)
         # losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
         # loss = layers.reduce_sum(task_id_vec * losses)
-        if not self._multi_task:
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 loss_var = fluid.layers.reduce_sum(task_output_vars[self.name+'.loss'])
         else:
@@ -388,8 +391,9 @@ class Trainer(object):
             reader_helper.check_io(self._task_head.inputs_attrs['backbone'], self._backbone.outputs_attr, in_name='task_head(backbone, train)', out_name='backbone')
         elif phase == 'predict':
             self._predict_reader = reader
-            tail = self._num_examples % batch_size > 0
-            self._pred_steps_pur_epoch = reader.num_examples // batch_size + 1 if tail else 0
+            # tail = self._num_examples % batch_size > 0
+            # self._pred_steps_pur_epoch = reader.num_examples // batch_size + 1 if tail else 0
+            self._pred_steps_pur_epoch = reader.num_examples // batch_size 
             shape_and_dtypes = self._pred_shape_and_dtypes
             name_to_position = self._pred_name_to_position
             net_inputs = self._pred_net_inputs
@@ -503,7 +507,7 @@ class Trainer(object):
             convert=convert,
             main_program=self._train_init_prog)
 
-    def set_saver(self, save_path, save_steps, save_type='ckpt', is_multi=False):
+    def set_saver(self, save_path, save_steps, save_type='ckpt'):
         """
         create a build-in saver into trainer. A saver will automatically save checkpoint or predict model every `save_steps` training steps.
 
@@ -540,19 +544,11 @@ class Trainer(object):
             if (self._save_predict or self._save_ckpt) and self._cur_train_step % save_steps == 0:
 
                 if self._save_predict:
-                    if is_multi:
-                        self._save(save_path, suffix='-pred.step'+str(self._cur_train_step))
-                        print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
-                    else:
-                        self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
-                        print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
+                    self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
+                    print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
                 if self._save_ckpt:
-                    if is_multi:
-                        fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
-                        print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
-                    else:
-                        fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
-                        print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
+                    fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
+                    print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
                 return True
             else:
                 return False

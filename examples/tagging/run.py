@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     # step 1-1: create readers for prediction
     print('prepare to predict...')
-    predict_seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, phase='predict')
+    predict_seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, seed=random_seed, phase='predict')
     # step 1-2: load the training data
     predict_seq_label_reader.load_data(predict_file, batch_size)
    
