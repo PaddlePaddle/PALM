@@ -31,10 +31,10 @@ Here is some example datas:
 `data/atis/atis_slot/train.tsv` :
 ```
 text_a	label
-iwanttoflyfrombostonat838amandarriveindenverat1110inthemorning	OOOOOB-fromloc.city_nameOB-depart_time.timeI-depart_time.timeOOOB-toloc.city_nameOB-arrive_time.timeOOB-arrive_time.period_of_day
-whatflightsareavailablefrompittsburghtobaltimoreonthursdaymorning	OOOOOB-fromloc.city_nameOB-toloc.city_nameOB-depart_date.day_nameB-depart_time.period_of_day
-whatisthearrivaltimeinsanfranciscoforthe755amflightleavingwashington	OOOB-flight_timeI-flight_timeOB-fromloc.city_nameI-fromloc.city_nameOOB-depart_time.timeI-depart_time.timeOOB-fromloc.city_name
-cheapestairfarefromtacomatoorlando	B-cost_relativeOOB-fromloc.city_nameOB-toloc.city_name
+i want to fly from boston at 838 am and arrive in denver at 1110 in the morning 	O O O O O B-fromloc.city_name O B-depart_time.time I-depart_time.time O O O B-toloc.city_name O B-arrive_time.time O O B-arrive_time.period_of_day 
+what flights are available from pittsburgh to baltimore on thursday morning 	O O O O O B-fromloc.city_name O B-toloc.city_name O B-depart_date.day_name B-depart_time.period_of_day 
+what is the arrival time in san francisco for the 755 am flight leaving washington 	O O O B-flight_time I-flight_time O B-fromloc.city_name I-fromloc.city_name O O B-depart_time.time I-depart_time.time O O B-fromloc.city_name 
+cheapest airfare from tacoma to orlando 	B-cost_relative O O B-fromloc.city_name O B-toloc.city_name 
 ```
 
 `data/atis/atis_intent/train.tsv` :
