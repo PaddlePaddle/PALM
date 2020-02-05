@@ -1,4 +1,4 @@
-## Example 6: joint training in dialogue
+## Example 6: Joint Training in Dialogue
 This task is a slot filling task. During training, the task uses intent determination task to assist in training slot filling model. The following sections detail model preparation, dataset preparation, and how to run the task.
 
 ### Step 1: Prepare Pre-trained Models & Datasets
