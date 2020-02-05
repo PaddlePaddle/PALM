@@ -388,8 +388,9 @@ class Trainer(object):
             reader_helper.check_io(self._task_head.inputs_attrs['backbone'], self._backbone.outputs_attr, in_name='task_head(backbone, train)', out_name='backbone')
         elif phase == 'predict':
             self._predict_reader = reader
-            tail = self._num_examples % batch_size > 0
-            self._pred_steps_pur_epoch = reader.num_examples // batch_size + 1 if tail else 0
+            # tail = self._num_examples % batch_size > 0
+            # self._pred_steps_pur_epoch = reader.num_examples // batch_size + 1 if tail else 0
+            self._pred_steps_pur_epoch = reader.num_examples // batch_size 
             shape_and_dtypes = self._pred_shape_and_dtypes
             name_to_position = self._pred_name_to_position
             net_inputs = self._pred_net_inputs
