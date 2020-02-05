@@ -186,17 +186,17 @@ Available pretrain items:
 
 For more implementation details, see following demos: 
 
-- [Sentiment Classification]()
-- [Quora Question Pairs matching]()
-- [Tagging]()
-- [SQuAD machine Reading Comprehension]().
+- [Sentiment Classification](https://github.com/PaddlePaddle/PALM/tree/master/examples/classification)
+- [Quora Question Pairs matching](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
+- [Tagging](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
+- [SQuAD machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
 
 ### set saver
 
-To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this]().
+To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples).
 
 ### do prediction
-To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this]().
+To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
 
 ### multi-task learning
 To run with multi-task learning mode:
@@ -212,7 +212,7 @@ The save/load and predict operations of a multi_head_trainer is the same as a tr
 
 For more implementation details with `multi_head_trainer`, see
 
-- [ATIS: joint training of dialogue intent recognition and slot filling]()
+- [ATIS: joint training of dialogue intent recognition and slot filling](https://github.com/PaddlePaddle/PALM/tree/master/examples/multi-task)
 - [MRQA: learning reading comprehension auxilarized with mask language model]() (初次发版先不用加)
 
 
@@ -223,4 +223,3 @@ This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/P
 ## 许可证书
 
 此向导由[PaddlePaddle](https://github.com/PaddlePaddle/Paddle)贡献，受[Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE)许可认证。
-
