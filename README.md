@@ -1,10 +1,27 @@
 # PaddlePALM
 
-PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. With PALM, 8 steps to achieve a typical NLP task for supervised learning or pretraining. 6 steps to achieve multi-task learning for prepared tasks. Zero steps to adapt your code to large-scale training/inference (with multiple GPUs and multiple computation nodes).
+PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. 
 
-PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ERNIE,RoBERTa,...) as build-in model backbones. We have decoupled the model backbone, dataset reader and task output layers, so that you can easily replace any of the component to other candidates with quite minor changes of your code. In addition, PaddlePALM support customized development of any component, e.g, backbone, task head, reader and optimizer, which gives high flexibility for developers to adapt to complicated NLP scenes. 
+With PaddlePALM, it is easy to achieve effecient exploration of robust learning of reading comprehension models with multiple auxilary tasks, and the produced model, [D-Net](), achieve **the 1st place** in [EMNLP2019 MRQA](mrqa.github.io) track.
 
-然后给出一些成功案例和一些公开数据集的各个backbone的实验结果（BERT、ERNIE、RoBERTa）和一些成功的多任务学习示例。
+<p align="center">
+	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="300" height="333">
+	<p align="center">
+		<em>MRQA2019 Leaderboard</em>
+	</p>
+</p>
+
+Beyond the research scope, PaddlePALM has been applied on **Baidu Search Engine** to seek for more accurate user query understanding and answer mining, which implies the high reliability and performance of PaddlePALM.
+
+#### Features:
+
+- **Easy-to-use:** with PALM, *8 steps* to achieve a typical NLP task. Moreover, the model backbone, dataset reader and task output layers have been decoupled, which allows the replacement of any component to other candidates with quite minor changes of your code. 
+- **Multi-task Learning friendly:** *6 steps* to achieve multi-task learning for prepared tasks. 
+- **Large Scale and Pre-training freiendly:** automatically utilize multi-gpus (if exists) to accelerate training and inference. Minor codes is required for distributed training on clusters.
+- **Popular NLP Backbones and Pre-trained models:** multiple state-of-the-art general purpose model architectures and pretrained models (e.g., BERT,ERNIE,RoBERTa,...) are built-in. 
+- **Easy to Customize:** support customized development of any component (e.g, backbone, task head, reader and optimizer) with reusement of pre-defined ones, which gives developers high flexibility and effeciency to adapt for diverse NLP scenes. 
+
+You can easily re-produce following competitive results with minor codes, which covers most of NLP tasks such as classification, matching, sequence labeling, reading comprehension, dialogue understanding and so on. More details can be found in `examples`.
 
 <table>
   <tbody>
@@ -92,6 +109,7 @@ PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ER
 </table>
 
 
+
 ## Package Overview
 
 | module | illustration | 
@@ -109,7 +127,7 @@ PaddlePALM also provides state-of-the-art general purpose architectures (BERT,ER
 
 ## Installation
 
-PaddlePALM support both python2 and python3, linux and windows, CPU and GPU. The preferred way to install PaddlePALM is via `pip`. Just run following commands in your shell environment.
+PaddlePALM support both python2 and python3, linux and windows, CPU and GPU. The preferred way to install PaddlePALM is via `pip`. Just run following commands in your shell.
 
 ```bash
 pip install paddlepalm
@@ -126,7 +144,7 @@ cd PALM && python setup.py install
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
-- PaddlePaddle >= 1.6.3 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
+- PaddlePaddle >= 1.7.0 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
 
 ### Downloading pretrain models
@@ -166,12 +184,21 @@ Available pretrain items:
 7. fit prepared reader and data (achieved in step 1) to trainer with `trainer.fit_reader` method.
 8. load pretrain model with `trainer.load_pretrain`, or load checkpoint with `trainer.load_ckpt` or nothing to do for training from scratch, then do training with `trainer.train`.
 
-More implementation details see following demos: [Sentiment Classification](), [Quora Question Pairs matching](), [Tagging](), [SQuAD machine Reading Comprehension]().
+For more implementation details, see following demos: 
 
-To save models/checkpoints during training, just call `trainer.set_saver` method. More implementation details see [this]().
+- [Sentiment Classification]()
+- [Quora Question Pairs matching]()
+- [Tagging]()
+- [SQuAD machine Reading Comprehension]().
 
+### set saver
+
+To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this]().
+
+### do prediction
 To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this]().
 
+### multi-task learning
 To run with multi-task learning mode:
 
 1. repeatedly create components (i.e., reader, backbone and head) for each task followed with step 1~5 above. 
@@ -183,7 +210,10 @@ To run with multi-task learning mode:
 
 The save/load and predict operations of a multi_head_trainer is the same as a trainer.
 
-More implementation details of running multi-task learning with multi_head_trainer can be found [here]().
+For more implementation details with `multi_head_trainer`, see
+
+- [ATIS: joint training of dialogue intent recognition and slot filling]()
+- [MRQA: learning reading comprehension auxilarized with mask language model]() (初次发版先不用加)
 
 
 ## License
