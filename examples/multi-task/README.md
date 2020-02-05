@@ -84,7 +84,7 @@ If you want to specify a specific gpu or use multiple gpus for predict, please u
 
 ```shell
 CUDA_VISIBLE_DEVICES=0,1,2 python predict-slot.py
-CUDA_VISIBLE_DEVICES=0,1,2 python predict-slot.py
+CUDA_VISIBLE_DEVICES=0,1,2 python predict-intent.py
 ```
 
 After the run, you can view the predictions in the `outputs/predict-slot` folder and `outputs/predict-intent` folder. Here are some examples of predictions:
