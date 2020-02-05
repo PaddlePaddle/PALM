@@ -78,6 +78,6 @@ if __name__ == '__main__':
     # step 8-2*: set saver to save model
     save_steps = int(n_steps-batch_size) // 2
     # save_steps = 10
-    trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type, is_multi=True)
+    trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
     # step 8-3: start training
     trainer.train(print_steps=print_steps)

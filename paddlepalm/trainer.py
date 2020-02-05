@@ -162,8 +162,10 @@ class Trainer(object):
         train_prog = fluid.Program()
         train_init_prog = fluid.Program()
 
-        self._train_prog = train_prog
-        self._train_init_prog = train_init_prog
+        if not self._lock_prog:
+            self._train_prog = train_prog
+            self._train_init_prog = train_init_prog
+
         if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
@@ -505,7 +507,7 @@ class Trainer(object):
             convert=convert,
             main_program=self._train_init_prog)
 
-    def set_saver(self, save_path, save_steps, save_type='ckpt', is_multi=False):
+    def set_saver(self, save_path, save_steps, save_type='ckpt'):
         """
         create a build-in saver into trainer. A saver will automatically save checkpoint or predict model every `save_steps` training steps.
 
@@ -542,20 +544,11 @@ class Trainer(object):
             if (self._save_predict or self._save_ckpt) and self._cur_train_step % save_steps == 0:
 
                 if self._save_predict:
-                    if is_multi:
-                        self._save(save_path, suffix='-pred.step'+str(self._cur_train_step))
-                        print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
-                    else:
-                        self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
-                        print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
+                    self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
+                    print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
                 if self._save_ckpt:
-                    print(self._train_prog)
-                    if is_multi:
-                        fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
-                        print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
-                    else:
-                        fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
-                        print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
+                    fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
+                    print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
                 return True
             else:
                 return False

@@ -82,7 +82,9 @@ class MultiHeadTrainer(Trainer):
 
         def get_loss(i):
             head = head_dict[self._trainers[i].name]
+            self._trainers[i]._lock_prog = True
             loss_var = self._trainers[i].build_forward(backbone, head)
+            self._trainers[i]._lock_prog = False
             return loss_var
       
         task_fns = {i: lambda i=i: get_loss(i) for i in range(len(self._trainers))}
