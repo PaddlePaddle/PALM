@@ -1,4 +1,4 @@
-## Examples 3: Tagging
+## Example 3: Tagging
 This task is a named entity recognition task. The following sections detail model preparation, dataset preparation, and how to run the task.
 
 ### Step 1: Prepare Pre-trained Models & Datasets

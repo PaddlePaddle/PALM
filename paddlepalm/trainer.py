@@ -107,6 +107,7 @@ class Trainer(object):
             'fetch_list': 'self._pred_fetch_name_list'}
 
         self._lock = False
+        self._lock_prog = False
         self._build_forward = False
 
     def build_forward(self, backbone, task_head):
@@ -163,7 +164,7 @@ class Trainer(object):
 
         self._train_prog = train_prog
         self._train_init_prog = train_init_prog
-        if not self._multi_task:
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
                 bb_output_vars = backbone.build(net_inputs)
@@ -184,7 +185,7 @@ class Trainer(object):
         task_inputs['reader'] = task_inputs_from_reader
 
         scope = self.name+'.'
-        if not self._multi_task:
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 with fluid.unique_name.guard(scope):
                     output_vars = self._build_head(task_inputs, phase='train', scope=scope)
@@ -209,7 +210,7 @@ class Trainer(object):
         # task_id_vec = layers.one_hot(task_id_var, num_instances)
         # losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
         # loss = layers.reduce_sum(task_id_vec * losses)
-        if not self._multi_task:
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 loss_var = fluid.layers.reduce_sum(task_output_vars[self.name+'.loss'])
         else:
@@ -548,6 +549,7 @@ class Trainer(object):
                         self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
                         print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
                 if self._save_ckpt:
+                    print(self._train_prog)
                     if is_multi:
                         fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
                         print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))

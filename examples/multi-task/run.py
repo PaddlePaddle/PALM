@@ -35,30 +35,30 @@ if __name__ == '__main__':
 
     # step 1-1: create readers for training 
     seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, seed=random_seed)
-    match_reader = palm.reader.MatchReader(vocab_path, max_seqlen, seed=random_seed)
+    cls_reader = palm.reader.ClassifyReader(vocab_path, max_seqlen, seed=random_seed)
 
     # step 1-2: load the training data
     seq_label_reader.load_data(train_slot, file_format='tsv', num_epochs=None, batch_size=batch_size)
-    match_reader.load_data(train_intent, file_format='tsv', num_epochs=None, batch_size=batch_size)
- 
+    cls_reader.load_data(train_intent, batch_size=batch_size, num_epochs=None)
+
     # step 2: create a backbone of the model to extract text features
     ernie = palm.backbone.ERNIE.from_config(config)
 
     # step 3: register the backbone in readers
     seq_label_reader.register_with(ernie)
-    match_reader.register_with(ernie)
+    cls_reader.register_with(ernie)
 
     # step 4: create task output heads
     seq_label_head = palm.head.SequenceLabel(num_classes, input_dim, dropout_prob)
-    match_head = palm.head.Match(num_classes_intent, input_dim, dropout_prob)
+    cls_head = palm.head.Classify(num_classes_intent, input_dim, dropout_prob)
    
     # step 5-1: create a task trainer
     trainer_seq_label = palm.Trainer("slot", mix_ratio=1.0)
-    trainer_match = palm.Trainer("intent", mix_ratio=0.5)
-    trainer = palm.MultiHeadTrainer([trainer_seq_label, trainer_match])
+    trainer_cls = palm.Trainer("intent", mix_ratio=1.0)
+    trainer = palm.MultiHeadTrainer([trainer_seq_label, trainer_cls])
     # # step 5-2: build forward graph with backbone and task head
-    loss_var1 = trainer_match.build_forward(ernie, match_head)
-    loss_var2 = trainer_seq_label.build_forward(ernie, seq_label_head)
+    loss1 = trainer_cls.build_forward(ernie, cls_head)
+    loss2 = trainer_seq_label.build_forward(ernie, seq_label_head)
     loss_var = trainer.build_forward()
 
     # step 6-1*: use warmup
@@ -71,13 +71,13 @@ if __name__ == '__main__':
     trainer.build_backward(optimizer=adam, weight_decay=weight_decay)
 
     # step 7: fit prepared reader and data
-    trainer.fit_readers_with_mixratio([seq_label_reader, match_reader], "slot", num_epochs)
+    trainer.fit_readers_with_mixratio([seq_label_reader, cls_reader], "slot", num_epochs)
 
     # step 8-1*: load pretrained parameters
     trainer.load_pretrain(pre_params)
     # step 8-2*: set saver to save model
-    # save_steps = int(n_steps-batch_size)
-    save_steps = 10
-    trainer_seq_label.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type, is_multi=True)
+    save_steps = int(n_steps-batch_size) // 2
+    # save_steps = 10
+    trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type, is_multi=True)
     # step 8-3: start training
     trainer.train(print_steps=print_steps)

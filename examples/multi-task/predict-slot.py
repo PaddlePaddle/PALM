@@ -11,15 +11,14 @@ if __name__ == '__main__':
     batch_size = 16
     num_epochs = 6 
     print_steps = 5
-    lr = 5e-5
     num_classes = 130
-    random_seed = 1
     label_map = './data/atis/atis_slot/label_map.json'
     vocab_path = './pretrain/ernie-en-base/vocab.txt'
     predict_file = './data/atis/atis_slot/test.tsv'
     save_path = './outputs/'
-    pred_output = './outputs/predict/'
+    pred_output = './outputs/predict-slot/'
     save_type = 'ckpt'
+    random_seed = 0
 
     pre_params = './pretrain/ernie-en-base/params'
     config = json.load(open('./pretrain/ernie-en-base/ernie_config.json'))
@@ -29,7 +28,7 @@ if __name__ == '__main__':
 
     # step 1-1: create readers for prediction
     print('prepare to predict...')
-    predict_seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, phase='predict')
+    predict_seq_label_reader = palm.reader.SequenceLabelReader(vocab_path, max_seqlen, label_map, seed=random_seed, phase='predict')
     # step 1-2: load the training data
     predict_seq_label_reader.load_data(predict_file, batch_size)
    
@@ -48,7 +47,7 @@ if __name__ == '__main__':
     trainer_seq_label.build_predict_forward(pred_ernie, seq_label_pred_head)
     
     # step 6: load pretrained model
-    pred_model_path = './outputs/1580822697.73-ckpt.step9282'
+    pred_model_path = './outputs/ckpt.step9282'
     pred_ckpt = trainer_seq_label.load_ckpt(pred_model_path)
     
     # step 7: fit prepared reader and data
