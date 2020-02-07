@@ -144,7 +144,7 @@ cd PALM && python setup.py install
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
-- PaddlePaddle >= 1.7.0 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
+- PaddlePaddle >= 1.7.0 (Please refer to [this](http://www.paddlepaddle.org/#quick-start) to install)
 
 
 ### Downloading pretrain models
@@ -213,13 +213,9 @@ The save/load and predict operations of a multi_head_trainer is the same as a tr
 For more implementation details with `multi_head_trainer`, see
 
 - [ATIS: joint training of dialogue intent recognition and slot filling](https://github.com/PaddlePaddle/PALM/tree/master/examples/multi-task)
-- [MRQA: learning reading comprehension auxilarized with mask language model]() (初次发版先不用加)
 
 
 ## License
 
 This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) and licensed under the [Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE).
 
-## 许可证书
-
-此向导由[PaddlePaddle](https://github.com/PaddlePaddle/Paddle)贡献，受[Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE)许可认证。
