@@ -1,5 +1,7 @@
 # PaddlePALM
 
+English | [简体中文](./README_cn.md)
+
 PaddlePALM (PArallel Learning from Multi-tasks) is a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning friendly framework. PALM is a high level framework aiming at **fastly** develop **high-performance** NLP models. 
 
 With PaddlePALM, it is easy to achieve effecient exploration of robust learning of reading comprehension models with multiple auxilary tasks, and the produced model, [D-Net](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/Research/MRQA2019-D-NET), achieve **the 1st place** in [EMNLP2019 MRQA](https://mrqa.github.io) track.
