@@ -1,6 +1,9 @@
 
 from . import gpu_dev_count, cpu_dev_count
-import Queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 from threading import Thread
 
 dev_count = gpu_dev_count if gpu_dev_count > 0 else cpu_dev_count
