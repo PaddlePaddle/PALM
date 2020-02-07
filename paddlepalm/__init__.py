@@ -1,15 +1,15 @@
-import downloader
+from . import downloader
 # from mtl_controller import Controller 
 #import controller
-import optimizer
-import lr_sched
-import backbone
-import reader
-import head
+from . import optimizer
+from . import lr_sched
+from . import backbone
+from . import reader
+from . import head
 
 
-from trainer import Trainer
-from multihead_trainer import MultiHeadTrainer
+from .trainer import Trainer
+from .multihead_trainer import MultiHeadTrainer
 
 #del interface
 #del task_instance

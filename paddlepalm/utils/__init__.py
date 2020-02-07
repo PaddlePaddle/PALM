@@ -1,4 +1,4 @@
 
-import basic_helper
-import config_helper
+from . import basic_helper
+from . import config_helper
 
