@@ -1,6 +1,7 @@
 # PaddlePALM
 
 [English](./README.md) | 简体中文
+
 PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易于使用的NLP大规模预训练和多任务学习框架。 PALM是一个旨在**快速开发高性能NLP模型**的上层框架。
 
 使用PaddlePALM，可以非常轻松灵活的探索具有多种任务辅助训练的“高鲁棒性”阅读理解模型，基于PALM训练的模型[D-Net](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/Research/MRQA2019-D-NET)在[EMNLP2019国际阅读理解评测](mrqa .github.io)中夺得冠军。
