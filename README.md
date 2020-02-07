@@ -175,6 +175,8 @@ Available pretrain items:
 
 ## Usage
 
+#### Quick Start
+
 8 steps to start a typical NLP training task.
 
 1. use `paddlepalm.reader` to create a *reader* for dataset loading and input features generation, then call `reader.load_data` method to load your training data.
@@ -193,14 +195,8 @@ For more implementation details, see following demos:
 - [Tagging](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
 - [SQuAD machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
 
-### set saver
 
-To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples).
-
-### do prediction
-To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
-
-### multi-task learning
+#### Multi-task Learning
 To run with multi-task learning mode:
 
 1. repeatedly create components (i.e., reader, backbone and head) for each task followed with step 1~5 above. 
@@ -216,6 +212,12 @@ For more implementation details with `multi_head_trainer`, see
 
 - [ATIS: joint training of dialogue intent recognition and slot filling](https://github.com/PaddlePaddle/PALM/tree/master/examples/multi-task)
 
+#### Save models
+
+To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples).
+
+#### Evaluation/Inference
+To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
 
 ## License
 
