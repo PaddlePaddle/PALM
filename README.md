@@ -191,9 +191,9 @@ Available pretrain items:
 For more implementation details, see following demos: 
 
 - [Sentiment Classification](https://github.com/PaddlePaddle/PALM/tree/master/examples/classification)
-- [Quora Question Pairs matching](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
-- [Tagging](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
-- [SQuAD machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
+- [Question Pairs matching](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
+- [Named Entity Recognition](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
+- [SQuAD-like Machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
 
 
 #### Multi-task Learning
