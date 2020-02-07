@@ -24,24 +24,21 @@ class MaskLM(Head):
     '''
     mlm
     '''
-    def __init__(self, input_dim, vocab_size, hidden_act, initializer_range, dropout_prob=0.0, \
+    def __init__(self, input_dim, vocab_size, hidden_act, dropout_prob=0.0, \
                  param_initializer_range=0.02, phase='train'):
         self._is_training = phase == 'train'
         self._emb_size = input_dim
         self._hidden_size = input_dim
         self._dropout_prob = dropout_prob if phase == 'train' else 0.0
-        self._param_initializer = fluid.initializer.TruncatedNormal(
-            scale=param_initializer_range)
         self._preds = []
 
         self._vocab_size = vocab_size
         self._hidden_act = hidden_act
-        self._initializer_range = initializer_range
+        self._initializer_range = param_initializer_range
     
     @property
     def inputs_attrs(self):
         reader = {
-            "token_ids":[[-1, -1], 'int64'],
             "mask_label": [[-1], 'int64'],
             "mask_pos": [[-1], 'int64'],
             }
@@ -61,20 +58,18 @@ class MaskLM(Head):
 
     def build(self, inputs, scope_name=""):
         mask_pos = inputs["reader"]["mask_pos"]
-        if self._is_training:
-            mask_label = inputs["reader"]["mask_label"] 
-            l1 = fluid.layers.shape(inputs["reader"]["token_ids"] )[0]
-            # bxs = inputs["reader"]["token_ids"].shape[2].value
-            l2 = fluid.layers.shape(inputs["reader"]["token_ids"][0])[0]
-            bxs = (l1*l2).astype(np.int64)
-            # max_position = inputs["reader"]["batchsize_x_seqlen"] - 1
-            max_position = bxs - 1
-
-            mask_pos = fluid.layers.elementwise_min(mask_pos, max_position)
-            mask_pos.stop_gradient = True
-
+        
         word_emb = inputs["backbone"]["embedding_table"]
         enc_out = inputs["backbone"]["encoder_outputs"]
+
+        if self._is_training:
+            mask_label = inputs["reader"]["mask_label"]
+            l1 = enc_out.shape[0] 
+            l2 = enc_out.shape[1]
+            bxs = fluid.layers.fill_constant(shape=[1], value=l1*l2, dtype='int64')
+            max_position = bxs - 1
+            mask_pos = fluid.layers.elementwise_min(mask_pos, max_position)
+            mask_pos.stop_gradient = True
 
         emb_size = word_emb.shape[-1]
 
@@ -95,7 +90,7 @@ class MaskLM(Head):
             param_attr=fluid.ParamAttr(
                 name=scope_name+'mask_lm_trans_fc.w_0',
                 initializer=_param_initializer),
-            bias_attr=fluid.ParamAttr(name=scope_name+'mask_lm_trans_fc.b_0'))
+                bias_attr=fluid.ParamAttr(name=scope_name+'mask_lm_trans_fc.b_0'))
         # transform: layer norm
         mask_trans_feat = pre_process_layer(
             mask_trans_feat, 'n', name=scope_name+'mask_lm_trans')

@@ -46,7 +46,7 @@ class Trainer(object):
         self._pred_reader = None
         self._task_head = None
         self._pred_head = None
-
+      
         self._train_reader = None
         self._predict_reader = None
         self._train_iterator = None
@@ -54,6 +54,8 @@ class Trainer(object):
 
         self._train_init = False
         self._predict_init = False
+        self._train_init_prog = None
+        self._pred_init_prog = None
 
         self._check_save = lambda: False
 
@@ -105,6 +107,7 @@ class Trainer(object):
             'fetch_list': 'self._pred_fetch_name_list'}
 
         self._lock = False
+        self._lock_prog = False
         self._build_forward = False
 
     def build_forward(self, backbone, task_head):
@@ -159,9 +162,11 @@ class Trainer(object):
         train_prog = fluid.Program()
         train_init_prog = fluid.Program()
 
-        self._train_prog = train_prog
-        self._train_init_prog = train_init_prog
-        if not self._multi_task:
+        if not self._lock_prog:
+            self._train_prog = train_prog
+            self._train_init_prog = train_init_prog
+
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
                 bb_output_vars = backbone.build(net_inputs)
@@ -182,7 +187,7 @@ class Trainer(object):
         task_inputs['reader'] = task_inputs_from_reader
 
         scope = self.name+'.'
-        if not self._multi_task:
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 with fluid.unique_name.guard(scope):
                     output_vars = self._build_head(task_inputs, phase='train', scope=scope)
@@ -207,7 +212,7 @@ class Trainer(object):
         # task_id_vec = layers.one_hot(task_id_var, num_instances)
         # losses = fluid.layers.concat([task_output_vars[inst.name+'/loss'] for inst in instances], axis=0)
         # loss = layers.reduce_sum(task_id_vec * losses)
-        if not self._multi_task:
+        if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
                 loss_var = fluid.layers.reduce_sum(task_output_vars[self.name+'.loss'])
         else:
@@ -386,8 +391,9 @@ class Trainer(object):
             reader_helper.check_io(self._task_head.inputs_attrs['backbone'], self._backbone.outputs_attr, in_name='task_head(backbone, train)', out_name='backbone')
         elif phase == 'predict':
             self._predict_reader = reader
-            tail = self._num_examples % batch_size > 0
-            self._pred_steps_pur_epoch = reader.num_examples // batch_size + 1 if tail else 0
+            # tail = self._num_examples % batch_size > 0
+            # self._pred_steps_pur_epoch = reader.num_examples // batch_size + 1 if tail else 0
+            self._pred_steps_pur_epoch = reader.num_examples // batch_size 
             shape_and_dtypes = self._pred_shape_and_dtypes
             name_to_position = self._pred_name_to_position
             net_inputs = self._pred_net_inputs
@@ -415,7 +421,7 @@ class Trainer(object):
         self._raw_iterator_fn = iterator_fn
         feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(net_inputs)
         if gpu_dev_count > 1:
-            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn)
+            distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn, phase=phase)
         else:
             distribute_feeder_fn = iterator_fn()
 
@@ -426,6 +432,7 @@ class Trainer(object):
             self._predict_iterator = distribute_feeder_fn
             self._pred_feed_batch_process_fn = feed_batch_process_fn
         # return distribute_feeder_fn()
+
 
     def load_ckpt(self, model_path):
         """
@@ -465,7 +472,7 @@ class Trainer(object):
                 strict=True)
         else:
             raise Exception("model not found. You should at least build_forward or build_predict_forward to load its checkpoint.")
-            
+
     def load_predict_model(self, model_path, convert=False):
         """
         load pretrain models(backbone) for training.
@@ -510,6 +517,7 @@ class Trainer(object):
             save_type: a string. The type of saved model. Currently support checkpoint(ckpt) and predict model(predict), default is ckpt. If both two types are needed to save, you can set as "ckpt,predict".
 
         """
+        
 
         save_type = save_type.split(',')
         if 'predict' in save_type:
@@ -534,6 +542,7 @@ class Trainer(object):
 
         def temp_func():
             if (self._save_predict or self._save_ckpt) and self._cur_train_step % save_steps == 0:
+
                 if self._save_predict:
                     self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
                     print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
@@ -600,7 +609,7 @@ class Trainer(object):
                        (self._cur_train_step-1) % self._steps_pur_epoch + 1 , self._steps_pur_epoch, self._cur_train_epoch,
                        loss, print_steps / time_cost))
                 time_begin = time.time() 
-                self._check_save()
+                # self._check_save()
             # if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
             #     print(cur_task.name+': train finished!')
             #     cur_task.save()
@@ -718,15 +727,16 @@ class Trainer(object):
             feed, mask = batch
             rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=fetch_list)
             num_fakes = decode_fake(len(rt_outputs[0]), mask, self._train_batch_size)
-            for _ in range(num_fakes):
-                for item in rt_outputs:
-                    item.pop()
+            if num_fakes:
+                rt_outputs = [i[:-num_fakes] for i in rt_outputs]
+        
         else:
             feed = self._feed_batch_process_fn(batch)
             rt_outputs = exe.run(distribute_train_prog, feed=feed, fetch_list=fetch_list)
 
         rt_outputs = {k:v for k,v in zip(self._fetch_names, rt_outputs)}
         self._cur_train_step += 1
+        self._check_save()
         self._cur_train_epoch = (self._cur_train_step-1) // self._steps_pur_epoch
         return rt_outputs
 
@@ -735,9 +745,8 @@ class Trainer(object):
             feed, mask = batch
             rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)
             num_fakes = decode_fake(len(rt_outputs[0]), mask, self._predict_batch_size)
-            for _ in range(num_fakes):
-                for item in rt_outputs:
-                    item.pop()
+            if num_fakes:
+                rt_outputs = [i[:-num_fakes] for i in rt_outputs]
         else:
             feed = self._pred_feed_batch_process_fn(batch)
             rt_outputs = self._exe.run(self._distribute_pred_prog, feed=feed, fetch_list=self._pred_fetch_list)
@@ -750,7 +759,7 @@ class Trainer(object):
     @property
     def name(self):
         return self._name
-
+    
     @property
     def num_examples(self):
         return self._num_examples
