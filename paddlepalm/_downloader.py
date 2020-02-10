@@ -15,6 +15,7 @@
 
 from __future__ import print_function
 import os
+import requests
 import tarfile
 import shutil
 try:
@@ -67,8 +68,7 @@ def _download(item, scope, path, silent=False, convert=False):
     
     # copy to local
     def _chunk_read(response, url, chunk_size = 16 * 1024, report_hook = None):
-        total_size = response.info().getheader('Content-Length').strip()
-        total_size = int(total_size)
+        total_size = int(requests.head(url).headers['Content-Length'])
         bytes_so_far = 0
         with open("%s" % filename, "wb") as f:
             while 1:
