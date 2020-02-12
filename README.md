@@ -125,6 +125,10 @@ PaddlePALM is a well-designed high-level NLP framework. You can efficiently achi
 
 In component layer, PaddlePALM supplies 7 **decoupled** components to achieve a NLP task. Each component contains rich `pre-defined Classes` and a `Base Class`. Pre-defined classes are aiming at typical NLP tasks, and the base class is to help users develop a new Class (based on pre-defined ones or from the base). 
 
+The trainer layer is to establish a computation graph with selected components and do training and predicting. The training strategy, model saving and loading, evaluation and predicting procedures are described in this layer. Noted a trainer can only process one task. 
+
+The high-level trainer layer is for complicated learning and inference strategy, e.g., multi-task learning. You can add auxilary tasks to train robust NLP models (improve test set and out-of-domain performance of a model), or jointly training multiple related tasks to gain more performance for each task.
+
 | module | illustration | 
 | - | - |
 | **paddlepalm** | an open source NLP pretraining and multitask learning framework, built on paddlepaddle. |
