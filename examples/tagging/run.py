@@ -65,13 +65,13 @@ if __name__ == '__main__':
     trainer.fit_reader(seq_label_reader)
 
     # # step 8-1*: load pretrained parameters
-    # trainer.load_pretrain(pre_params)
+    trainer.load_pretrain(pre_params)
     # # step 8-2*: set saver to save model
     save_steps = 1951
     # print('save_steps: {}'.format(save_steps))
-    # trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
+    trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
     # # step 8-3: start training
-    # trainer.train(print_steps=train_print_steps)
+    trainer.train(print_steps=train_print_steps)
    
     # -----------------------  for prediction ----------------------- 
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     
     # step 6: load pretrained model
     pred_model_path = './outputs/ckpt.step' + str(save_steps)
-    pred_ckpt = trainer.load_ckpt(pred_model_path)
+    trainer.load_ckpt(pred_model_path)
     
     # step 7: fit prepared reader and data
     trainer.fit_reader(predict_seq_label_reader, phase='predict')

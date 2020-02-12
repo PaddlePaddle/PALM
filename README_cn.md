@@ -9,7 +9,7 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
 <p align="center">
 	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="300" height="333">
 	<p align="center">
-		<em>MRQA2019 Leaderboard</em>
+		<em>MRQA2019 排行榜</em>
 	</p>
 </p>
 
@@ -17,18 +17,18 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
 
 #### 特点:
 
-- **Easy-to-use:** with PALM, *8 steps* to achieve a typical NLP task. Moreover, the model backbone, dataset reader and task output layers have been decoupled, which allows the replacement of any component to other candidates with quite minor changes of your code. 
-- **Multi-task Learning friendly:** *6 steps* to achieve multi-task learning for prepared tasks. 
-- **Large Scale and Pre-training freiendly:** automatically utilize multi-gpus (if exists) to accelerate training and inference. Minor codes is required for distributed training on clusters.
-- **Popular NLP Backbones and Pre-trained models:** multiple state-of-the-art general purpose model architectures and pretrained models (e.g., BERT,ERNIE,RoBERTa,...) are built-in. 
-- **Easy to Customize:** support customized development of any component (e.g, backbone, task head, reader and optimizer) with reusement of pre-defined ones, which gives developers high flexibility and effeciency to adapt for diverse NLP scenes. 
+- **易于使用：**使用PALM， *8个步骤*即可实现一个典型的NLP任务。此外，模型主干网络、数据集读取工具和任务输出层已经解耦，只需对代码进行相当小的更改，就可以将任何组件替换为其他候选组件。
+- **支持多任务学习：** *6个步骤*即可实现多任务学习任务。
+- **支持大规模任务和预训练：**可自动利用多gpu加速训练和推理。集群上的分布式训练需要较少代码。
+- **流行的NLP骨架和预训练模型：**内置多种最先进的通用模型架构和预训练模型(如BERT、ERNIE、RoBERTa等)。
+- **易于定制：**支持任何组件的定制开发(e。g，主干网络，任务头，读取工具和优化器)与预定义组件的复用，这给了开发人员高度的灵活性和效率，以适应不同的NLP场景。
 
-You can easily re-produce following competitive results with minor codes, which covers most of NLP tasks such as classification, matching, sequence labeling, reading comprehension, dialogue understanding and so on. More details can be found in `examples`.
+你可以很容易地用较小的代码重新得到很好的结果，涵盖了大多数NLP任务，如分类、匹配、序列标记、阅读理解、对话理解等等。更多细节可以在`examples`中找到。
 
 <table>
   <tbody>
     <tr>
-      <th><strong>Dataset</strong>
+      <th><strong>数据集</strong>
         <br></th>
       <th colspan="3"><center><strong>chnsenticorp</strong></center></th>
       <th colspan="3"><center><strong>Quora Question Pairs matching</strong><center></th>
@@ -38,7 +38,7 @@ You can easily re-produce following competitive results with minor codes, which 
     <tr>
       <td rowspan="2">
         <p>
-          <strong>Metric</strong>
+          <strong>评价标准</strong>
           <br></p>
       </td>
       <td colspan="1">
@@ -112,45 +112,51 @@ You can easily re-produce following competitive results with minor codes, which 
 
 
 
-## Package Overview
+## Package概览
 
-| module | illustration | 
+<p align="center">
+	<img src="https://github.com/PaddlePaddle/PALM/blob/master/img/architecture.png" alt="Sample"  width="582" height="289">
+	<p align="center">
+		<em>PALM架构图</em>
+	</p>
+</p>
+
+| 模块 | 描述 | 
 | - | - |
-| **paddlepalm** | an open source NLP pretraining and multitask learning framework, built on paddlepaddle. |
-| **paddlepalm.reader** | a collection of elastic task-specific dataset readers. |
-| **paddlepalm.backbone** | a collection of classic NLP representation models, e.g., BERT, ERNIE, RoBERTa. |
-| **paddlepalm.head** | a collection of task-specific output layers. |
-| **paddlepalm.lr_sched** | a collection of learning rate schedualers. |
-| **paddlepalm.optimizer** | a collection of optimizers. |
-| **paddlepalm.downloader** | a download module for pretrained models with configure and vocab files. |
-| **paddlepalm.Trainer** | the core unit to start a single task training/predicting session. A trainer is to build computation graph, manage training and evaluation process, achieve model/checkpoint saving and pretrain_model/checkpoint loading.|
-| **paddlepalm.MultiHeadTrainer** | the core unit to start a multi-task training/predicting session. A MultiHeadTrainer is built based on several Trainers. Beyond the inheritance of Trainer, it additionally achieves model backbone reuse across tasks, trainer sampling for multi-task learning, and multi-head inference for effective evaluation and prediction. |
+| **paddlepalm** | 一个开源的NLP预训练和多任务学习框架，建立在paddlepaddle框架上。 |
+| **paddlepalm.reader** | 特定于任务的数据集读取工具的集合。|
+| **paddlepalm.backbone** | 一系列经典的NLP表示模型，如BERT, ERNIE, RoBERTa。|
+| **paddlepalm.head** | 任务特定输出层的集合。|
+| **paddlepalm.lr_sched** | 一个学习率时间表的集合。|
+| **paddlepalm.optimizer** | 优化器的集合。|
+| **paddlepalm.downloader** | 预训练模型与配置和vocab文件的下载模块。|
+| **paddlepalm.Trainer** | 单一任务训练/预测。一个训练器是建立计算图，管理训练和评估过程，实现模型/检查点保存和pretrain_model/检查点加载。|
+| **paddlepalm.MuiliHeadTrainer** | 核心单位开始多任务训练/预测会议。一个多教练是建立在几个Trainer的基础上。在继承Trainer的基础上，实现了模型主干网络跨任务复用，训练器采用多任务学习，多任务推理，来保证更有效的评估和预测。|
 
+## 安装
 
-## Installation
-
-PaddlePALM support both python2 and python3, linux and windows, CPU and GPU. The preferred way to install PaddlePALM is via `pip`. Just run following commands in your shell.
+PaddlePALM 支持 python2 和 python3, linux 和 windows, CPU 和 GPU。安装PaddlePALM的首选方法是通过`pip`。只需运行以下命令：
 
 ```bash
 pip install paddlepalm
 ```
 
-### Installing via source
+### 通过源码安装
 
 ```shell
 git clone https://github.com/PaddlePaddle/PALM.git
 cd PALM && python setup.py install
 ```
 
-### Library Dependencies
+### 库依赖
 - Python >= 2.7
 - cuda >= 9.0
 - cudnn >= 7.0
 - PaddlePaddle >= 1.7.0 (请参考[安装指南](http://www.paddlepaddle.org/#quick-start)进行安装)
 
 
-### Downloading pretrain models
-We incorporate many pretrained models to initialize model backbone parameters. Training big NLP model, e.g., 12-layer transformers, with pretrained models is practically much more effective than that with randomly initialized parameters. To see all the available pretrained models and download, run following code in python interpreter (input command `python` in shell):
+### 下载预训练模型
+我们合并了许多预训练的模型来初始化模型主干网络参数。用预先训练好的模型训练大的NLP模型，如12层Transformer，实际上比用随机初始化的参数更有效。要查看所有可用的预训练模型并下载，请在python解释器中运行以下代码(在shell中输入命令`python`):
 
 ```python
 >>> from paddlepalm import downloader
@@ -173,54 +179,53 @@ Available pretrain items:
 ```
 
 
-## Usage
+## 使用
 
-8 steps to start a typical NLP training task.
+8个步骤开始一个典型的NLP训练任务。
 
-1. use `paddlepalm.reader` to create a *reader* for dataset loading and input features generation, then call `reader.load_data` method to load your training data.
-2. use `paddlepalm.backbone` to create a model *backbone* to extract text features (e.g., contextual word embedding, sentence embedding).
-3. register your *reader* with your *backbone* through `reader.register_with` method. After this step, your reader is able to yield input features used by backbone.
-4. use `paddlepalm.head` to create a task output *head*. This head can provide task loss for training and predicting results for model inference.
-5. create a task *trainer* with `paddlepalm.Trainer`, then build forward graph with backbone and task head (created in step 2 and 4) through `trainer.build_forward`.
-6. use `paddlepalm.optimizer` (and `paddlepalm.lr_sched` if is necessary) to create a *optimizer*, then build backward through `trainer.build_backward`.
-7. fit prepared reader and data (achieved in step 1) to trainer with `trainer.fit_reader` method.
-8. load pretrain model with `trainer.load_pretrain`, or load checkpoint with `trainer.load_ckpt` or nothing to do for training from scratch, then do training with `trainer.train`.
+1. 使用`paddlepalm.reader` 要为数据集加载和输入特征生成创建一个`reader`，然后调用`reader.load_data`方法加载训练数据。
+2. 使用`paddlepalm.load_data`创建一个模型*主干网络*来提取文本特征(例如，上下文单词嵌入，句子嵌入)。
+3. 通过`reader.register_with`将`reader`注册到主干网络上。在这一步之后，reader能够使用主干网络产生的输入特征。
+4. 使用`paddlepalm.head`。创建一个任务输出*head*。该头可以为训练提供任务损失，为模型推理提供预测结果。
+5. 使用`paddlepalm.Trainer`创建一个任务`Trainer`，然后通过`Trainer.build_forward`构建包含主干网络和任务头的前向图(在步骤2和步骤4中创建)。
+6. 使用`paddlepalm.optimizer`（如果需要，创建`paddlepalm.lr_sched`）来创建一个*优化器*，然后通过`train.build_back`向后构建。
+7. 使用`trainer.fit_reader`将准备好的reader和数据（在步骤1中实现）给到trainer。
+8. 使用`trainer.load_pretrain`加载预训练模型或使用 `trainer.load_pretrain`加载checkpoint，或不加载任何已训练好的参数，然后使用`trainer.train`进行训练。
 
-For more implementation details, see following demos: 
+更多实现细节请见示例: 
 
 - [Sentiment Classification](https://github.com/PaddlePaddle/PALM/tree/master/examples/classification)
 - [Quora Question Pairs matching](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
 - [Tagging](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
 - [SQuAD machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
 
-### set saver
+### 设置saver
 
-To save models/checkpoints and logs during training, just call `trainer.set_saver` method. More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples).
+在训练时保存 models/checkpoints 和 logs， 调用 `trainer.set_saver` 方法. 更多实现细节见[这里](https://github.com/PaddlePaddle/PALM/tree/master/examples).
 
-### do prediction
-To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
+### 预测
+训练结束后进行预测和评价, 只需创建额外的reader, backbone和head示例（重复上面1~4步骤），注意创建时需设`phase='predict'`。 然后使用trainer的`predict`方法进行预测（不需创建额外的trainer）。更多实现细节请见[这里](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
 
-### multi-task learning
-To run with multi-task learning mode:
+### 多任务学习
 
-1. repeatedly create components (i.e., reader, backbone and head) for each task followed with step 1~5 above. 
-2. create empty trainers (each trainer is corresponded to one task) and pass them to create a `MultiHeadTrainer`. 
-3. build multi-task forward graph with `multi_head_trainer.build_forward` method.
-4. use `paddlepalm.optimizer` (and `paddlepalm.lr_sched` if is necessary) to create a *optimizer*, then build backward through `multi_head_trainer.build_backward`.
-5. fit all prepared readers and data to multi_head_trainer with `multi_head_trainer.fit_readers` method.
-6. randomly initialize model parameters with `multi_head_trainer.random_init_params` (and `multi_head_trainer.load_pretrain` if needed), then do training with `multi_head_trainer.train`.
+多任务学习模式下运行:
 
-The save/load and predict operations of a multi_head_trainer is the same as a trainer.
+1. 重复创建组件（每个任务按照上述第1~5步执行）。
+2. 创建空的训练器(每个训练器对应一个任务)，并通过它们创建一个`MultiHeadTrainer`。
+3. 使用`multi_head_trainer.build_forward`构建多任务前向图。
+4. 使用`paddlepalm.optimizer`（如果需要，创建`paddlepalm.lr_sched`）来创建一个*optimizer*，然后通过` multi_head_trainer.build_backward`创建反向。
+5. 使用`multi_head_trainer.fit_readers`将所有准备好的读取器和数据放入`multi_head_trainer`中。
+6. 使用`multi_head_trainer.load_pretrain`加载预训练模型或使用 `multi_head_trainer.load_pretrain`加载checkpoint，或不加载任何已经训练好的参数，然后使用`multi_head_trainer.train`进行训练。
 
-For more implementation details with `multi_head_trainer`, see
+multi_head_trainer的保存/加载和预测操作与trainer相同。
+
+
+更多实现`multi_head_trainer`的细节, 请见
 
 - [ATIS: joint training of dialogue intent recognition and slot filling](https://github.com/PaddlePaddle/PALM/tree/master/examples/multi-task)
 - [MRQA: learning reading comprehension auxilarized with mask language model]() (初次发版先不用加)
 
 
-## License
-
-This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) and licensed under the [Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE).
 
 ## 许可证书
 

@@ -114,6 +114,13 @@ You can easily re-produce following competitive results with minor codes, which 
 
 ## Package Overview
 
+<p align="center">
+	<img src="https://github.com/PaddlePaddle/PALM/blob/master/img/architecture.png" alt="Sample"  width="582" height="289">
+	<p align="center">
+		<em>Architecture Diagram</em>
+	</p>
+</p>
+
 | module | illustration | 
 | - | - |
 | **paddlepalm** | an open source NLP pretraining and multitask learning framework, built on paddlepaddle. |
@@ -204,7 +211,7 @@ To run with multi-task learning mode:
 3. build multi-task forward graph with `multi_head_trainer.build_forward` method.
 4. use `paddlepalm.optimizer` (and `paddlepalm.lr_sched` if is necessary) to create a *optimizer*, then build backward through `multi_head_trainer.build_backward`.
 5. fit all prepared readers and data to multi_head_trainer with `multi_head_trainer.fit_readers` method.
-6. randomly initialize model parameters with `multi_head_trainer.random_init_params` (and `multi_head_trainer.load_pretrain` if needed), then do training with `multi_head_trainer.train`.
+6. load pretrain model with `multi_head_trainer.load_pretrain`, or load checkpoint with `multi_head_trainer.load_ckpt` or nothing to do for training from scratch, then do training with `multi_head_trainer.train`.
 
 The save/load and predict operations of a multi_head_trainer is the same as a trainer.
 
