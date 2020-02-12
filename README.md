@@ -123,7 +123,7 @@ You can easily re-produce following competitive results with minor codes, which 
 
 PaddlePALM is a well-designed high-level NLP framework. You can efficiently achieve **supervised learning, unsupervised/self-supervised learning, multi-task learning and transfer learning** with minor codes based on PaddlePALM. There are three layers in PaddlePALM architecture, i.e., component layer, trainer layer and high-level trainer layer from bottom to top. 
 
-In component layer, PaddlePALM supplies 7 **decoupled** components to achieve a NLP task. Each component contains rich `pre-defined Classes` and a `Base Class`. Pre-defined classes are aiming at typical NLP tasks, and the base class is to help users develop a new Class (based on pre-defined ones or from the base). 
+In component layer, PaddlePALM supplies 7 **decoupled** components to achieve a NLP task. Each component contains rich `pre-defined` classes and a `Base` class. Pre-defined classes are aiming at typical NLP tasks, and the base class is to help users develop a new Class (based on pre-defined ones or from the base). 
 
 The trainer layer is to establish a computation graph with selected components and do training and predicting. The training strategy, model saving and loading, evaluation and predicting procedures are described in this layer. Noted a trainer can only process one task. 
 
