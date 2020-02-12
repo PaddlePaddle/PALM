@@ -17,7 +17,7 @@ Beyond the research scope, PaddlePALM has been applied on **Baidu Search Engine*
 
 #### Features:
 
-- **Easy-to-use:** with PALM, *8 steps* to achieve a typical NLP task. Moreover, the model backbone, dataset reader and task output layers have been decoupled, which allows the replacement of any component to other candidates with quite minor changes of your code. 
+- **Easy-to-use:** with PALM, *8 steps* to achieve a typical NLP task. Moreover, all basic components (e.g., the model backbone, dataset reader, task output head, optimizer...) have been decoupled, which allows the replacement of any component to other candidates with quite minor changes of your code. 
 - **Multi-task Learning friendly:** *6 steps* to achieve multi-task learning for prepared tasks. 
 - **Large Scale and Pre-training freiendly:** automatically utilize multi-gpus (if exists) to accelerate training and inference. Minor codes is required for distributed training on clusters.
 - **Popular NLP Backbones and Pre-trained models:** multiple state-of-the-art general purpose model architectures and pretrained models (e.g., BERT,ERNIE,RoBERTa,...) are built-in. 
