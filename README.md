@@ -123,7 +123,7 @@ You can easily re-produce following competitive results with minor codes, which 
 
 PaddlePALM is a well-designed high-level NLP framework. You can efficiently achieve **supervised learning, unsupervised/self-supervised learning, multi-task learning and transfer learning** with minor codes based on PaddlePALM. There are three layers in PaddlePALM architecture, i.e., component layer, trainer layer and high-level trainer layer from bottom to top. 
 
-In component layer, PaddlePALM supplies 7 **decoupled** components to achieve a NLP task. Each component contains rich `pre-defined` classes and a `Base` class. Pre-defined classes are aiming at typical NLP tasks, and the base class is to help users develop a new Class (based on pre-defined ones or from the base). 
+In component layer, PaddlePALM supplies 6 **decoupled** components to achieve a NLP task. Each component contains rich `pre-defined` classes and a `Base` class. Pre-defined classes are aiming at typical NLP tasks, and the base class is to help users develop a new Class (based on pre-defined ones or from the base). 
 
 The trainer layer is to establish a computation graph with selected components and do training and predicting. The training strategy, model saving and loading, evaluation and predicting procedures are described in this layer. Noted a trainer can only process one task. 
 
@@ -235,7 +235,7 @@ To save models/checkpoints and logs during training, just call `trainer.set_save
 To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
 
 #### Multiple GPUs
-If there exists multiple GPUs in your environment, you can control the number and index of these GPUs through the environment variable [CUDA_VISIBLE_DEVICES](). For example, if 4 GPUs in your enviroment, indexed with 0,1,2,3, you can run with GPU2 only with following commands
+If there exists multiple GPUs in your environment, you can control the number and index of these GPUs through the environment variable [CUDA_VISIBLE_DEVICES](https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/). For example, if 4 GPUs in your enviroment, indexed with 0,1,2,3, you can run with GPU2 only with following commands
 
 ```shell
 CUDA_VISIBLE_DEVICES=2 python run.py
