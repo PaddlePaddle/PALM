@@ -234,6 +234,21 @@ To save models/checkpoints and logs during training, just call `trainer.set_save
 #### Evaluation/Inference
 To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
 
+#### Multiple GPUs
+If there exists multiple GPUs in your environment, you can control the number and index of these GPUs through the environment variable [CUDA_VISIBLE_DEVICES](). For example, if 4 GPUs in your enviroment, indexed with 0,1,2,3, you can run with GPU2 only with following commands
+
+```shell
+CUDA_VISIBLE_DEVICES=2 python run.py
+```
+
+Multiple GPUs should be seperated with `,`. For example, running with GPU2 and GPU3, following commands is refered:
+
+```shell
+CUDA_VISIBLE_DEVICES=2,3 python run.py
+```
+
+On multi-gpu mode, PaddlePALM will automatically split each batch onto the available cards. For example, if the `batch_size` is set 64, and there are 4 cards visible for PaddlePALM, then the batch_size in each card is actually 64/4=16. Therefore, when running with multiple cards, **you need to ensure that the set batch_size can be divided by the number of cards.**
+
 ## License
 
 This tutorial is contributed by [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) and licensed under the [Apache-2.0 license](https://github.com/PaddlePaddle/models/blob/develop/LICENSE).
