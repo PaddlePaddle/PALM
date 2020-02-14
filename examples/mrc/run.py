@@ -16,7 +16,7 @@ if __name__ == '__main__':
     max_ans_len = 128
     weight_decay = 0.01
     print_steps = 20
-    vocab_path = './pretrain/ernie-zh-base/vocab.txt'
+    vocab_path = './pretrain/ERNIE-v1-zh-base/vocab.txt'
     do_lower_case = True
 
     train_file = './data/train.json'
@@ -25,8 +25,8 @@ if __name__ == '__main__':
     pred_output = './outputs/predict/'
     save_type = 'ckpt'
     task_name = 'cmrc2018'
-    pre_params = './pretrain/ernie-zh-base/params'
-    config = json.load(open('./pretrain/ernie-zh-base/ernie_config.json'))
+    pre_params = './pretrain/ERNIE-v1-zh-base/params'
+    config = json.load(open('./pretrain/ERNIE-v1-zh-base/ernie_config.json'))
 
     # -----------------------  for training ----------------------- 
 
@@ -91,11 +91,11 @@ if __name__ == '__main__':
 
     # step 6: load pretrained model
     pred_model_path =  './outputs/ckpt.step'+str(12160)
-    pred_ckpt = trainer.load_ckpt(pred_model_path)
+    trainer.load_ckpt(pred_model_path)
     
     # step 7: fit prepared reader and data
     trainer.fit_reader(predict_mrc_reader, phase='predict')
 
     # step 8: predict
     print('predicting..')
-    trainer.predict(print_steps=print_steps, output_dir="outputs/")
+    trainer.predict(print_steps=print_steps, output_dir="outputs/predict")

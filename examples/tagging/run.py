@@ -13,7 +13,7 @@ if __name__ == '__main__':
     num_classes = 7
     weight_decay = 0.01
     dropout_prob = 0.1
-    vocab_path = './pretrain/ernie-zh-base/vocab.txt'
+    vocab_path = './pretrain/ERNIE-v1-zh-base/vocab.txt'
     label_map = './data/label_map.json'
     random_seed = 1
     train_file = './data/train.tsv'
@@ -21,8 +21,8 @@ if __name__ == '__main__':
     
     save_path='./outputs/'
     save_type='ckpt' 
-    pre_params = './pretrain/ernie-zh-base/params'
-    config = json.load(open('./pretrain/ernie-zh-base/ernie_config.json'))
+    pre_params = './pretrain/ERNIE-v1-zh-base/params'
+    config = json.load(open('./pretrain/ERNIE-v1-zh-base/ernie_config.json'))
     input_dim = config['hidden_size']  
     task_name = 'msra_ner'
     pred_output = './outputs/predict/'

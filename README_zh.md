@@ -115,7 +115,7 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
 ## Package概览
 
 <p align="center">
-	<img src="https://github.com/PaddlePaddle/PALM/blob/master/img/architecture.png" alt="Sample"  width="582" height="289">
+	<img src="https://github.com/PaddlePaddle/PALM/blob/master/img/architecture.png" alt="Sample"  width="600px" height="auto">
 	<p align="center">
 		<em>PALM架构图</em>
 	</p>
@@ -162,17 +162,23 @@ cd PALM && python setup.py install
 >>> from paddlepalm import downloader
 >>> downloader.ls('pretrain')
 Available pretrain items:
-  => roberta-cn-base
-  => roberta-cn-large
-  => bert-cn-base
-  => bert-cn-large
-  => bert-en-uncased-base
-  => bert-en-uncased-large
-  => bert-en-cased-base
-  => bert-en-cased-large
-  => ernie-en-uncased-base
-  => ernie-en-uncased-large
-  ...
+  => RoBERTa-zh-base
+  => RoBERTa-zh-large
+  => ERNIE-v2-en-base
+  => ERNIE-v2-en-large
+  => XLNet-cased-base
+  => XLNet-cased-large
+  => ERNIE-v1-zh-base
+  => ERNIE-v1-zh-base-max-len-512
+  => BERT-en-uncased-large-whole-word-masking
+  => BERT-en-cased-large-whole-word-masking
+  => BERT-en-uncased-base
+  => BERT-en-uncased-large
+  => BERT-en-cased-base
+  => BERT-en-cased-large
+  => BERT-multilingual-uncased-base
+  => BERT-multilingual-cased-base
+  => BERT-zh-base
 
 >>> downloader.download('pretrain', 'bert-en-uncased-base', './pretrain_models')
 ...

@@ -22,8 +22,7 @@ try:
     from urllib.request import urlopen # Python 3
 except ImportError:
     from urllib2 import urlopen # Python 2
-
-
+from collections import OrderedDict
 import ssl
 
 __all__ = ["download", "ls"]
@@ -31,20 +30,38 @@ __all__ = ["download", "ls"]
 # for https
 ssl._create_default_https_context = ssl._create_unverified_context
 
-_items = {
-    'pretrain': {'ernie-en-large': 'https://ernie.bj.bcebos.com/ERNIE_Large_en_stable-2.0.0.tar.gz',
-                 'ernie-en-base': 'https://ernie.bj.bcebos.com/ERNIE_Base_en_stable-2.0.0.tar.gz',
-                 'ernie-zh-base':'https://ernie.bj.bcebos.com/ERNIE_1.0_max-len-512.tar.gz',
-                 'bert-en-uncased-large': 'https://bert-models.bj.bcebos.com/uncased_L-24_H-1024_A-16.tar.gz',
-                 'bert-en-uncased-base': 'https://bert-models.bj.bcebos.com/uncased_L-12_H-768_A-12.tar.gz',
-                 'roberta-zh-base': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_ext_L-12_H-768_A-12.tar.gz',
-                 'roberta-zh-large': 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.tar.gz',
-                 'utils': None},
-    'vocab': {'utils': None},
-    'backbone': {'utils': None},
-    'head': {'utils': None},
-    'reader': {'utils': None},
-}
+
+
+_pretrain = (('RoBERTa-zh-base', 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_ext_L-12_H-768_A-12.tar.gz'),
+            ('RoBERTa-zh-large', 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.tar.gz'),
+            ('ERNIE-v2-en-base', 'https://ernie.bj.bcebos.com/ERNIE_Base_en_stable-2.0.0.tar.gz'),
+            ('ERNIE-v2-en-large', 'https://ernie.bj.bcebos.com/ERNIE_Large_en_stable-2.0.0.tar.gz'),
+            ('XLNet-cased-base','https://xlnet.bj.bcebos.com/xlnet_cased_L-12_H-768_A-12.tgz'),
+            ('XLNet-cased-large','https://xlnet.bj.bcebos.com/xlnet_cased_L-24_H-1024_A-16.tgz'),
+            ('ERNIE-v1-zh-base','https://baidu-nlp.bj.bcebos.com/ERNIE_stable-1.0.1.tar.gz'),
+            ('ERNIE-v1-zh-base-max-len-512','https://ernie.bj.bcebos.com/ERNIE_1.0_max-len-512.tar.gz'),
+            ('BERT-en-uncased-large-whole-word-masking','https://bert-models.bj.bcebos.com/wwm_uncased_L-24_H-1024_A-16.tar.gz'),
+            ('BERT-en-cased-large-whole-word-masking','https://bert-models.bj.bcebos.com/wwm_cased_L-24_H-1024_A-16.tar.gz'),
+            ('BERT-en-uncased-base', 'https://bert-models.bj.bcebos.com/uncased_L-12_H-768_A-12.tar.gz'),
+            ('BERT-en-uncased-large', 'https://bert-models.bj.bcebos.com/uncased_L-24_H-1024_A-16.tar.gz'),
+            ('BERT-en-cased-base','https://bert-models.bj.bcebos.com/cased_L-12_H-768_A-12.tar.gz'),
+            ('BERT-en-cased-large','https://bert-models.bj.bcebos.com/cased_L-24_H-1024_A-16.tar.gz'),
+            ('BERT-multilingual-uncased-base','https://bert-models.bj.bcebos.com/multilingual_L-12_H-768_A-12.tar.gz'),
+            ('BERT-multilingual-cased-base','https://bert-models.bj.bcebos.com/multi_cased_L-12_H-768_A-12.tar.gz'),
+            ('BERT-zh-base','https://bert-models.bj.bcebos.com/chinese_L-12_H-768_A-12.tar.gz'),
+            ('utils', None))
+_vocab = (('utils', None),('utils', None))
+_backbone =(('utils', None),('utils', None))
+_head = (('utils', None),('utils', None))
+_reader = (('utils', None),('utils', None))
+
+_items = (('pretrain', OrderedDict(_pretrain)),
+        ('vocab', OrderedDict(_vocab)), 
+        ('backbone', OrderedDict(_backbone)),
+        ('head', OrderedDict(_head)),
+        ('reader', OrderedDict(_reader))
+)
+_items = OrderedDict(_items)
 
 def _download(item, scope, path, silent=False, convert=False):
     data_url = _items[item][scope]
@@ -96,7 +113,7 @@ def _download(item, scope, path, silent=False, convert=False):
             tar.extractall(path = data_dir)
             tar.close()
             os.remove(filename)
-        if scope.startswith('bert'):
+        if len(os.listdir(data_dir))==1:
             source_path = data_dir + '/' + data_name.split('.')[0]
             fileList = os.listdir(source_path)
             for file in fileList:
@@ -141,8 +158,8 @@ def download(item, scope='all', path='.'):
         scope: the scope of the item to download.
         path: the target dir to download to. Default is `.`, means current dir.
     """
-    item = item.lower()
-    scope = scope.lower()
+    # item = item.lower()
+    # scope = scope.lower()
     assert item in _items, '{} is not found. Support list: {}'.format(item, list(_items.keys()))
    
     if _items[item]['utils'] is not None:

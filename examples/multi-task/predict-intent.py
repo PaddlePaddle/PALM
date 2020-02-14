@@ -12,15 +12,15 @@ if __name__ == '__main__':
     num_epochs = 6 
     print_steps = 5
     num_classes = 26
-    vocab_path = './pretrain/ernie-en-base/vocab.txt'
+    vocab_path = './pretrain/ERNIE-v2-en-base/vocab.txt'
     predict_file = './data/atis/atis_intent/test.tsv'
     save_path = './outputs/'
     pred_output = './outputs/predict-intent/'
     save_type = 'ckpt'
     random_seed = 0
 
-    pre_params = './pretrain/ernie-en-base/params'
-    config = json.load(open('./pretrain/ernie-en-base/ernie_config.json'))
+    pre_params = './pretrain/ERNIE-v2-en-base/params'
+    config = json.load(open('./pretrain/ERNIE-v2-en-base/ernie_config.json'))
     input_dim = config['hidden_size']
 
     # -----------------------  for prediction ----------------------- 

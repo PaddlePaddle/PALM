@@ -19,13 +19,13 @@ if __name__ == '__main__':
     pred_model_path = './outputs/ckpt.step'+str(18732)
     print_steps = 50
     pred_output = './outputs/predict/'
-    pre_params = './pretrain/ernie-en-base/params'
+    pre_params = './pretrain/ERNIE-v2-en-base/params'
     task_name = 'Quora Question Pairs matching'
 
-    vocab_path = './pretrain/ernie-en-base/vocab.txt'
+    vocab_path = './pretrain/ERNIE-v2-en-base/vocab.txt'
     train_file = './data/train.tsv'
     predict_file = './data/test.tsv'
-    config = json.load(open('./pretrain/ernie-en-base/ernie_config.json'))
+    config = json.load(open('./pretrain/ERNIE-v2-en-base/ernie_config.json'))
     input_dim = config['hidden_size']
 
     # -----------------------  for training ----------------------- 

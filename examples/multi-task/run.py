@@ -18,7 +18,7 @@ if __name__ == '__main__':
     dropout_prob = 0.1
     random_seed = 0
     label_map = './data/atis/atis_slot/label_map.json'
-    vocab_path = './pretrain/ernie-en-base/vocab.txt'
+    vocab_path = './pretrain/ERNIE-v2-en-base/vocab.txt'
 
     train_slot = './data/atis/atis_slot/train.tsv'
     train_intent = './data/atis/atis_intent/train.tsv'
@@ -27,8 +27,8 @@ if __name__ == '__main__':
     pred_output = './outputs/predict/'
     save_type = 'ckpt'
 
-    pre_params = './pretrain/ernie-en-base/params'
-    config = json.load(open('./pretrain/ernie-en-base/ernie_config.json'))
+    pre_params = './pretrain/ERNIE-v2-en-base/params'
+    config = json.load(open('./pretrain/ERNIE-v2-en-base/ernie_config.json'))
     input_dim = config['hidden_size']
 
     # -----------------------  for training ----------------------- 

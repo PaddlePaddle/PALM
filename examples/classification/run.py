@@ -12,11 +12,11 @@ if __name__ == '__main__':
     num_epochs = 10
     lr = 5e-5
     weight_decay = 0.01
-    vocab_path = './pretrain/ernie-zh-base/vocab.txt'
+    vocab_path = './pretrain/ERNIE-v1-zh-base/vocab.txt'
 
     train_file = './data/train.tsv'
     predict_file = './data/test.tsv'
-    config = json.load(open('./pretrain/ernie-zh-base/ernie_config.json'))
+    config = json.load(open('./pretrain/ERNIE-v1-zh-base/ernie_config.json'))
     input_dim = config['hidden_size']
     num_classes = 2
     dropout_prob = 0.1
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     pred_output = './outputs/predict/'
     save_type = 'ckpt'
     print_steps = 20
-    pre_params = './pretrain/ernie-zh-base/params'
+    pre_params = './pretrain/ERNIE-v1-zh-base/params'
 
     # -----------------------  for training ----------------------- 
 
