@@ -180,7 +180,7 @@ Available pretrain items:
   => BERT-multilingual-cased-base
   => BERT-zh-base
 
->>> downloader.download('pretrain', 'bert-en-uncased-base', './pretrain_models')
+>>> downloader.download('pretrain', 'BERT-en-uncased-base', './pretrain_models')
 ...
 ```
 
