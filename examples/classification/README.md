@@ -5,7 +5,7 @@ This task is a sentiment analysis task. The following sections detail model prep
 
 #### Pre-trained Model
 
-The pre-training model of this mission is: [ernie-zh-base](https://github.com/PaddlePaddle/PALM/tree/r0.3-api).
+The pre-training model of this mission is: [ERNIE-v1-zh-base](https://github.com/PaddlePaddle/PALM/tree/r0.3-api).
 
 Make sure you have downloaded the required pre-training model in the current folder.
 

@@ -9,16 +9,16 @@ if __name__ == '__main__':
     # configs
     max_seqlen = 256
     batch_size = 8
-    vocab_path = './pretrain/ernie-zh-base/vocab.txt'
+    vocab_path = './pretrain/ERNIE-v1-zh-base/vocab.txt'
     predict_file = './data/test.tsv'
     random_seed = 1
-    config = json.load(open('./pretrain/ernie-zh-base/ernie_config.json'))
+    config = json.load(open('./pretrain/ERNIE-v1-zh-base/ernie_config.json'))
     input_dim = config['hidden_size']
     num_classes = 2
     task_name = 'chnsenticorp'
     pred_output = './outputs/predict/'
     print_steps = 20
-    pre_params = './pretrain/ernie-zh-base/params'
+    pre_params = './pretrain/ERNIE-v1-zh-base/params'
 
     # -----------------------  for prediction ----------------------- 
 
