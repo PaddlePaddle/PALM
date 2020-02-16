@@ -115,7 +115,7 @@ You can easily re-produce following competitive results with minor codes, which 
 ## Overview
 
 <p align="center">
-	<img src="https://github.com/PaddlePaddle/PALM/blob/master/img/architecture.png" alt="Sample"  width="600px" height="auto">
+	<img src="https://tva1.sinaimg.cn/large/0082zybply1gbyo8d4ltoj31ag0n3tby.jpg" alt="Sample"  width="600px" height="auto">
 	<p align="center">
 		<em>Architecture Diagram</em>
 	</p>
