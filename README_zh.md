@@ -115,7 +115,7 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
 ## Package概览
 
 <p align="center">
-	<img src="https://github.com/PaddlePaddle/PALM/blob/master/img/architecture.png" alt="Sample"  width="600px" height="auto">
+	<img src="https://tva1.sinaimg.cn/large/0082zybply1gbyo8d4ltoj31ag0n3tby.jpg" alt="Sample"  width="600px" height="auto">
 	<p align="center">
 		<em>PALM架构图</em>
 	</p>
