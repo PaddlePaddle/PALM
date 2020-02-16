@@ -22,6 +22,7 @@ import paddle
 from paddle import fluid
 from paddle.fluid import layers
 from paddlepalm.distribute import gpu_dev_count, cpu_dev_count
+import six
 dev_count = 1 if gpu_dev_count <= 1 else gpu_dev_count
 
 
@@ -35,7 +36,8 @@ def create_feed_batch_process_fn(net_inputs):
             inputs= net_inputs
 
         for q, var in inputs.items():
-            if isinstance(var, str) or isinstance(var, unicode):
+            
+            if isinstance(var, str) or (six.PY3 and isinstance(var, bytes)) or (six.PY2 and isinstance(var, unicode)):
                 temp[var] = data[q]
             else:
                 temp[var.name] = data[q]
