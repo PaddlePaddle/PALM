@@ -337,7 +337,7 @@ def _write_predictions(all_examples, all_features, all_results, n_best_size,
         nbest_json = []
         for (i, entry) in enumerate(nbest):
             output = collections.OrderedDict()
-            output["text"] = entry.text
+            output["text"] = entry.text.encode('utf-8').decode('utf-8')
             output["probability"] = probs[i]
             output["start_logit"] = entry.start_logit
             output["end_logit"] = entry.end_logit
@@ -358,8 +358,11 @@ def _write_predictions(all_examples, all_features, all_results, n_best_size,
                 all_predictions[example.qas_id] = best_non_null_entry.text
 
         all_nbest_json[example.qas_id] = nbest_json
+    
+
 
     with open(output_prediction_file, "w") as writer:
+        
         writer.write(json.dumps(all_predictions, indent=4, ensure_ascii=False) + "\n")
 
     with open(output_nbest_file, "w") as writer:
