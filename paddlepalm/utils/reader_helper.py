@@ -117,7 +117,7 @@ def _zero_batch_x(attrs, batch_size):
     return [np.zeros(shape=shape, dtype=dtype) for shape, dtype in pos_attrs]
 
 
-def create_net_inputs(input_attrs, async=False, iterator_fn=None, dev_count=1, n_prefetch=1):
+def create_net_inputs(input_attrs, is_async=False, iterator_fn=None, dev_count=1, n_prefetch=1):
     inputs = []
     ret = {}
     for name, shape, dtype in input_attrs:
@@ -125,7 +125,7 @@ def create_net_inputs(input_attrs, async=False, iterator_fn=None, dev_count=1, n
         ret[name] = p
         inputs.append(p)
 
-    if async:
+    if is_async:
         assert iterator_fn is not None, "iterator_fn is needed for building async input layer."
         reader = fluid.io.PyReader(inputs, capacity=dev_count, iterable=False)
         reader.decorate_batch_generator(iterator_fn)

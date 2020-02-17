@@ -168,10 +168,10 @@ class Trainer(object):
 
         if not self._lock_prog:
             with fluid.program_guard(train_prog, train_init_prog):
-                net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
+                net_inputs = reader_helper.create_net_inputs(input_attrs, is_async=False)
                 bb_output_vars = backbone.build(net_inputs)
         else:
-            net_inputs = reader_helper.create_net_inputs(input_attrs, async=False)
+            net_inputs = reader_helper.create_net_inputs(input_attrs, is_async=False)
             bb_output_vars = backbone.build(net_inputs)
         self._net_inputs = net_inputs
         assert sorted(bb_output_vars.keys()) == sorted(backbone.outputs_attr.keys())
