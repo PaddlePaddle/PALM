@@ -43,7 +43,7 @@ def mixed_segmentation(in_str, rm_punc=False):
     sp_char = [
         '-', ':', '_', '*', '^', '/', '\\', '~', '`', '+', '=', '，', '。', '：',
         '？', '！', '“', '”', '；', '’', '《', '》', '……', '·', '、', '「', '」', '（',
-        '）', '－', '～', '『', '』'
+        '）', '－', '～', '『', '』',' '
     ]
     for char in in_str:
         if rm_punc and char in sp_char:
@@ -71,7 +71,7 @@ def remove_punctuation(in_str):
     sp_char = [
         '-', ':', '_', '*', '^', '/', '\\', '~', '`', '+', '=', '，', '。', '：',
         '？', '！', '“', '”', '；', '’', '《', '》', '……', '·', '、', '「', '」', '（',
-        '）', '－', '～', '『', '』'
+        '）', '－', '～', '『', '』', ' '
     ]
     out_segs = []
     for char in in_str:
@@ -163,5 +163,5 @@ def eval_file(dataset_file, prediction_file):
 
 if __name__ == '__main__':
     EM, F1, AVG, TOTAL = eval_file("data/dev.json", "outputs/predict/predictions.json")
-    print('data_num: {}').format(TOTAL)
-    print('em_sroce: {}, f1: {}').format(M,F1)
+    print('data_num: {}'.format(TOTAL))
+    print('em_sroce: {}, f1: {}'.format(EM,F1))
