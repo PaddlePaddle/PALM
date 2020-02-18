@@ -93,8 +93,8 @@ if __name__ == '__main__':
     # step 5: build forward graph with backbone and task head
     trainer.build_predict_forward(pred_ernie, match_pred_head)
 
-    # step 6: load pretrained model
-    pred_ckpt = trainer.load_ckpt(pred_model_path)
+    # step 6: load checkpoint
+    trainer.load_ckpt(pred_model_path)
 
     # step 7: fit prepared reader and data
     trainer.fit_reader(predict_match_reader, phase='predict')

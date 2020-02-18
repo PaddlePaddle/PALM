@@ -6,6 +6,7 @@ from paddlepalm import Trainer
 from paddlepalm.utils import reader_helper
 import numpy as np
 import time
+import sys
 
 dev_count = 1 if gpu_dev_count <= 1 else gpu_dev_count
 VERBOSE=False
@@ -156,6 +157,7 @@ class MultiHeadTrainer(Trainer):
             max_train_steps = int(num_epochs * t.mix_ratio * base_steps_pur_epoch)
             if not t._as_auxilary:
                 print('{}: expected train steps {}.'.format(t.name, max_train_steps))
+                sys.stdout.flush()
                 self._finish_steps[t.name] = max_train_steps
                 self._finish[t.name] = False
             else:
@@ -175,6 +177,7 @@ class MultiHeadTrainer(Trainer):
             joint_shape_and_dtypes.append(t._shape_and_dtypes)
 
         print('Estimated overall train steps {}.'.format(global_steps))
+        sys.stdout.flush()
         self._overall_train_steps = global_steps
 
         iterator_fn = reader_helper.create_multihead_iterator_fn(iterators, prefixes, joint_shape_and_dtypes, \
@@ -198,6 +201,7 @@ class MultiHeadTrainer(Trainer):
         if trainers[task_name]._cur_train_step == self._finish_steps[task_name]:
             if not silent:
                 print(task_name+' train finish!')
+                sys.stdout.flush()
             self._finish[task_name]=True
         flags = list(set(self._finish.values()))
         return len(flags) == 1 and flags[0] == True
@@ -235,6 +239,7 @@ class MultiHeadTrainer(Trainer):
                        (self._trainers[task_id]._cur_train_step-1) % self._trainers[task_id]._steps_pur_epoch + 1, \
                        self._trainers[task_id]._steps_pur_epoch, self._trainers[task_id]._cur_train_epoch, \
                        loss, print_steps / time_cost))
+                sys.stdout.flush()
                 time_begin = time.time()
 
             self._check_save()

@@ -5,7 +5,7 @@ This task is a slot filling task. During training, the task uses intent determin
 
 #### Pre-trianed Model
 
-The pre-training model of this mission is: [ernie-en-base](https://github.com/PaddlePaddle/PALM/tree/r0.3-api).
+The pre-training model of this mission is: [ERNIE-v2-en-base](https://github.com/PaddlePaddle/PALM/tree/r0.3-api).
 
 Make sure you have downloaded the required pre-training model in the current folder.
 

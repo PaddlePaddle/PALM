@@ -18,6 +18,7 @@ import os
 import json
 from paddle import fluid
 import time
+import sys
 import numpy as np
 import paddlepalm.utils.basic_helper as helper
 from paddlepalm.utils import reader_helper, saver
@@ -546,9 +547,11 @@ class Trainer(object):
                 if self._save_predict:
                     self._save(save_path, suffix='pred.step'+str(self._cur_train_step))
                     print('predict model has been saved at '+os.path.join(save_path, 'pred.step'+str(self._cur_train_step)))
+                    sys.stdout.flush()
                 if self._save_ckpt:
                     fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
                     print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
+                    sys.stdout.flush()
                 return True
             else:
                 return False
@@ -608,6 +611,7 @@ class Trainer(object):
                 print("step {}/{} (epoch {}), loss: {:.3f}, speed: {:.2f} steps/s".format(
                        (self._cur_train_step-1) % self._steps_pur_epoch + 1 , self._steps_pur_epoch, self._cur_train_epoch,
                        loss, print_steps / time_cost))
+                sys.stdout.flush()
                 time_begin = time.time() 
                 # self._check_save()
             # if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
@@ -653,6 +657,7 @@ class Trainer(object):
                 print("batch {}/{}, speed: {:.2f} steps/s".format(
                        cur_predict_step, self._pred_steps_pur_epoch,
                        print_steps / time_cost))
+                sys.stdout.flush()
                 time_begin = time.time()
 
         if self._pred_head.epoch_inputs_attrs:
@@ -816,6 +821,7 @@ class Trainer(object):
         with open(os.path.join(dirpath, '__conf__'), 'w') as writer:
             writer.write(json.dumps(conf, indent=1))
         print(self._name + ': predict model saved at ' + dirpath)
+        sys.stdout.flush()
 
     
     def _load(self, infer_model_path=None):
@@ -827,5 +833,6 @@ class Trainer(object):
         pred_prog, self._pred_input_varname_list, self._pred_fetch_var_list = \
             fluid.io.load_inference_model(infer_model_path, self._exe)
         print(self._name+': inference model loaded from ' + infer_model_path)
+        sys.stdout.flush()
         return pred_prog
 
