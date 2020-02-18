@@ -22,6 +22,14 @@ import math
 import six
 import paddlepalm.tokenizer.ernie_tokenizer as tokenization
 import json
+import sys
+import io
+if sys.version[0] == '2':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+else:
+    import importlib
+    importlib.reload(sys)
 
 RawResult = collections.namedtuple("RawResult",
                                    ["unique_id", "start_logits", "end_logits"])
@@ -361,15 +369,15 @@ def _write_predictions(all_examples, all_features, all_results, n_best_size,
     
 
 
-    with open(output_prediction_file, "w") as writer:
+    with io.open(output_prediction_file, "w", encoding='utf-8') as writer:
         
         writer.write(json.dumps(all_predictions, indent=4, ensure_ascii=False) + "\n")
 
-    with open(output_nbest_file, "w") as writer:
+    with io.open(output_nbest_file, "w", encoding='utf-8') as writer:
         writer.write(json.dumps(all_nbest_json, indent=4, ensure_ascii=False) + "\n")
 
     if with_negative:
-        with open(output_null_log_odds_file, "w") as writer:
+        with io.open(output_null_log_odds_file, "w", encoding='utf-8') as writer:
             writer.write(json.dumps(scores_diff_json, indent=4, ensure_ascii=False) + "\n")
 
 

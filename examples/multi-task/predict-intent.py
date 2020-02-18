@@ -46,7 +46,7 @@ if __name__ == '__main__':
     trainer.build_predict_forward(pred_ernie, cls_pred_head)
  
     # step 6: load pretrained model
-    pred_model_path = './outputs/ckpt.step9282'
+    pred_model_path = './outputs/ckpt.step4641'
     pred_ckpt = trainer.load_ckpt(pred_model_path)
 
     # step 7: fit prepared reader and data
