@@ -93,7 +93,7 @@ if __name__ == '__main__':
     # step 5: build forward graph with backbone and task head
     trainer.build_predict_forward(pred_ernie, seq_label_pred_head)
     
-    # step 6: load pretrained model
+    # step 6: load checkpoint
     pred_model_path = './outputs/ckpt.step' + str(save_steps)
     trainer.load_ckpt(pred_model_path)
     

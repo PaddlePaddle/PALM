@@ -22,14 +22,7 @@ import math
 import six
 import paddlepalm.tokenizer.ernie_tokenizer as tokenization
 import json
-import sys
 import io
-if sys.version[0] == '2':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-else:
-    import importlib
-    importlib.reload(sys)
 
 RawResult = collections.namedtuple("RawResult",
                                    ["unique_id", "start_logits", "end_logits"])

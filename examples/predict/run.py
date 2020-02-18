@@ -42,8 +42,8 @@ if __name__ == '__main__':
     # step 5-2: build forward graph with backbone and task head
     trainer.build_predict_forward(pred_ernie, cls_pred_head)
  
-    # step 6: load pretrained model
-    pred_model = trainer.load_predict_model(pre_params)
+    # step 6: load checkpoint
+    trainer.load_predict_model(pre_params)
 
     # step 7: fit prepared reader and data
     trainer.fit_reader(predict_cls_reader, phase='predict')
