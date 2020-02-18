@@ -140,11 +140,8 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
     
     def iterator_fn():
         v = verbose
-        while True:
-            # results = _zero_batch(shape_and_dtypes)
+        for outputs in iterator:
             results = [None] * len(outname_to_pos)
-
-            outputs = next(iterator) # dict type
             prefix = iterator_prefix
             for outname, val in outputs.items():
                 task_outname = prefix + '.' + outname
