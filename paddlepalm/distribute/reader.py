@@ -116,6 +116,7 @@ def data_feeder(reader, postprocess_fn=None, prefetch_steps=2, phase='train', is
 
 
 def decode_fake(nums, mask, bs):
+    bs //= dev_count
     n_t = 0
     for flag in mask:
         if not flag:

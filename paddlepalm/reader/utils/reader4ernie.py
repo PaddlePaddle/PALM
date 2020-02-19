@@ -293,11 +293,18 @@ class Reader(object):
             if to_append:
                 batch_records.append(record)
             else:
-                yield self._pad_batch_records(batch_records)
+                ds = ['s'] * 7
+                for piece in palm.distribute.yield_pieces(\
+                        self._pad_batch_records(batch_records),
+                        ds, batch_size):
+                    yield piece
                 batch_records, max_len = [record], len(record.token_ids)
-
+      
         if phase == 'predict' and batch_records:
-            yield self._pad_batch_records(batch_records)
+            for piece in palm.distribute.yield_pieces(\
+                        self._pad_batch_records(batch_records),
+                        ds, batch_size):
+                yield piece
 
     def get_num_examples(self, input_file=None, phase='train'):
         if input_file is None:
