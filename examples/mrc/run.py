@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # configs
     max_seqlen = 512
     batch_size = 8   
-    num_epochs = 8
+    num_epochs = 2
     lr = 3e-5
     doc_stride = 128
     max_query_len = 64
@@ -64,8 +64,7 @@ if __name__ == '__main__':
     # step 8-1*: load pretrained parameters
     trainer.load_pretrain(pre_params)
     # step 8-2*: set saver to save model
-    # save_steps = (n_steps-8)  // 4
-    save_steps = 1520
+    save_steps = 3040
     trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)
     # step 8-3: start training
     trainer.train(print_steps=print_steps)
@@ -90,7 +89,7 @@ if __name__ == '__main__':
     trainer.build_predict_forward(pred_ernie, mrc_pred_head)
 
     # step 6: load checkpoint
-    pred_model_path =  './outputs/ckpt.step'+str(12160)
+    pred_model_path =  './outputs/ckpt.step'+str(3040)
     trainer.load_ckpt(pred_model_path)
     
     # step 7: fit prepared reader and data

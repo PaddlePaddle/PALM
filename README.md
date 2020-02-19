@@ -103,8 +103,8 @@ You can easily re-produce following competitive results with minor codes, which 
       <td>94.9</td>
       <td>94.5</td>
       <td>94.7</td>
-      <td>96.3</td>
-      <td>84.0</td>
+      <td>64.3</td>
+      <td>85.2</td>
     </tr>
 
   </tbody>

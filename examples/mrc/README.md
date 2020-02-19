@@ -94,5 +94,5 @@ The evaluation results are as follows:
 
 ```
 data_num: 3219
-em_sroce: 0.963031997515, f1: 83.9865402973
+em_sroce: 64.3367505436, f1: 85.1781896843
 ```
