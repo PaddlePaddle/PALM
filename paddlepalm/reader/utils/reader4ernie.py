@@ -293,10 +293,9 @@ class Reader(object):
             if to_append:
                 batch_records.append(record)
             else:
-                ds = ['s'] * 7
-                for piece in palm.distribute.yield_pieces(\
-                        self._pad_batch_records(batch_records),
-                        ds, batch_size):
+                batch_pad_records = self._pad_batch_records(batch_records)
+                ds = ['s'] * len(batch_pad_records)
+                for piece in palm.distribute.yield_pieces(batch_pad_records, ds, batch_size):
                     yield piece
                 batch_records, max_len = [record], len(record.token_ids)
       
