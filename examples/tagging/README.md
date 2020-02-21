@@ -74,5 +74,6 @@ python evaluate.py
 The evaluation results are as follows:
 
 ```
-precision: 0.948718989809, recall: 0.944806113784, f1: 0.946758508914
+data num: 4636
+f1: 0.9918
 ```

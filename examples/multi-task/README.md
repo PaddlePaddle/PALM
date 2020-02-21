@@ -118,11 +118,12 @@ The evaluation results are as follows:
 
 `atis_slot`:
 ```
-precision: 0.894397728514, recall: 0.894104803493, f1: 0.894251242016
+data num: 891
+f1: 0.8934
 ```
 
 `atis_intent`:
 ```
 data num: 893
-precision: 0.708846584546, recall: 1.0, f1: 0.999999995
+accuracy: 0.7088, precision: 1.0000, recall: 1.0000, f1: 1.0000
 ```

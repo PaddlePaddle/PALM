@@ -7,27 +7,20 @@ def accuracy(preds, labels):
     preds = np.array(preds)
     labels = np.array(labels) 
     return (preds == labels).mean()
-
-def f1(preds, labels):
-    preds = np.array(preds)
-    labels = np.array(labels)
-    tp = np.sum((labels == '1') & (preds == '1'))
-    tn = np.sum((labels == '0') & (preds == '0'))
-    fp = np.sum((labels == '0') & (preds == '1'))
-    fn = np.sum((labels == '1') & (preds == '0'))
-    p = tp * 1.0 / (tp + fp) * 1.0 
-    r = tp * 1.0 / (tp + fn) * 1.0
-    f1 = (2 * p * r) / (p + r + 1e-8)
-    return f1
   
-def recall(preds, labels):
+def pre_recall_f1(preds, labels):
     preds = np.array(preds)
     labels = np.array(labels)
     # recall=TP/(TP+FN)
     tp = np.sum((labels == '1') & (preds == '1'))
+    fp = np.sum((labels == '0') & (preds == '1'))
     fn = np.sum((labels == '1') & (preds == '0'))
-    re = tp * 1.0 / (tp + fn)
-    return re
+    r = tp * 1.0 / (tp + fn)
+    # Precision=TP/(TP+FP)
+    p = tp * 1.0 / (tp + fp)
+    epsilon = 1e-31
+    f1 = 2 * p * r / (p+r+epsilon)
+    return p, r, f1
 
 
 def res_evaluate(res_dir="./outputs/predict-intent/predictions.json", eval_phase='test'):
@@ -59,6 +52,7 @@ def res_evaluate(res_dir="./outputs/predict-intent/predictions.json", eval_phase
     file.close()
     assert len(labels) == len(preds), "prediction result doesn't match to labels"
     print('data num: {}'.format(len(labels)))
-    print("precision: {}, recall: {}, f1: {}".format(accuracy(preds, labels), recall(preds, labels), f1(preds, labels)))
+    p, r, f1 = pre_recall_f1(preds, labels)
+    print("accuracy: {:.4f}, precision: {:.4f}, recall: {:.4f}, f1: {:.4f}".format(accuracy(preds, labels), p, r, f1))
 
 res_evaluate()

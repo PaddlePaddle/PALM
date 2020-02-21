@@ -44,5 +44,5 @@ The evaluation results are as follows:
 
 ```
 data num: 1200
-precision: 0.494166666667, recall: 0.0444078947368, f1: 0.0816944009455
+accuracy: 0.4758, precision: 0.4730, recall: 0.3026, f1: 0.3691
 ```

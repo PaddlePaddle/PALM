@@ -30,9 +30,9 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
     <tr>
       <th><strong>数据集</strong>
         <br></th>
-      <th colspan="3"><center><strong>chnsenticorp</strong></center></th>
-      <th colspan="3"><center><strong>Quora Question Pairs matching</strong><center></th>
-      <th colspan="3"><strong>MSRA-NER<br>(SIGHAN2006)</strong></th>
+      <th colspan="2"><center><strong>chnsenticorp</strong></center></th>
+      <th colspan="2"><center><strong>Quora Question Pairs matching</strong><center></th>
+      <th colspan="1"><strong>MSRA-NER<br>(SIGHAN2006)</strong></th>
       <th colspan="2"><strong>CMRC2018</strong></th>
     </tr>
     <tr>
@@ -42,30 +42,18 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
           <br></p>
       </td>
       <td colspan="1">
-        <center><strong>precision</strong></center>
-        <br></td>
-      <td colspan="1">
-        <strong>recall</strong>
+        <center><strong>accuracy</strong></center>
         <br></td>
       <td colspan="1">
         <strong>f1-score</strong>
         <strong></strong>
         <br></td>
       <td colspan="1">
-        <center><strong>precision</strong></center>
-        <br></td>
-      <td colspan="1">
-        <strong>recall</strong>
+        <center><strong>accuracy</strong></center>
         <br></td>
       <td colspan="1">
         <strong>f1-score</strong>
         <strong></strong>
-        <br></td>
-      <td colspan="1">
-        <center><strong>precision</strong></center>
-        <br></td>
-      <td colspan="1">
-        <strong>recall</strong>
         <br></td>
       <td colspan="1">
         <strong>f1-score</strong>
@@ -79,13 +67,13 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
         <br></td>
     </tr>
     <tr>
-      <td colspan="3" width="">
+      <td colspan="2" width="">
         <strong>test</strong>
         <br></td>
-      <td colspan="3" width="">
+      <td colspan="2" width="">
         <strong>test</strong>
         <br></td>
-      <td colspan="3" width="">
+      <td colspan="1" width="">
         <strong>test</strong>
         <br></td>
       <td colspan="2" width="">
@@ -94,17 +82,13 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
     </tr>
     <tr>
       <td><strong>ERNIE Base</strong></td>
-      <td>95.7</td>
-      <td>95.0</td>
-      <td>95.7</td>
-      <td>85.8</td>
-      <td>82.4</td>
-      <td>81.5</td>
-      <td>94.9</td>
-      <td>94.5</td>
-      <td>94.7</td>
-      <td>96.3</td>
-      <td>84.0</td>
+      <td>95.8</td>
+      <td>95.8</td>
+      <td>86.2</td>
+      <td>82.2</td>
+      <td>99.2</td>
+      <td>64.3</td>
+      <td>85.2</td>
     </tr>
 
   </tbody>
@@ -120,6 +104,16 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
 		<em>PALM架构图</em>
 	</p>
 </p>
+
+
+PaddlePALM是一个设计良好的高级NLP框架。基于PaddlePALM的小代码可以高效实现**监督学习、非监督/自监督学习、多任务学习和迁移学习**。在PaddlePALM架构中有三层，即从下到上依次是组件层、训练器层和高级训练器层。
+
+在组件层，PaddlePALM提供了6个 **解耦的**组件来实现NLP任务。每个组件包含丰富的`pre-defined`类和一个`Base`类。`pre-defined`类是针对典型的NLP任务的，而`Base`类是帮助用户开发一个新类（基于`pre-defined`类或从`Base`类）。
+
+训练器层是用选定的构件建立计算图，进行训练和预测。该层描述了训练策略、模型保存和加载、评估和预测过程。一个训练器只能处理一个任务。
+
+高级训练器层用于复杂的学习和推理策略，如多任务学习。您可以添加辅助任务来训练健壮的NLP模型（提高模型的测试集和领域外的性能），或者联合训练多个相关任务来获得每个任务的更高性能。
+
 
 | 模块 | 描述 | 
 | - | - |
@@ -187,6 +181,8 @@ Available pretrain items:
 
 ## 使用
 
+#### 快速开始
+
 8个步骤开始一个典型的NLP训练任务。
 
 1. 使用`paddlepalm.reader` 要为数据集加载和输入特征生成创建一个`reader`，然后调用`reader.load_data`方法加载训练数据。
@@ -205,14 +201,8 @@ Available pretrain items:
 - [Tagging](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
 - [SQuAD machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
 
-### 设置saver
 
-在训练时保存 models/checkpoints 和 logs， 调用 `trainer.set_saver` 方法. 更多实现细节见[这里](https://github.com/PaddlePaddle/PALM/tree/master/examples).
-
-### 预测
-训练结束后进行预测和评价, 只需创建额外的reader, backbone和head示例（重复上面1~4步骤），注意创建时需设`phase='predict'`。 然后使用trainer的`predict`方法进行预测（不需创建额外的trainer）。更多实现细节请见[这里](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
-
-### 多任务学习
+#### 多任务学习
 
 多任务学习模式下运行:
 
@@ -226,11 +216,31 @@ Available pretrain items:
 multi_head_trainer的保存/加载和预测操作与trainer相同。
 
 
-更多实现`multi_head_trainer`的细节, 请见
+更多实现`multi_head_trainer`的细节，请见
 
 - [ATIS: joint training of dialogue intent recognition and slot filling](https://github.com/PaddlePaddle/PALM/tree/master/examples/multi-task)
-- [MRQA: learning reading comprehension auxilarized with mask language model]() (初次发版先不用加)
 
+#### 设置saver
+
+在训练时保存 models/checkpoints 和 logs， 调用 `trainer.set_saver` 方法。更多实现细节见[这里](https://github.com/PaddlePaddle/PALM/tree/master/examples)。
+
+#### 评估/预测
+训练结束后进行预测和评价, 只需创建额外的reader, backbone和head示例（重复上面1~4步骤），注意创建时需设`phase='predict'`。 然后使用trainer的`predict`方法进行预测（不需创建额外的trainer）。更多实现细节请见[这里](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict)。
+
+#### 使用多GPU
+如果您的环境中存在多个GPU，您可以通过环境变量控制这些GPU的数量和索引[CUDA_VISIBLE_DEVICES](https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/)。例如，如果您的环境中有4个gpu，索引为0、1、2、3，那么您可以运行以下命令来只使用GPU2：
+
+```shell
+CUDA_VISIBLE_DEVICES=2 python run.py
+```
+
+多GPU的使用需要 `,`作为分隔。例如，使用GPU2和GPU3，运行以下命令：
+
+```shell
+CUDA_VISIBLE_DEVICES=2,3 python run.py
+```
+
+在多GPU模式下，PaddlePALM会自动将每批数据分配到可用的卡上。例如，如果`batch_size`设置为64，并且有4个GPU可以用于PaddlePALM，那么每个GPU中的batch_size实际上是64/4=16。因此，**当使用多个GPU时，您需要确保设置batch_size可以整除卡片的数量**。
 
 
 ## 许可证书

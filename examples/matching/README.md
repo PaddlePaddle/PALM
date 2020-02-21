@@ -81,6 +81,6 @@ python evaluate.py
 The evaluation results are as follows:
 
 ```
-data_num: 4300
-precision: 0.857906976744, recall: 0.824249846908, f1: 0.81501664653
+data num: 4300
+accuracy: 0.8619, precision: 0.8061, recall: 0.8377, f1: 0.8216
 ```

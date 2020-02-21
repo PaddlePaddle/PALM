@@ -121,8 +121,8 @@ def evaluate(ground_truth_file, prediction_file):
                 f1 += calc_f1_score(answers, prediction)
                 em += calc_em_score(answers, prediction)
 
-    f1_score = 100.0 * f1 / total_count
-    em_score = 100.0 * em / total_count
+    f1_score = f1 / total_count
+    em_score = em / total_count
     return f1_score, em_score, total_count, skip_count
 
 
@@ -164,4 +164,4 @@ def eval_file(dataset_file, prediction_file):
 if __name__ == '__main__':
     EM, F1, AVG, TOTAL = eval_file("data/dev.json", "outputs/predict/predictions.json")
     print('data_num: {}'.format(TOTAL))
-    print('em_sroce: {}, f1: {}'.format(EM,F1))
+    print('em_sroce: {:.4f}, f1: {:.4f}'.format(EM,F1))
