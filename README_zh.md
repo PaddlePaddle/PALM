@@ -106,9 +106,9 @@ PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易�
 </p>
 
 
-PaddlePALM是一个设计良好的高级NLP框架。基于PaddlePALM的小代码可以高效实现**监督学习、非监督/自监督学习、多任务学习和迁移学习**。在PaddlePALM架构中有三层，即从下到上依次是组件层、训练器层和高级训练器层。
+PaddlePALM是一个设计良好的高级NLP框架。基于PaddlePALM的轻量级代码可以高效实现**监督学习、非监督/自监督学习、多任务学习和迁移学习**。在PaddlePALM架构中有三层，即从下到上依次是component层、trainer层high-level trainer层。
 
-在组件层，PaddlePALM提供了6个 **解耦的**组件来实现NLP任务。每个组件包含丰富的`pre-defined`类和一个`Base`类。`pre-defined`类是针对典型的NLP任务的，而`Base`类是帮助用户开发一个新类（基于`pre-defined`类或从`Base`类）。
+在组件层，PaddlePALM提供了6个 **解耦的**组件来实现NLP任务。每个组件包含丰富的预定义类和一个基本类。预定义类是针对典型的NLP任务的，而基类是帮助用户开发一个新类（基于预定义类或基类）。
 
 训练器层是用选定的构件建立计算图，进行训练和预测。该层描述了训练策略、模型保存和加载、评估和预测过程。一个训练器只能处理一个任务。
 
