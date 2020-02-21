@@ -75,5 +75,5 @@ The evaluation results are as follows:
 
 ```
 data num: 1200
-precision: 0.956666666667, recall: 0.949013157895, f1: 0.95688225039
+accuracy: 0.9575, precision: 0.9634, recall: 0.9523, f1: 0.9578
 ```
