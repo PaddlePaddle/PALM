@@ -43,8 +43,10 @@ python run.py
 If you want to specify a specific gpu or use multiple gpus for training, please use **`CUDA_VISIBLE_DEVICES`**, for example:
 
 ```shell
-CUDA_VISIBLE_DEVICES=0,1,2 python run.py
+CUDA_VISIBLE_DEVICES=0,1 python run.py
 ```
+
+Note: On multi-gpu mode, PaddlePALM will automatically split each batch onto the available cards. For example, if the `batch_size` is set 64, and there are 4 cards visible for PaddlePALM, then the batch_size in each card is actually 64/4=16. If you want to change the `batch_size` or the number of gpus used in the example, **you need to ensure that the set batch_size can be divided by the number of cards.**
 
 Some logs will be shown below:
 
