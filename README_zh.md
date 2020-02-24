@@ -240,7 +240,7 @@ CUDA_VISIBLE_DEVICES=2 python run.py
 CUDA_VISIBLE_DEVICES=2,3 python run.py
 ```
 
-在多GPU模式下，PaddlePALM会自动将每批数据分配到可用的卡上。例如，如果`batch_size`设置为64，并且有4个GPU可以用于PaddlePALM，那么每个GPU中的batch_size实际上是64/4=16。因此，**当使用多个GPU时，您需要确保设置batch_size可以整除卡片的数量**。
+在多GPU模式下，PaddlePALM会自动将每个batch数据分配到可用的GPU上。例如，如果`batch_size`设置为64，并且有4个GPU可以用于PaddlePALM，那么每个GPU中的batch_size实际上是64/4=16。因此，**当使用多个GPU时，您需要确保设置batch_size可以整除GPU的数量**。
 
 
 ## 许可证书
