@@ -19,8 +19,6 @@ if __name__ == '__main__':
     pred_output = './outputs/predict-slot/'
     save_type = 'ckpt'
     random_seed = 0
-
-    pre_params = './pretrain/ERNIE-v2-en-base/params'
     config = json.load(open('./pretrain/ERNIE-v2-en-base/ernie_config.json'))
     input_dim = config['hidden_size']
 

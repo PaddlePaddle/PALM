@@ -45,7 +45,7 @@ class MatchReader(Reader):
     """
     
     def __init__(self, vocab_path, max_len, tokenizer='wordpiece', lang='en', seed=None, \
-        do_lower_case=False, learning_strategy='pointwise', phase='train', dev_count=1, print_prefix=''):  # 需要什么加什么
+        do_lower_case=False, learning_strategy='pointwise', phase='train', dev_count=1, print_prefix=''): 
         """Create a new Reader for classification task data.
 
         Args:
