@@ -25,7 +25,6 @@ class Classify(Head):
     """
     classification
     """
-    # def __init__(self, config, phase, backbone_config=None):
     def __init__(self, num_classes, input_dim, dropout_prob=0.0, \
                  param_initializer_range=0.02, phase='train'):
 
@@ -91,17 +90,6 @@ class Classify(Head):
             self._preds.extend(logits.tolist())
             self._probs.extend(probs.tolist())
 
-    def epoch_postprocess(self, post_inputs, output_dir=None):
-        # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
-        if not self._is_training:
-            if output_dir is None:
-                for p in self._preds:
-                    print(p)
-            else:
-                with open(os.path.join(output_dir, 'predictions.json'), 'w') as writer:
-                    for p in self._preds:
-                        writer.write(str(p)+'\n')
-                print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))
 
     def epoch_postprocess(self, post_inputs, output_dir=None):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
