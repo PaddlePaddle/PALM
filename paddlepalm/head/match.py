@@ -179,11 +179,10 @@ class Match(Head):
             with open(os.path.join(output_dir, 'predictions.json'), 'w') as writer:
                 for i in range(len(self._preds)):
                     if self._learning_strategy == 'pointwise':
-                        label = 0 if self._preds[i][0] > self._preds[i][1] else 1
+                        label = np.argmax(np.array(self._preds[i]))
                         result = {'index': i, 'label': label, 'logits': self._preds_logits[i], 'probs': self._preds[i]}
                     elif self._learning_strategy == 'pairwise':
-                        label = 0 if self._preds[i][0] < 0.5 else 1
-                        result = {'index': i, 'label': label, 'probs': self._preds[i][0]}
+                        result = {'index': i, 'probs': self._preds[i][0]}
                     result = json.dumps(result, ensure_ascii=False)
                     writer.write(result+'\n')
             print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))
