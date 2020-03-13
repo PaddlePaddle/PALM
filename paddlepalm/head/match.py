@@ -182,7 +182,7 @@ class Match(Head):
                         label = np.argmax(np.array(self._preds[i]))
                         result = {'index': i, 'label': label, 'logits': self._preds_logits[i], 'probs': self._preds[i]}
                     elif self._learning_strategy == 'pairwise':
-                        result = {'index': i, 'label': label, 'probs': self._preds[i][0]}
+                        result = {'index': i, 'probs': self._preds[i][0]}
                     result = json.dumps(result, ensure_ascii=False)
                     writer.write(result+'\n')
             print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))
