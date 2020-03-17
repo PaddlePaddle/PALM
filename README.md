@@ -224,7 +224,7 @@ To save models/checkpoints and logs during training, just call `trainer.set_save
 #### Evaluation/Inference
 To do predict/evaluation after a training stage, just create another three reader, backbone and head instance with `phase='predict'` (repeat step 1~4 above). Then do predicting with `predict` method in trainer (no need to create another trainer). More implementation details see [this](https://github.com/PaddlePaddle/PALM/tree/master/examples/predict).
 
-#### Multiple GPUs
+#### Play with Multiple GPUs
 If there exists multiple GPUs in your environment, you can control the number and index of these GPUs through the environment variable [CUDA_VISIBLE_DEVICES](https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/). For example, if 4 GPUs in your enviroment, indexed with 0,1,2,3, you can run with GPU2 only with following commands
 
 ```shell
