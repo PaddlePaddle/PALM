@@ -1,7 +1,6 @@
 # coding=utf-8
 import paddlepalm as palm
 import json
-from paddlepalm.distribute import gpu_dev_count
 
 if __name__ == '__main__':
  
@@ -64,9 +63,9 @@ if __name__ == '__main__':
     # step 7: fit prepared reader and data
     trainer.fit_reader(seq_label_reader)
 
-    # # step 8-1*: load pretrained parameters
+    # step 8-1*: load pretrained parameters
     trainer.load_pretrain(pre_params)
-    # # step 8-2*: set saver to save model
+    # step 8-2*: set saver to save model
     save_steps = 1951
     # print('save_steps: {}'.format(save_steps))
     trainer.set_saver(save_path=save_path, save_steps=save_steps, save_type=save_type)

@@ -4,7 +4,7 @@
 
 PaddlePALM (PArallel Learning from Multi-tasks) 是一个灵活，通用且易于使用的NLP大规模预训练和多任务学习框架。 PALM是一个旨在**快速开发高性能NLP模型**的上层框架。
 
-使用PaddlePALM，可以非常轻松灵活的探索具有多种任务辅助训练的“高鲁棒性”阅读理解模型，基于PALM训练的模型[D-Net](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/Research/MRQA2019-D-NET)在[EMNLP2019国际阅读理解评测](mrqa .github.io)中夺得冠军。
+使用PaddlePALM，可以非常轻松灵活的探索具有多种任务辅助训练的“高鲁棒性”阅读理解模型，基于PALM训练的模型[D-Net](https://github.com/PaddlePaddle/models/tree/develop/PaddleNLP/Research/MRQA2019-D-NET)在[EMNLP2019国际阅读理解评测](https://mrqa.github.io/)中夺得冠军。
 
 <p align="center">
 	<img src="https://tva1.sinaimg.cn/large/006tNbRwly1gbjkuuwrmlj30hs0hzdh2.jpg" alt="Sample"  width="300" height="333">
@@ -197,9 +197,9 @@ Available pretrain items:
 更多实现细节请见示例: 
 
 - [Sentiment Classification](https://github.com/PaddlePaddle/PALM/tree/master/examples/classification)
-- [Quora Question Pairs matching](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
-- [Tagging](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
-- [SQuAD machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
+- [Question Pairs matching](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
+- [Named Entity Recognition](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
+- [SQuAD-like Machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
 
 
 #### 多任务学习

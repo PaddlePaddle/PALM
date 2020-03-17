@@ -1,7 +1,6 @@
 # coding=utf-8
 import paddlepalm as palm
 import json
-from paddlepalm.distribute import gpu_dev_count
 
 if __name__ == '__main__':
 
