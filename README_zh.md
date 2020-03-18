@@ -196,10 +196,10 @@ Available pretrain items:
 
 更多实现细节请见示例: 
 
-- [Sentiment Classification](https://github.com/PaddlePaddle/PALM/tree/master/examples/classification)
-- [Question Pairs matching](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
-- [Named Entity Recognition](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
-- [SQuAD-like Machine Reading Comprehension](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc).
+- [情感分析](https://github.com/PaddlePaddle/PALM/tree/master/examples/classification)
+- [Quora问题相似度匹配](https://github.com/PaddlePaddle/PALM/tree/master/examples/matching)
+- [命名实体识别](https://github.com/PaddlePaddle/PALM/tree/master/examples/tagging)
+- [类SQuAD机器阅读理解](https://github.com/PaddlePaddle/PALM/tree/master/examples/mrc)
 
 
 #### 多任务学习
@@ -218,7 +218,7 @@ multi_head_trainer的保存/加载和预测操作与trainer相同。
 
 更多实现`multi_head_trainer`的细节，请见
 
-- [ATIS: joint training of dialogue intent recognition and slot filling](https://github.com/PaddlePaddle/PALM/tree/master/examples/multi-task)
+- [ATIS: 对话意图识别和插槽填充的联合训练](https://github.com/PaddlePaddle/PALM/tree/master/examples/multi-task)
 
 #### 设置saver
 
