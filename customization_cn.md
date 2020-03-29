@@ -124,9 +124,11 @@ class Head(object):
                 print('WARNING: irregular output results. visualize failed.')
                 self._results_buffer.append(rt_outputs)
         return None
+
     def reset(self):
         """清空该任务头的缓冲区（在训练或推理过程中积累的处理结果）"""
         self._results_buffer = []
+
     def get_results(self):
         """返回当前任务头积累的处理结果。"""
         return copy.deepcopy(self._results_buffer)
@@ -272,6 +274,7 @@ reader的接口类（Interface）位于`paddlepalm/reader/base_reader.py`。
 # limitations under the License.
 
 from copy import copy
+
 class Reader(object):
     """interface of data reader."""
 
