@@ -75,18 +75,16 @@ class Reader(object):
 
     def load_data(self, input_file, batch_size, num_epochs=None, \
                   file_format='tsv', shuffle_train=True):
-        """Load data into reader. 
+        """将磁盘上的数据载入到reader中。
 
-        Noted that it requires the creation of self._batch_size and self._num_epochs when this method implemented.
+        注意：实现该方法时需要同步创建self._batch_size和self._num_epochs。
 
         Args:
-            input_file: the dataset file path. File format should meet the requirement of `file_format` argument.
-            batch_size: number of examples for once yield. CAUSIOUS! If your environment exists multiple GPU devices
-                (marked as dev_count), the batch_size should be divided by dev_count with no remainder!
-            num_epochs: the travelsal times of input examples. Default is None, means once for single-task learning 
-                and automatically calculated for multi-task learning. This argument only works on train phase.
-            file_format: the file format of input file. Supported format: tsv. Default is tsv.
-            shuffle_train: whether to shuffle training dataset. Default is True. This argument only works on training phase.
+            input_file: 数据集文件路径。文件格式需要满足`file_format`参数的要求。
+            batch_size: 迭代器每次yield出的样本数量。注意：当环境中存在多个GPU时，batch_size需要保证被GPU卡数整除。
+            num_epochs: 数据集遍历次数。默认为None, 在单任务模式下代表遍历一次，在多任务模式下该参数会被上层的Trainer进行自动赋值。该参数仅对训练阶段有效。
+            file_format: 输入文件的文件格式。目前支持的格式: tsv. 默认为tsv.
+            shuffle_train: 是否打乱训练集中的样本。默认为True。该参数仅对训练阶段有效。
         """
         raise NotImplementedError()
 
