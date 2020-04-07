@@ -21,8 +21,6 @@ if __name__ == '__main__':
 
     train_slot = './data/atis/atis_slot/train.tsv'
     train_intent = './data/atis/atis_intent/train.tsv'
-    predict_file = './data/atis/atis_slot/test.tsv'
-    pred_output = './outputs/predict/'
 
     config = json.load(open('./pretrain/ERNIE-v2-en-base/ernie_config.json'))
     input_dim = config['hidden_size']
