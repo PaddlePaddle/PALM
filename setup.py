@@ -25,7 +25,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
     name="paddlepalm",
-    version="1.0.0",
+    version="2.0.1",
     author="PaddlePaddle",
     author_email="zhangyiming04@baidu.com",
     description="a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning framework.",
