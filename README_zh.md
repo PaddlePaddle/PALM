@@ -117,15 +117,15 @@ PaddlePALM是一个设计良好的高级NLP框架。基于PaddlePALM的轻量级
 
 | 模块 | 描述 | 
 | - | - |
-| **paddlepalm** | 一个开源的NLP预训练和多任务学习框架，建立在paddlepaddle框架上。 |
-| **paddlepalm.reader** | 特定于任务的数据集读取工具的集合。|
-| **paddlepalm.backbone** | 一系列经典的NLP表示模型，如BERT, ERNIE, RoBERTa。|
-| **paddlepalm.head** | 任务特定输出层的集合。|
-| **paddlepalm.lr_sched** | 一个学习率时间表的集合。|
-| **paddlepalm.optimizer** | 优化器的集合。|
-| **paddlepalm.downloader** | 预训练模型与配置和vocab文件的下载模块。|
-| **paddlepalm.Trainer** | 单一任务训练/预测。一个训练器是建立计算图，管理训练和评估过程，实现模型/检查点保存和pretrain_model/检查点加载。|
-| **paddlepalm.MultiHeadTrainer** | 进行多任务训练/预测的核心模块。一个MultiHeadTrainer建立在几个Trainer的基础上。在继承Trainer的基础上，实现了模型主干网络跨任务复用，采用多任务学习，多任务推理，来保证更有效的评估和预测。|
+| **paddlepalm** | 基于PaddlePaddle框架的high-level NLP预训练和多任务学习框架。 |
+| **paddlepalm.reader** | 预置的任务数据集读取与预处理工具。|
+| **paddlepalm.backbone** | 预置的主干网络，如BERT, ERNIE, RoBERTa。|
+| **paddlepalm.head** | 预置的任务输出层。|
+| **paddlepalm.lr_sched** | 预置的学习率规划策略。|
+| **paddlepalm.optimizer** | 预置的优化器。|
+| **paddlepalm.downloader** | 预训练模型管理与下载模块。|
+| **paddlepalm.Trainer** | 任务训练/预测单元。训练器用于建立计算图，管理训练和评估过程，实现模型/检查点保存和pretrain_model/检查点加载等。|
+| **paddlepalm.MultiHeadTrainer** | 完成多任务训练/预测的模块。一个MultiHeadTrainer建立在几个Trainer的基础上。实现了模型主干网络跨任务复用、多任务学习、多任务推理等。|
 
 ## 安装
 
