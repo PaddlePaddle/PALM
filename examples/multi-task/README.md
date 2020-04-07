@@ -1,19 +1,18 @@
 ## Example 6: Joint Training of Dialogue Intent Recognition and Slot Filling
-This task is a slot filling task. During training, the task uses intent determination task to assist in training slot filling model. The following sections detail model preparation, dataset preparation, and how to run the task.
+This example achieves the joint training ofg Dialogue Intent Recognition and Slot Filling. The intent recognition can be regared as a text classification task, and slot filling as sequence labeling task. Both classification and sequence labeling have been built-in in PaddlePALM.
 
 ### Step 1: Prepare Pre-trained Models & Datasets
 
-#### Pre-trianed Model
+#### Pre-trained Model
 
-The pre-training model of this mission is: [ERNIE-v2-en-base](https://github.com/PaddlePaddle/PALM/tree/r0.3-api).
+We prepare [ERNIE-v2-en-base](https://github.com/PaddlePaddle/PALM/tree/r0.3-api) as our pre-trained model for this example.
 
-Make sure you have downloaded the required pre-training model in the current folder.
-
+Make sure you have downloaded `ERNIE` to current folder.
 
 #### Dataset
 
-This task uses the `Airline Travel Information System` dataset. 
- 
+Here we use `Airline Travel Information System` dataset as our testbed. 
+
 Download dataset:
 ```shell
 python download.py
