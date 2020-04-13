@@ -125,6 +125,6 @@ def decode_fake(nums, mask, bs):
 
     n_f = len(mask) - n_t
     p1 = nums - (n_t-1) * bs
-    each_f = p1 / (n_f+1)
+    each_f = p1 // (n_f+1)
     return each_f * n_f
 
