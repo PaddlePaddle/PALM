@@ -15,22 +15,17 @@
 
 from __future__ import print_function
 import os
-import requests
 import tarfile
 import shutil
-try:
-    from urllib.request import urlopen # Python 3
-except ImportError:
-    from urllib2 import urlopen # Python 2
 from collections import OrderedDict
-import ssl
+import sys
+import urllib
+URLLIB=urllib
+if sys.version_info >= (3, 0):
+    import urllib.request
+    URLLIB=urllib.request
 
 __all__ = ["download", "ls"]
-
-# for https
-ssl._create_default_https_context = ssl._create_unverified_context
-
-
 
 _pretrain = (('RoBERTa-zh-base', 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_ext_L-12_H-768_A-12.tar.gz'),
             ('RoBERTa-zh-large', 'https://bert-models.bj.bcebos.com/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.tar.gz'),
@@ -76,32 +71,15 @@ def _download(item, scope, path, silent=False, convert=False):
     filename = data_dir + '/' + data_name
 
     # print process
-    def _chunk_report(bytes_so_far, total_size):
+    def _reporthook(count, chunk_size, total_size):
+        bytes_so_far = count * chunk_size
         percent = float(bytes_so_far) / float(total_size)
         if percent > 1:
             percent = 1
         if not silent:
             print('\r>> Downloading... {:.1%}'.format(percent), end = "")
     
-    # copy to local
-    def _chunk_read(response, url, chunk_size = 16 * 1024, report_hook = None):
-        total_size = int(requests.head(url).headers['Content-Length'])
-        bytes_so_far = 0
-        with open("%s" % filename, "wb") as f:
-            while 1:
-                chunk = response.read(chunk_size)
-                f.write(chunk)
-                f.flush() 
-                bytes_so_far += len(chunk)
-                if not chunk:
-                    break
-                if report_hook:
-                    report_hook(bytes_so_far, total_size)
-        return bytes_so_far
-
-    response = urlopen(data_url)
-    _chunk_read(response, data_url, report_hook=_chunk_report)
-    
+    URLLIB.urlretrieve(data_url, filename, reporthook=_reporthook)
     if not silent:
         print(' done!')
     
