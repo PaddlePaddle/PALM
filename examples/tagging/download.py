@@ -1,31 +1,24 @@
 #  -*- coding: utf-8 -*-
-
+from __future__ import print_function
 import os
-import requests
 import tarfile
 import shutil
-from tqdm import tqdm
-
+import sys
+import urllib
+URLLIB=urllib
+if sys.version_info >= (3, 0):
+    import urllib.request
+    URLLIB=urllib.request
 
 def download(src, url):
-    file_size = int(requests.head(url).headers['Content-Length'])
+    def _reporthook(count, chunk_size, total_size):
+        bytes_so_far = count * chunk_size
+        percent = float(bytes_so_far) / float(total_size)
+        if percent > 1:
+            percent = 1
+        print('\r>> Downloading... {:.1%}'.format(percent), end="")
 
-    header = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
-        '70.0.3538.67 Safari/537.36'
-    }
-    pbar = tqdm(total=file_size)
-    resp = requests.get(url, headers=header, stream=True)
-
-    with open(src, 'ab') as f:
-        for chunk in resp.iter_content(chunk_size=1024):
-            if chunk:
-                f.write(chunk)
-                pbar.update(1024)
-
-    pbar.close()
-    return file_size
-
+    URLLIB.urlretrieve(url, src, reporthook=_reporthook)
 
 abs_path = os.path.abspath(__file__)
 download_url = "https://ernie.bj.bcebos.com/task_data_zh.tgz"
@@ -46,5 +39,4 @@ for file in os.listdir(os.path.join(target_dir, 'task_data', 'msra_ner')):
     shutil.move(os.path.join(target_dir, 'task_data', 'msra_ner', file), dst_dir)
 
 shutil.rmtree(os.path.join(target_dir, 'task_data'))
-
-
+print(" done!")
