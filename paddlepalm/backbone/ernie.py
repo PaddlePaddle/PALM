@@ -45,8 +45,8 @@ class ERNIE(Backbone):
         self._task_types = task_type_vocab_size
 
         self._hidden_act = hidden_act
-        self._prepostprocess_dropout = hidden_dropout_prob
-        self._attention_dropout = attention_probs_dropout_prob
+        self._prepostprocess_dropout = 0. if phase == 'predict' else hidden_dropout_prob
+        self._attention_dropout = 0. if phase == 'predict' else attention_probs_dropout_prob
 
         self._word_emb_name = "word_embedding"
         self._pos_emb_name = "pos_embedding"

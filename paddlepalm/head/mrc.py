@@ -154,21 +154,21 @@ class MRC(Head):
         """(optional interface) this func will be called after evaluation/predicting process and each epoch during training process."""
 
         if not self._is_training:
-            if output_dir is None:
-                raise ValueError('argument output_dir not found in config. Please add it into config dict/file.')
-            examples = post_inputs['reader']['examples']
-            features = post_inputs['reader']['features']
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            output_prediction_file = os.path.join(output_dir, "predictions.json")
-            output_nbest_file = os.path.join(output_dir, "nbest_predictions.json")
-            output_null_log_odds_file = os.path.join(output_dir, "null_odds.json")
-            _write_predictions(examples, features, self._pred_results,
-                              self._n_best_size, self._max_answer_length,
-                              self._do_lower_case, output_prediction_file,
-                              output_nbest_file, output_null_log_odds_file,
-                              self._with_negative,
-                              self._null_score_diff_threshold, self._verbose)
+            if output_dir is not None:
+                examples = post_inputs['reader']['examples']
+                features = post_inputs['reader']['features']
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                output_prediction_file = os.path.join(output_dir, "predictions.json")
+                output_nbest_file = os.path.join(output_dir, "nbest_predictions.json")
+                output_null_log_odds_file = os.path.join(output_dir, "null_odds.json")
+                _write_predictions(examples, features, self._pred_results,
+                                  self._n_best_size, self._max_answer_length,
+                                  self._do_lower_case, output_prediction_file,
+                                  output_nbest_file, output_null_log_odds_file,
+                                  self._with_negative,
+                                  self._null_score_diff_threshold, self._verbose)
+            return self._pred_results
 
 
 def _write_predictions(all_examples, all_features, all_results, n_best_size,

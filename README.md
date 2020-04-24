@@ -19,8 +19,9 @@ Beyond the research scope, PaddlePALM has been applied on **Baidu Search Engine*
 
 - **Easy-to-use:** with PALM, *8 steps* to achieve a typical NLP task. Moreover, all basic components (e.g., the model backbone, dataset reader, task output head, optimizer...) have been decoupled, which allows the replacement of any component to other candidates with quite minor changes of your code. 
 - **Built-in Popular NLP Backbones and Pre-trained models:** multiple state-of-the-art general purpose model architectures and pretrained models (e.g., BERT,ERNIE,RoBERTa,...) are built-in. 
-- **Multi-task Learning friendly:** *6 steps* to achieve multi-task learning for prepared tasks. 
-- **Large Scale and Pre-training friendly:** automatically utilize multi-gpus (if exists) to accelerate training and inference. Minor codes is required for distributed training on clusters.
+- **Easy to play Multi-task Learning:** only one API is needed for jointly training of several tasks with parameters reusement.
+- **Support train/eval with Multi-GPUs:** automatically recognize and adapt to multiple gpus mode to accelerate training and inference.
+- **Pre-training friendly:** self-supervised tasks (e.g., mask language model) are built-in to facilitate pre-training. Easy to train from scratch.
 - **Easy to Customize:** support customized development of any component (e.g, backbone, task head, reader and optimizer) with reusement of pre-defined ones, which gives developers high flexibility and effeciency to adapt for diverse NLP scenes. 
 
 You can easily re-produce following competitive results with minor codes, which covers most of NLP tasks such as classification, matching, sequence labeling, reading comprehension, dialogue understanding and so on. More details can be found in `examples`.
