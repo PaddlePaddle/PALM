@@ -118,9 +118,9 @@ class SequenceLabel(Head):
     def epoch_postprocess(self, post_inputs, output_dir=None):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
         if not self._is_training:
-            if output_dir is None:
-                raise ValueError('argument output_dir not found in config. Please add it into config dict/file.')
-            with open(os.path.join(output_dir, 'predictions.json'), 'w') as writer:
-                for p in self._preds:
-                    writer.write(str(p)+'\n')
-            print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))
+            if output_dir is not None:
+                with open(os.path.join(output_dir, 'predictions.json'), 'w') as writer:
+                    for p in self._preds:
+                        writer.write(str(p)+'\n')
+                print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))
+            return self._preds

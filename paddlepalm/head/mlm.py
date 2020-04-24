@@ -128,13 +128,15 @@ class MaskLM(Head):
     def epoch_postprocess(self, post_inputs, output_dir=None):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs
         if not self._is_training:
-            if output_dir is None:
-                for p in self._preds:
-                    print(p)
-            else:
+            results = []
+            for i in range(len(self._preds)):
+                result = {'index': i, 'word_id': self._preds[i]}
+                results.append(result)
+            if output_dir is not None:
                 with open(os.path.join(output_dir, 'predictions.json'), 'w') as writer:
-                    for p in self._preds:
-                        writer.write(str(p)+'\n')
+                    for result in results:
+                        result = json.dumps(result)
+                        writer.write(result+'\n')
                 print('Predictions saved at '+os.path.join(output_dir, 'predictions.json'))
-
+            return results
 
