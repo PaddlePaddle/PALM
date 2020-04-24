@@ -1,4 +1,5 @@
 *.pyc
+paddlepalm.egg-info
 __pycache__
 pretrain_model
 pretrain
