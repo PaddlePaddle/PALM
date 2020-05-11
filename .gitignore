@@ -1,6 +1,8 @@
 *.pyc
 paddlepalm.egg-info
+data
 __pycache__
+*egg-info
 pretrain_model
 pretrain
 output*

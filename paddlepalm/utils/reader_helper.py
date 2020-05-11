@@ -166,6 +166,39 @@ def create_iterator_fn(iterator, iterator_prefix, shape_and_dtypes, outname_to_p
 
     return iterator_fn
 
+def create_multihead_inference_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, names, outname_to_pos, task_name2id, dev_count=1):
+    
+    def iterator(task_name):
+        while True:
+            id = task_name2id[task_name]
+            # id = np.random.choice(task_ids, p=weights)
+            task_id_tensor = np.array([id]).astype("int64")
+            
+            for i in range(dev_count):
+                
+                outputs = next(iterators[id]) # dict type
+
+                prefix = iterator_prefixes[id]
+                results = {}
+                results['__task_id'] = task_id_tensor
+                for outname, val in outputs.items():
+                    task_outname = prefix + '.' + outname
+
+                    if outname in names[id]:
+                        idx = outname_to_pos[id][outname]
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=outname+': ')
+                        results[outname] = val
+
+                    if task_outname in names[id]:
+                        idx = outname_to_pos[id][task_outname]
+                        val = _check_and_adapt_shape_dtype(val, joint_shape_and_dtypes[id][idx], message=task_outname+': ')
+                        results[task_outname] = val
+
+                yield results
+
+    return iterator
+
+
 def create_multihead_iterator_fn(iterators, iterator_prefixes, joint_shape_and_dtypes, mrs, names, outname_to_pos, dev_count=1, keep_one_task=True):
     task_ids = range(len(iterators))
     weights = [mr / float(sum(mrs)) for mr in mrs]

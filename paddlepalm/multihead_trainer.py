@@ -24,8 +24,6 @@ class MultiHeadTrainer(Trainer):
             trainers: a list of Trainer objects.
 
         """
-        # if reuse_flags is not None:
-        #     assert len(reuse_flags) == len(trainers)
         Trainer.__init__(self, '')
 
         self._trainers = trainers
@@ -56,7 +54,6 @@ class MultiHeadTrainer(Trainer):
         for t in self._trainers:
             t._set_multitask()
 
-    # def build_forward(self, backbone, heads):
     def build_forward(self):
         """
         Build forward computation graph for training, which usually built from input layer to loss node.
@@ -95,19 +92,120 @@ class MultiHeadTrainer(Trainer):
         self._task_id_var = task_id_var
         self._loss_var = loss_var
         self._fetch_list = [loss_var.name]
-        # for b in train_prog.blocks:
-        #     for var in b.vars:
-        #         pass
-                # if 'task_id' in var:
-                #     print(var)
-                #     exit()
-                # print(var)
         if not self._multi_task:
             self._init_exe_prog(for_train=True)
         return loss_var
+        
+    def build_predict_forward(self):
+        head_dict = {}
+        backbone = self._trainers[0]._pred_backbone
+        for i in self._trainers:
+            assert i._pred_head is not None and i._pred_backbone is not None, "You should build_predict_forward for the {} task".format(i._name)
+            assert i._pred_backbone == backbone, "The backbone for each task must be the same"
+            head_dict[i._name] = i._pred_head
+            
+        pred_prog = fluid.Program()
+        pred_init_prog = fluid.Program()
+        self._pred_prog = pred_prog
+        self._pred_init_prog = pred_init_prog
 
-    def fit_readers(self, reader_dict):
-        raise NotImplementedError()
+        def get_loss(i):
+            head = head_dict[self._trainers[i].name]
+            self._trainers[i]._lock_prog = True
+            pred_vars = self._trainers[i].build_predict_forward(backbone, head)
+            self._trainers[i]._lock_prog = False
+            # return loss_var
+      
+        task_fns = {i: lambda i=i: get_loss(i) for i in range(len(self._trainers))}
+
+        with fluid.program_guard(pred_prog, pred_init_prog):
+            task_id_var = fluid.data(name="__task_id",shape=[1],dtype='int64')
+
+            loss_var = layers.switch_case(
+                branch_index=task_id_var,
+                branch_fns=task_fns
+            )
+        # self._task_id_var = task_id_var
+        # self._loss_var = loss_var
+        # self._fetch_list = [loss_var.name]
+        if not self._multi_task:
+            self._init_exe_prog(for_train=False)
+        # return self.build_forward()
+
+    #     """
+    #     Build computation graph for evaluation and prediction.
+
+    #     Arguments:
+    #         - pred_backbone: a Backbone object with phase == 'predict'. For evaluating model during training, the predict backbone should keep the same with train backbone.
+    #         - pred_head: a Head object with phase == 'predict'. For evaluating model during training, the predict head should keep the same with train head.
+    #     
+    #     Return:
+    #         - output_vars: dict type. Each value is a computational graph variable(node) argumented by pred_head outputs_attr.
+    #     """
+    #     for i in self._trainers:
+    #         assert i._predict_vars is not None, "{} need to build_predict_forward before "
+    #         
+    #     return output_vars
+
+    def merge_inference_readers(self, readers):
+
+        for r in readers:
+            assert r._phase == 'predict'
+
+        if isinstance(readers, list):
+            reader_dict = {k.name: v for k,v in zip(self._trainers, readers)}
+        elif isinstance(readers, dict):
+            reader_dict = readers
+        else:
+            raise ValueError()
+        
+        num_heads = len(self._trainers)
+        assert len(reader_dict) == num_heads, "received number of readers is not consistent with trainers."
+
+        trainer_dict = {t.name: t for t in self._trainers}
+        task_name2id = {t.name: idx for idx, t in enumerate(self._trainers)}
+        self._task_name2id = task_name2id
+
+        self._finish_steps = {}
+        self._finish = {}
+        input_names = []
+        name_to_pos = []
+        joint_shape_and_dtypes = []
+        iterators = []
+        prefixes = []
+        mrs = []
+        net_inputs = []
+        global_steps = 0
+        for t in self._trainers:
+            assert t.name in reader_dict
+            assert reader_dict[t.name].num_epochs is None, "{}: num_epochs is not None. \
+                To run with multi-head mode, num_epochs of each Trainer should be set as None.".format(t.name)
+            # print(num_epochs, t.mix_ratio, base_steps_pur_epoch)
+            self._finish_steps[t.name] = 9999999999
+            self._finish[t.name] = True
+
+            # t._set_task_id(self._task_id_var)
+            t.fit_reader(reader_dict[t.name], phase='predict')
+            net_inputs.append(t._pred_net_inputs)
+            prefixes.append(t.name)
+            iterators.append(t._raw_iterator_fn())
+            input_names.append(t._pred_input_names)
+            name_to_pos.append(t._pred_name_to_position)
+            joint_shape_and_dtypes.append(t._pred_shape_and_dtypes)
+
+        iterator_fn = reader_helper.create_multihead_inference_fn(iterators, prefixes, joint_shape_and_dtypes, \
+            input_names, name_to_pos, task_name2id, dev_count=dev_count)
+        feed_batch_process_fn = reader_helper.create_feed_batch_process_fn(net_inputs)
+
+        if gpu_dev_count > 1:
+            raise NotImplementedError('currently only single-gpu mode has been supported running with multi-task mode.')
+            # distribute_feeder_fn = data_feeder(iterator_fn, feed_batch_process_fn, phase=phase, is_multi=True, with_arg=True)
+        else:
+            distribute_feeder_fn = iterator_fn
+
+        self._predict_iterator_fn = distribute_feeder_fn
+        self._pred_feed_batch_process_fn = feed_batch_process_fn
+        return distribute_feeder_fn
 
     def fit_readers_with_mixratio(self, readers, sampling_reference, num_epochs, phase='train'):
         """
@@ -247,18 +345,6 @@ class MultiHeadTrainer(Trainer):
             if finish:
                 break
 
-            # if cur_task.train_finish and cur_task.cur_train_step + cur_task.cur_train_epoch * cur_task.steps_pur_epoch == cur_task.expected_train_steps:
-            #     print(cur_task.name+': train finished!')
-            #     cur_task.save()
-
-            # if (save_predict or save_ckpt) and self._cur_train_step % save_steps == 0:
-            #     if save_predict:
-            #         self.save(save_path, suffix='pred.step'+str(self._cur_train_step))
-            #     if save_ckpt:
-            #         fluid.io.save_persistables(self._exe, os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)), self._train_prog)
-            #         print('checkpoint has been saved at '+os.path.join(save_path, 'ckpt.step'+str(self._cur_train_step)))
-
-
     def train_one_step(self, batch):
 
         if dev_count > 1:
@@ -268,33 +354,29 @@ class MultiHeadTrainer(Trainer):
             assert isinstance(batch, dict)
             task_id = batch['__task_id'][0]
             
-        # rt_outputs = self._trainers[task_id].train_one_step(batch, self._exe, self._distribute_train_prog, self._fetch_list)
         rt_outputs = self._trainers[task_id].train_one_step(batch)
 
         self._cur_train_step += 1
         self._check_save()
         return rt_outputs, task_id
         
-        # if dev_count > 1:
-        #     # feed, mask, task_id = batch
-        #     for f in feed:
-        #         f['branch'] = np.array([task_id], dtype='int64')
-        #     rt_outputs = self.exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._trainers[task_id]._fetch_list)
-        #     num_fakes = decode_fake(len(rt_outputs[0]), mask, self._trainers[task_id]._batch_size)
-        #     for _ in range(num_fakes):
-        #         for item in rt_outputs:
-        #             item.pop()
-        # else:
-        #     feed, task_id = batch
-        #     feed['branch'] = np.array([task_id], dtype='int64')
-        #     rt_outputs = self._exe.run(self._distribute_train_prog, feed=feed, fetch_list=self._trainers[task_id]._fetch_list)
+    def predict_one_batch(self, task_name, batch):
+        if dev_count > 1:
+            raise NotImplementedError()
 
-    def predict_one_batch(self, batch):
-        raise NotImplementedError()
+        # batch = next(self._predict_iterator_fn(task_name))
+        t = self._trainers[self._task_name2id[task_name]]
+        # t._set_exe(self._exe)
+        t._set_dist_pred(self._trainers[self._task_name2id[task_name]]._pred_prog)
+        rt_outputs = t.predict_one_batch(batch)
+        return rt_outputs
 
     def predict(self, output_dir=None, print_steps=1000):
         raise NotImplementedError()
+        # iterator = self._predict_iterator
+        # self._distribute_pred_prog = fluid.CompiledProgram(self._pred_prog).with_data_parallel()
 
     @property
     def overall_train_steps(self):
         return self._overall_train_steps
+

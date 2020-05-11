@@ -60,7 +60,7 @@ class SequenceLabel(Head):
         if self._is_training:
             return {'loss': [[1], 'float32']}
         else:
-            return {'emission': [[-1, self.num_classes], 'float32']}
+            return {'logits': [[-1, -1, self.num_classes], 'float32']}
 
     def build(self, inputs, scope_name=''):
         token_emb = inputs['backbone']['encoder_outputs']
@@ -107,7 +107,7 @@ class SequenceLabel(Head):
 
             return {"loss": avg_cost}
         else:
-            return {"emission": emission} 
+            return {"logits": emission} 
 
     def batch_postprocess(self, rt_outputs):
         if not self._is_training:

@@ -25,7 +25,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
     name="paddlepalm",
-    version="2.0.2",
+    version="2.1.0",
     author="PaddlePaddle",
     author_email="zhangyiming04@baidu.com",
     description="a flexible, general and easy-to-use NLP large-scale pretraining and multi-task learning framework.",
@@ -68,7 +68,7 @@ setuptools.setup(
             'Programming Language :: Python :: 3.7',
           ],
     install_requires = [
-        'paddlepaddle-gpu>=1.7.0'
+        'paddlepaddle-gpu>=1.8.0'
     ]
 )
 
