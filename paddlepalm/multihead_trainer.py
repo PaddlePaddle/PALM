@@ -125,27 +125,8 @@ class MultiHeadTrainer(Trainer):
                 branch_index=task_id_var,
                 branch_fns=task_fns
             )
-        # self._task_id_var = task_id_var
-        # self._loss_var = loss_var
-        # self._fetch_list = [loss_var.name]
         if not self._multi_task:
             self._init_exe_prog(for_train=False)
-        # return self.build_forward()
-
-    #     """
-    #     Build computation graph for evaluation and prediction.
-
-    #     Arguments:
-    #         - pred_backbone: a Backbone object with phase == 'predict'. For evaluating model during training, the predict backbone should keep the same with train backbone.
-    #         - pred_head: a Head object with phase == 'predict'. For evaluating model during training, the predict head should keep the same with train head.
-    #     
-    #     Return:
-    #         - output_vars: dict type. Each value is a computational graph variable(node) argumented by pred_head outputs_attr.
-    #     """
-    #     for i in self._trainers:
-    #         assert i._predict_vars is not None, "{} need to build_predict_forward before "
-    #         
-    #     return output_vars
 
     def merge_inference_readers(self, readers):
 
