@@ -32,6 +32,7 @@ class MultiHeadTrainer(Trainer):
         self._name_pads = {i.name: name_maxlen-len(i.name) for i in self._trainers}
 
         self._train_init = False
+        self._dist_train_init = False
         self._predict_init = False
         self._feeded_var_names = None
         self._cur_train_step = 0
@@ -274,6 +275,7 @@ class MultiHeadTrainer(Trainer):
         elif phase == 'predict':
             self._predict_reader = distribute_feeder_fn
             self._pred_feed_batch_process_fn = feed_batch_process_fn
+        return distribute_feeder_fn
 
     def _check_finish(self, task_name, silent=False):
         trainers = {t.name:t for t in self._trainers}
@@ -327,6 +329,13 @@ class MultiHeadTrainer(Trainer):
                 break
 
     def train_one_step(self, batch):
+        if not self._dist_train_init:
+            self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
+            for t in self._trainers:
+                t._set_exe(self._exe)
+                t._set_dist_train(self._distribute_train_prog)
+                t._set_fetch_list(self._fetch_list)
+            self._dist_train_init = True
 
         if dev_count > 1:
             assert isinstance(batch, tuple)

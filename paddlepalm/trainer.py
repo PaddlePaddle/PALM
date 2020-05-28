@@ -49,6 +49,7 @@ class Trainer(object):
         self._pred_head = None
       
         self._train_reader = None
+        self._dist_train_init = False
         self._predict_reader = None
         self._train_iterator = None
         self._predict_iterator = None
@@ -389,8 +390,7 @@ class Trainer(object):
         elif phase == 'predict':
             self._predict_iterator = distribute_feeder_fn
             self._pred_feed_batch_process_fn = feed_batch_process_fn
-        # return distribute_feeder_fn()
-
+        return distribute_feeder_fn
 
     def load_ckpt(self, model_path):
         """
@@ -645,6 +645,10 @@ class Trainer(object):
         self._fetch_list = fetch_list
 
     def train_one_step(self, batch):
+
+        if not self._dist_train_init:
+            self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
+            self._dist_train_init = True
 
         exe = self._exe
         distribute_train_prog = self._distribute_train_prog
