@@ -297,6 +297,7 @@ class MultiHeadTrainer(Trainer):
         iterator = self._train_reader
         self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
         for t in self._trainers:
+            t._dist_train_init = True
             t._set_exe(self._exe)
             t._set_dist_train(self._distribute_train_prog)
             t._set_fetch_list(self._fetch_list)
@@ -332,6 +333,7 @@ class MultiHeadTrainer(Trainer):
         if not self._dist_train_init:
             self._distribute_train_prog = fluid.CompiledProgram(self._train_prog).with_data_parallel(loss_name=self._loss_var.name)
             for t in self._trainers:
+                t._dist_train_init = True
                 t._set_exe(self._exe)
                 t._set_dist_train(self._distribute_train_prog)
                 t._set_fetch_list(self._fetch_list)

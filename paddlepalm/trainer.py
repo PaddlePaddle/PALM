@@ -420,7 +420,6 @@ class Trainer(object):
             saver.init_checkpoint(
                 self._exe,
                 model_path,
-                convert=False,
                 main_program=self._train_init_prog)
         elif self._pred_init_prog is not None:
             saver.init_checkpoint(
