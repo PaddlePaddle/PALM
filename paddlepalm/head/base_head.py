@@ -122,11 +122,11 @@ class Head(object):
             output_dir: 积累结果的保存路径。
         """
         if output_dir is not None:
-            for i in self._results_buffer:
-                print(i)
-        else:
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             with open(os.path.join(output_dir, self._phase), 'w') as writer:
                 for i in self._results_buffer:
                     writer.write(json.dumps(i)+'\n')
+        else:
+            return self._results_buffer
+

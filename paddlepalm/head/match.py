@@ -159,8 +159,6 @@ class Match(Head):
             else:
                 return {'probs': pos_score}
         
-
-
     def batch_postprocess(self, rt_outputs):
         if not self._is_training:
             probs = []
@@ -170,6 +168,10 @@ class Match(Head):
             if self._learning_strategy == 'pointwise':
                 logits = rt_outputs['logits']
                 self._preds_logits.extend(logits.tolist())
+
+    def reset(self):
+        self._preds_logits = []
+        self._preds = []
         
     def epoch_postprocess(self, post_inputs, output_dir=None):
         # there is no post_inputs needed and not declared in epoch_inputs_attrs, hence no elements exist in post_inputs

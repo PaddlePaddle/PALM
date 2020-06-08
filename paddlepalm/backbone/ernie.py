@@ -31,7 +31,7 @@ class ERNIE(Backbone):
     
     def __init__(self, hidden_size, num_hidden_layers, num_attention_heads, vocab_size, \
           max_position_embeddings, sent_type_vocab_size, task_type_vocab_size, \
-          hidden_act, hidden_dropout_prob, attention_probs_dropout_prob, initializer_range, is_pairwise=False, phase='train'):
+          hidden_act, hidden_dropout_prob, attention_probs_dropout_prob, initializer_range, is_pairwise=False, use_task_emb=True, phase='train'):
 
         # self._is_training = phase == 'train' # backbone一般不用关心运行阶段，因为outputs在任何阶段基本不会变
  
@@ -54,6 +54,7 @@ class ERNIE(Backbone):
         self._task_emb_name = "task_embedding"
         self._emb_dtype = "float32"
         self._is_pairwise = is_pairwise
+        self._use_task_emb = use_task_emb
         self._phase=phase
         self._param_initializer = fluid.initializer.TruncatedNormal(
             scale=initializer_range)
@@ -85,6 +86,10 @@ class ERNIE(Backbone):
             task_type_vocab_size = config['task_type_vocab_size']
         else:
             task_type_vocab_size = config['type_vocab_size']
+        if 'use_task_emb' in config:
+            use_task_emb = config['use_task_emb']
+        else:
+            use_task_emb = True
         hidden_act = config['hidden_act']
         hidden_dropout_prob = config['hidden_dropout_prob']
         attention_probs_dropout_prob = config['attention_probs_dropout_prob']
@@ -96,7 +101,7 @@ class ERNIE(Backbone):
         
         return cls(hidden_size, num_hidden_layers, num_attention_heads, vocab_size, \
           max_position_embeddings, sent_type_vocab_size, task_type_vocab_size, \
-          hidden_act, hidden_dropout_prob, attention_probs_dropout_prob, initializer_range, is_pairwise, phase=phase)
+          hidden_act, hidden_dropout_prob, attention_probs_dropout_prob, initializer_range, is_pairwise, use_task_emb=use_task_emb, phase=phase)
 
     @property
     def inputs_attr(self):
@@ -180,15 +185,16 @@ class ERNIE(Backbone):
             emb_out = emb_out + position_emb_out
             emb_out = emb_out + sent_emb_out
 
-            task_emb_out = fluid.embedding(
-                task_ids,
-                size=[self._task_types, self._emb_size],
-                dtype=self._emb_dtype,
-                param_attr=fluid.ParamAttr(
-                    name=scope_name+self._task_emb_name,
-                    initializer=self._param_initializer))
+            if self._use_task_emb:
+                task_emb_out = fluid.embedding(
+                    task_ids,
+                    size=[self._task_types, self._emb_size],
+                    dtype=self._emb_dtype,
+                    param_attr=fluid.ParamAttr(
+                        name=scope_name+self._task_emb_name,
+                        initializer=self._param_initializer))
 
-            emb_out = emb_out + task_emb_out
+                emb_out = emb_out + task_emb_out
 
             emb_out = pre_process_layer(
                 emb_out, 'nd', self._prepostprocess_dropout, name=scope_name+'pre_encoder')

@@ -587,6 +587,9 @@ class Trainer(object):
         results = self._pred_head.epoch_postprocess({'reader':reader_outputs}, output_dir=output_dir)
         return results
 
+    def reset_buffer(self):
+        self._pred_head.reset()
+
     def _check_phase(self, phase):
         assert phase in ['train', 'predict'], "Supported phase: train, predict,"
 
