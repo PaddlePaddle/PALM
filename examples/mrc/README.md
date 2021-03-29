@@ -90,7 +90,7 @@ After the run, you can view the saved models in the `outputs/` folder and the pr
 Before the evaluation, you need to install `nltk` and download the `punkt` tokenizer for nltk:
 
 ```shell
-pip insall nltk
+pip install nltk
 python -m nltk.downloader punkt
 ```
 
